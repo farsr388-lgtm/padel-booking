@@ -33,31 +33,35 @@ LANG = {
         "align": "right",
         "title": "🎾 تمرين {} — قروب 99",
         "promo_badge": "🔥 عرض الوفاء: العب 6 تمارين والـ 7 مجاناً بالكامل! 🎁",
-        "time_str": "⏰ 9:30 م - 11:00 م | كورت 1 & كورت 2 (12 مقعد)",
+        "time_str": "⏰ ٩:٣٠ مساءً حتى ١١:٠٠ مساءً | كورت 1 & كورت 2 (12 مقعد)",
         "court1": "🏟️ كورت 1",
         "court2": "🏟️ كورت 2",
         "tab_book": "⚡ حجز مقعد فوري",
         "tab_cancel": "❌ اعتذار / إلغاء",
         "name_lbl": "اسم اللاعب:",
         "phone_lbl": "رقم الجوال (05xxxxxxx):",
+        "level_lbl": "المستوى في اللعب:",
+        "levels": ["متوسط", "متقدم", "مبتدئ"],
         "btn_book": "🚀 تأكيد الحجز الفوري",
         "err_fields": "فضلاً أدخل الاسم ورقم الجوال بالشكل الصحيح.",
         "succ_book": "كفو يا كابتن {}! تم تثبيت مقعدك في {}.",
         "succ_wait": "اكتملت المقاعد الأساسية! تم تسجيلك في قائمة الاحتياط.",
         "cancel_phone": "رقم الجوال المسجل به الحجز:",
-        "cancel_reason": "سبب الاعتذار الرئيسي:",
+        "cancel_reason": "سبب الاعتذار الرئيسي والتقييم:",
         "reasons": [
-            "السعر غير مناسب",
-            "لقيت مكان / ملعب أفضل",
-            "صديقي نصحني بملعب آخر",
-            "تعارض في الوقت / ظرف طارئ",
-            "إجهاد بدني / إصابة",
-            "بعد المكان / صعوبة مواصلات",
-            "أخرى"
+            "السعر / قيمة القطة غير مناسبة",
+            "مكان أو جودة الملعب غير مريحة (أرضية / إضاءة / تكييف)",
+            "لقيت حجز في ملعب أفضل أو أقرب",
+            "صديقي أو مجموعتي قرروا اللعب في مكان آخر",
+            "مستوى التمرين غير متكافئ معي (صعب / سهل)",
+            "تعارض في الوقت / ارتباط عمل مفاجئ",
+            "إجهاد بدني أو إصابة عضلية",
+            "صعوبة في المواصلات أو بعد المسافة",
+            "أخرى (ظرف شخصي طارئ)"
         ],
         "btn_cancel": "تأكيد الاعتذار وتفريغ المقعد",
         "succ_cancel": "تم قبول اعتذارك يا كابتن {} وتفريغ المقعد.",
-        "err_cancel": "لم يتم العثور على حجز مؤكد بهذا الرقم.",
+        "err_cancel": "لم يتم العثور على حجز مؤكد بهذا الرقم في تمرين اليوم.",
         "admin_pin": "الرمز السري:",
         "export_btn": "📥 تحميل تايم شيت الحضور (Excel)",
         "wa_msg_conf": "🎾 تم تأكيد حجز مقعدي ({}) في تمرين {} - {}! مرفق إشعار القطة ⚡",
@@ -68,31 +72,35 @@ LANG = {
         "align": "left",
         "title": "🎾 {} Session — Group 99",
         "promo_badge": "🔥 Loyalty Reward: Play 6 sessions, get the 7th FREE! 🎁",
-        "time_str": "⏰ 21:30 - 23:00 | Court 1 & Court 2 (12 Spots)",
+        "time_str": "⏰ 9:30 PM until 11:00 PM | Court 1 & Court 2 (12 Spots)",
         "court1": "🏟️ Court 1",
         "court2": "🏟️ Court 2",
         "tab_book": "⚡ Quick Book",
         "tab_cancel": "❌ Cancel Booking",
         "name_lbl": "Player Name:",
         "phone_lbl": "Mobile (05xxxxxxx):",
+        "level_lbl": "Skill Level:",
+        "levels": ["Intermediate", "Advanced", "Beginner"],
         "btn_book": "🚀 Confirm Booking",
         "err_fields": "Please enter a valid name and phone number.",
         "succ_book": "Confirmed for Captain {} in {}!",
         "succ_wait": "Main spots full! Added to the waitlist.",
         "cancel_phone": "Registered Mobile Number:",
-        "cancel_reason": "Cancellation Reason:",
+        "cancel_reason": "Cancellation Reason & Feedback:",
         "reasons": [
-            "Price not suitable",
-            "Found a better court/venue",
-            "Friend suggested another place",
-            "Schedule conflict / Sudden event",
-            "Fatigue / Injury",
-            "Distance / Transportation issue",
-            "Other"
+            "Price / share cost is not suitable",
+            "Venue or court quality uncomfortable (turf/lighting/AC)",
+            "Found a better or closer venue",
+            "Friend or group playing elsewhere",
+            "Skill level mismatch (too hard / too easy)",
+            "Schedule conflict / Sudden work commitment",
+            "Physical fatigue or muscle injury",
+            "Distance / Transportation difficulty",
+            "Other (Personal emergency)"
         ],
         "btn_cancel": "Confirm Cancellation",
         "succ_cancel": "Cancelled for Captain {}. Spot released.",
-        "err_cancel": "No confirmed booking found for this number.",
+        "err_cancel": "No confirmed booking found for this number today.",
         "admin_pin": "Admin PIN:",
         "export_btn": "📥 Download Timesheet (Excel)",
         "wa_msg_conf": "🎾 Slot confirmed for ({}) on {} - {}! Receipt attached ⚡",
@@ -107,7 +115,7 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 2. الهوية البصرية وتصميم شاشات الجوال السريعة
+# 2. الهوية البصرية وتصميم شاشات الجوال
 # ==========================================
 st.markdown(f"""<style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap');
@@ -235,7 +243,7 @@ sess_ar, sess_en, db_session_key = get_next_session()
 display_session = sess_ar if l_code == "ar" else sess_en
 
 # ==========================================
-# 4. قاعدة البيانات وحساب نقاط الوفاء
+# 4. إدارة قاعدة البيانات
 # ==========================================
 DB_FILE = "group99_padel.db"
 
@@ -252,7 +260,7 @@ def init_db():
                 phone TEXT NOT NULL,
                 session_day TEXT NOT NULL,
                 court INTEGER DEFAULT 1,
-                level TEXT DEFAULT 'عام',
+                level TEXT DEFAULT 'متوسط',
                 status TEXT DEFAULT 'confirmed',
                 payment_status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -281,13 +289,13 @@ def get_loyalty_score(norm_phone):
         return res[0] if res else 0
 
 # ==========================================
-# 5. عرض التشكيلة المباشرة (6 لاعبين لكل كورت)
+# 5. عرض تشكيلة الكورتين المباشرة
 # ==========================================
 st.title(t["title"].format(display_session))
 st.markdown(f'<div class="promo-box">{t["promo_badge"]}</div>', unsafe_allow_html=True)
 st.caption(t["time_str"])
 
-COURT_CAPACITY = 6  # 6 لاعبين لكل كورت
+COURT_CAPACITY = 6
 
 with get_db() as conn:
     c = conn.cursor()
@@ -328,7 +336,7 @@ if waitlist:
 st.divider()
 
 # ==========================================
-# 6. الحجز السريع في حقلين فقط (الاسم + الجوال)
+# 6. الحجز السريع والاعتذار
 # ==========================================
 tab_book, tab_cancel = st.tabs([t["tab_book"], t["tab_cancel"]])
 
@@ -336,6 +344,7 @@ with tab_book:
     with st.form("book_form", clear_on_submit=False):
         f_name = st.text_input(t["name_lbl"])
         f_phone = st.text_input(t["phone_lbl"])
+        f_level = st.selectbox(t["level_lbl"], t["levels"])
         btn_book = st.form_submit_button(t["btn_book"])
 
         if btn_book:
@@ -345,7 +354,6 @@ with tab_book:
             if len(clean_name) < 2 or len(clean_p) < 8:
                 st.error(t["err_fields"])
             else:
-                # توزيع تلقائي سلس: كورت 1 أولاً حتى 6، ثم كورت 2 حتى 6
                 if len(c1) < COURT_CAPACITY:
                     target_court = 1
                     status_val = 'confirmed'
@@ -358,8 +366,8 @@ with tab_book:
 
                 with get_db() as conn:
                     cur = conn.cursor()
-                    cur.execute("INSERT INTO bookings (name, phone, session_day, court, status) VALUES (?, ?, ?, ?, ?)",
-                                (clean_name, clean_p, db_session_key, target_court, status_val))
+                    cur.execute("INSERT INTO bookings (name, phone, session_day, court, level, status) VALUES (?, ?, ?, ?, ?, ?)",
+                                (clean_name, clean_p, db_session_key, target_court, f_level, status_val))
                     conn.commit()
 
                 court_label = f"كورت {target_court}" if l_code == "ar" else f"Court {target_court}"
@@ -383,7 +391,7 @@ with tab_book:
         wa_url = f"https://wa.me/?text={urllib.parse.quote(msg)}"
         st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال التأكيد في قروب الواتساب</a>', unsafe_allow_html=True)
 
-# --- تبويب الاعتذار مع تفريغ المقعد والترقية الفورية ---
+# --- تبويب الاعتذار مع الاستبيان المفصل ---
 with tab_cancel:
     with st.form("cancel_form"):
         can_phone_raw = st.text_input(t["cancel_phone"])
@@ -403,7 +411,6 @@ with tab_cancel:
                     cur.execute("INSERT INTO cancellations (player_name, player_phone, session_day, court, reason) VALUES (?, ?, ?, ?, ?)",
                                 (target[1], clean_cp, db_session_key, target[3], can_reason))
                     
-                    # ترقية أول احتياط لكورت اللاعب المعتذر
                     if target[2] == 'confirmed':
                         cur.execute("SELECT id FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC LIMIT 1", (db_session_key,))
                         first_wait = cur.fetchone()
@@ -419,7 +426,7 @@ with tab_cancel:
                     st.error(t["err_cancel"])
 
 # ==========================================
-# 7. لوحة الإدارة (إحصائيات فورية + تصدير إكسل + تبديل)
+# 7. لوحة الإدارة
 # ==========================================
 st.write("")
 with st.expander("⚙️", expanded=False):
@@ -435,11 +442,10 @@ with st.expander("⚙️", expanded=False):
 
         st.divider()
 
-        # تصدير التايم شيت لإكسل
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute("""
-                SELECT session_day, court, name, phone,
+                SELECT session_day, court, name, phone, level,
                        CASE WHEN payment_status='paid' THEN 'تم الدفع' ELSE 'معلق' END as pay_state,
                        created_at
                 FROM bookings WHERE status='confirmed'
@@ -451,28 +457,26 @@ with st.expander("⚙️", expanded=False):
             output = io.StringIO()
             output.write('\ufeff')
             writer = csv.writer(output)
-            writer.writerow(["تاريخ التمرين", "الكورت", "الاسم", "رقم الجوال", "حالة القطة", "وقت التسجيل"])
+            writer.writerow(["تاريخ التمرين", "الكورت", "الاسم", "رقم الجوال", "المستوى", "حالة القطة", "وقت التسجيل"])
             for r in raw_rows:
                 formatted_phone = f'0{r[3]}' if not str(r[3]).startswith('0') else str(r[3])
-                writer.writerow([r[0], f"كورت {r[1]}", r[2], f'="{formatted_phone}"', r[4], r[5]])
+                writer.writerow([r[0], f"كورت {r[1]}", r[2], f'="{formatted_phone}"', r[4], r[5], r[6]])
             
             st.download_button(t["export_btn"], output.getvalue().encode('utf-8-sig'), f"padel_timesheet_{datetime.now().strftime('%Y_%m')}.csv", "text/csv")
 
         st.divider()
 
-        # إدارة الكورتين والتبديل
-        st.write(f"### إدارة لاعبي {display_session}")
+        st.write(f"### إدارة وتوزيع لاعبي {display_session}")
         with get_db() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT id, name, phone, payment_status, court FROM bookings WHERE session_day=? AND status='confirmed' ORDER BY court ASC, id ASC", (db_session_key,))
+            cur.execute("SELECT id, name, phone, payment_status, court, level FROM bookings WHERE session_day=? AND status='confirmed' ORDER BY court ASC, id ASC", (db_session_key,))
             players = cur.fetchall()
 
         if players:
             for p in players:
-                col_i, col_m, col_p, col_d = st.columns([3, 3, 2, 2])
-                col_i.write(f"C{p[4]}: **{p[1]}** (`0{p[2]}`)")
+                col_i, col_m, col_p, col_d = st.columns([4, 3, 2, 2])
+                col_i.write(f"C{p[4]}: **{p[1]}** `[{p[5]}]` (`0{p[2]}`)")
                 
-                # زر تبديل اللاعب بين كورت 1 وكورت 2
                 if p[4] == 1:
                     if col_m.button("نقل لـ 2 ➡️", key=f"m2_{p[0]}"):
                         with get_db() as conn:
@@ -484,7 +488,6 @@ with st.expander("⚙️", expanded=False):
                             conn.execute("UPDATE bookings SET court=1 WHERE id=?", (p[0],))
                         st.rerun()
 
-                # تأكيد / إلغاء الدفع
                 if p[3] == 'pending':
                     if col_p.button("تأكيد 💳", key=f"pay_{p[0]}"):
                         with get_db() as conn:
@@ -505,11 +508,10 @@ with st.expander("⚙️", expanded=False):
 
         st.divider()
 
-        # سجل الاستبيان
-        st.write("### 📊 تحليل أسباب الاعتذار")
+        st.write("### 📊 تحليل أسباب الاعتذار (Detailed Survey)")
         with get_db() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT player_name, player_phone, session_day, reason, cancelled_at FROM cancellations ORDER BY id DESC LIMIT 15")
+            cur.execute("SELECT player_name, player_phone, session_day, reason, cancelled_at FROM cancellations ORDER BY id DESC LIMIT 20")
             feedbacks = cur.fetchall()
 
         if feedbacks:
