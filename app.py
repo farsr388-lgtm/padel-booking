@@ -1,579 +1,431 @@
-from contextlib import contextmanager
-import csv
-from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
-import hmac
-import html
-import io
-import re
-import sqlite3
-import urllib.parse
 import streamlit as st
+import sqlite3
+from datetime import datetime
 
+# ==========================================
+# 1. إعداد الصفحة واللغات (Dictionary)
+# ==========================================
+st.set_page_config(
+    page_title="Padel 99 | حجز ملعبي بادل",
+    page_icon="🎾",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
-# ==============================================================================
-# 1. الإعدادات والثوابت التشغيلية
-# ==============================================================================
-@dataclass(frozen=True)
-class AppConfig:
-    DB_NAME: str = "easy_padel.db"
-
-    # التكاليف وسعة الملعب
-    COURT_TOTAL_COST: float = 190.0
-    COURT_CAPACITY: int = 6
-    LOYALTY_THRESHOLD: int = 6
-
-    # بيانات التواصل والحساب البنكي
-    ADMIN_WHATSAPP: str = "966566261868"
-    ADMIN_PIN: str = "9900"
-    BANK_NAME: str = "البنك الأهلي السعودي (SNB)"
-    BENEFICIARY_NAME: str = "فارس"
-    ACCOUNT_NUMBER: str = "11100320673600"
-    IBAN_NUMBER: str = "SA0310000011100320673600"
-
-    # جدول التمارين والإغلاق الزمني
-    SESSION_START_TIME: str = "21:30"  # 9:30 م
-    SESSION_END_TIME: str = "23:00"  # 11:00 م
-    CUTOFF_HOURS_BEFORE: int = 2  # إغلاق الحجز والإلغاء الذاتي الساعة 7:30 م
-
-    LEVELS: tuple = ("مبتدئ 🌱", "متوسط ⚡", "متقدم 🔥")
-    DAYS_MAP: dict = None
-
-    @property
-    def BASE_SHARE_PRICE(self) -> float:
-        return round(self.COURT_TOTAL_COST / self.COURT_CAPACITY, 2)
-
-    def __post_init__(self):
-        if self.DAYS_MAP is None:
-            object.__setattr__(self, 'DAYS_MAP', {
-                "الأحد": 6,
-                "الإثنين": 0,
-                "الثلاثاء": 1,
-                "الأربعاء": 2
-            })
-
-
-config = AppConfig()
-
-# ==============================================================================
-# 2. إعدادات الواجهة والتصميم
-# ==============================================================================
-st.set_page_config(page_title="حجز بادل — قروب 99", page_icon="🎾", layout="centered")
-
-st.markdown("""
-    <style>
-    .main { background-color: #0F172A; color: #F8FAFC; }
-    .stButton>button {
-        width: 100%;
-        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-        color: #FFFFFF;
-        font-weight: 700;
-        border-radius: 12px;
-        padding: 14px;
-        font-size: 18px;
-        border: none;
+LANG = {
+    "ar": {
+        "dir": "rtl",
+        "align": "right",
+        "title": "🎾 حجز تمارين بادل — قروب 99",
+        "caption": "⚡ الموعد: 21:30 - 23:00 | نظام الملعبين (A & B) | الـ 7 مجاناً 🎁",
+        "rules_title": "📜 قوانين وضوابط التمارين وتوزيع الملاعب",
+        "rules_body": """
+        1. **نظام الملعبين:** الملعب 1 مخصص للمستويات (المتقدمة/المتوسطة) والملعب 2 للمستويات (المتوسطة/المبتدئة).
+        2. **التوزيع الآلي:** يوزعك النظام تلقائياً حسب مستواك لضمان تكافؤ اللعب، مع إمكانية تعديل الكابتن لجمع الأصحاب.
+        3. **سياسة الاعتذار:** الإلغاء متاح حتى **7:30 مساءً** يوم التمرين برقم الجوال فقط.
+        4. **تثبيت الحجز:** يرجى تحويل قيمة القطة فور التسجيل لتأكيد المقعد.
+        """,
+        "select_day": "📅 اختر موعد التمرين:",
+        "days": ["الأحد", "الثلاثاء", "الخميس"],
+        "court1_title": "🏟️ الملعب 1 (متقدم / متوسط)",
+        "court2_title": "🏟️ الملعب 2 (متوسط / مبتدئ)",
+        "level_lbl": "المستوى",
+        "pay_lbl": "الدفع",
+        "empty_court": "المقاعد شاغرة.. كن أول المنضمين!",
+        "waitlist_lbl": "📋 قائمة الاحتياط العامة:",
+        "tab_book": "📝 حجز مقعد",
+        "tab_cancel": "❌ اعتذار / إلغاء",
+        "name_lbl": "اسم اللاعب:",
+        "phone_lbl": "رقم الجوال (05xxxxxxxx):",
+        "skill_lbl": "مستوى اللعب:",
+        "levels": ["متقدم", "متوسط", "مبتدئ+", "مبتدئ"],
+        "btn_book": "🚀 تأكيد الحجز الفوري",
+        "err_fields": "يرجى كتابة الاسم ورقم الجوال بالشكل الصحيح.",
+        "succ_book_c1": "تم تأكيد حجزك في 🏟️ الملعب 1 يا كابتن {}!",
+        "succ_book_c2": "تم تأكيد حجزك في 🏟️ الملعب 2 يا كابتن {}!",
+        "succ_wait": "تمت إضافتك إلى قائمة الاحتياط بنجاح.",
+        "cancel_title": "الاعتذار وإلغاء الحجز",
+        "cancel_sub": "أدخل رقم جوالك المسجل لإخلاء المقعد تلقائياً للاحتياط.",
+        "reason_lbl": "سبب الاعتذار الرئيسي:",
+        "reasons": ["ظرف طارئ / عمل", "إصابة أو إجهاد بدني", "تعارض في الوقت", "صعوبة في الوصول", "أخرى"],
+        "speed_lbl": "تقييمك لسرعة وسهولة الموقع:",
+        "speed_opts": ["بطيء", "مقبول", "سريع وممتاز ⚡"],
+        "notes_lbl": "ملاحظات أو اقتراح لتطوير الموقع (اختياري):",
+        "btn_cancel": "تأكيد الاعتذار وتفريغ المقعد",
+        "succ_cancel": "تم قبول اعتذارك يا كابتن {} وإخلاء المقعد.",
+        "err_cancel": "لم يتم العثور على حجز مسجل بهذا الرقم في هذا الموعد.",
+        "admin_lock": "⚙️",
+        "admin_pin_lbl": "رمز الإدارة السري:",
+        "admin_welcome": "لوحة إدارة الكابتن — قروب 99 👑",
+        "btn_pay": "تأكيد 💳",
+        "btn_unpay": "إلغاء 🔄",
+        "btn_move_c2": "نقل لملعب 2 ➡️",
+        "btn_move_c1": "نقل لملعب 1 ⬅️",
+        "btn_del": "حذف ❌",
+        "feedback_title": "📊 تقرير الاستبيان وسجل الاعتذارات"
+    },
+    "en": {
+        "dir": "ltr",
+        "align": "left",
+        "title": "🎾 Padel Booking — Group 99",
+        "caption": "⚡ Time: 21:30 - 23:00 | 2 Courts System | 7th session FREE 🎁",
+        "rules_title": "📜 Rules & Auto-Court Assignment",
+        "rules_body": """
+        1. **Dual Courts:** Court 1 (Advanced/Intermediate) & Court 2 (Intermediate/Beginner).
+        2. **Auto-Assignment:** Auto-assigned based on skill. Captain can adjust to group friends.
+        3. **Cancellation:** Allowed until **7:30 PM** with registered phone number.
+        4. **Payment:** Please transfer share immediately to confirm slot.
+        """,
+        "select_day": "📅 Select Session Day:",
+        "days": ["Sunday", "Tuesday", "Thursday"],
+        "court1_title": "🏟️ Court 1 (Advanced / Mid)",
+        "court2_title": "🏟️ Court 2 (Mid / Beginner)",
+        "level_lbl": "Level",
+        "pay_lbl": "Pay",
+        "empty_court": "Court empty.. Be the first to book!",
+        "waitlist_lbl": "📋 General Waitlist:",
+        "tab_book": "📝 Book Slot",
+        "tab_cancel": "❌ Cancel Booking",
+        "name_lbl": "Player Name:",
+        "phone_lbl": "Mobile (05xxxxxxxx):",
+        "skill_lbl": "Skill Level:",
+        "levels": ["Advanced", "Intermediate", "Beginner+", "Beginner"],
+        "btn_book": "🚀 Confirm Booking",
+        "err_fields": "Please enter a valid name and phone number.",
+        "succ_book_c1": "Booked in 🏟️ Court 1 for Captain {}!",
+        "succ_book_c2": "Booked in 🏟️ Court 2 for Captain {}!",
+        "succ_wait": "Added to the general waitlist successfully.",
+        "cancel_title": "Cancel Booking & Feedback",
+        "cancel_sub": "Enter your registered phone number to release your spot.",
+        "reason_lbl": "Cancellation Reason:",
+        "reasons": ["Emergency / Work", "Injury / Fatigue", "Time Conflict", "Location / Distance", "Other"],
+        "speed_lbl": "Site speed & ease rating:",
+        "speed_opts": ["Slow", "Acceptable", "Fast & Great ⚡"],
+        "notes_lbl": "Suggestions / Feedback (Optional):",
+        "btn_cancel": "Confirm Cancellation",
+        "succ_cancel": "Cancelled for Captain {}. Spot released.",
+        "err_cancel": "No booking found for this phone number.",
+        "admin_lock": "⚙️",
+        "admin_pin_lbl": "Admin PIN:",
+        "admin_welcome": "Captain Control Panel — Group 99 👑",
+        "btn_pay": "Paid 💳",
+        "btn_unpay": "Unpay 🔄",
+        "btn_move_c2": "To Court 2 ➡️",
+        "btn_move_c1": "To Court 1 ⬅️",
+        "btn_del": "Del ❌",
+        "feedback_title": "📊 Cancellation Logs & Feedback"
     }
-    .ticket-box {
-        background: linear-gradient(145deg, #064E3B 0%, #022C22 100%);
-        border: 2px solid #10B981;
-        border-radius: 14px;
-        padding: 18px;
-        text-align: center;
-        margin: 15px 0;
-    }
-    .step-card {
-        background: #1E293B;
-        padding: 14px 18px;
-        border-radius: 12px;
+}
+
+# شريط اختيار اللغة
+col_lang1, col_lang2 = st.columns([4, 1])
+with col_lang2:
+    curr_lang = st.selectbox("🌐", ["العربية", "English"], label_visibility="collapsed")
+l_code = "ar" if curr_lang == "العربية" else "en"
+t = LANG[l_code]
+
+# تنسيقات الواجهة والخفة
+st.markdown(f"""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+    * {{ font-family: 'Cairo', sans-serif; direction: {t['dir']}; text-align: {t['align']}; }}
+    .stButton>button {{ width: 100%; border-radius: 8px; font-weight: 700; height: 2.7em; }}
+    .player-card {{
+        background: #1e293b;
+        border-right: 4px solid #3b82f6;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 8px;
+        color: #ffffff;
+    }}
+    .court-header {{
+        background: #0f172a;
+        padding: 8px 12px;
+        border-radius: 8px;
         border: 1px solid #334155;
-        margin-bottom: 12px;
-    }
-    </style>
+        font-weight: bold;
+        margin-bottom: 10px;
+    }}
+</style>
 """, unsafe_allow_html=True)
 
+# ==========================================
+# 2. قاعدة البيانات المحسنة للملعبين
+# ==========================================
+DB_FILE = "group99_padel.db"
 
-# ==============================================================================
-# 3. إدارة قاعدة البيانات والهجرة التلقائية
-# ==============================================================================
-class DB:
-    @staticmethod
-    @contextmanager
-    def get_connection():
-        conn = sqlite3.connect(config.DB_NAME, timeout=15)
-        conn.execute("PRAGMA journal_mode = WAL;")
-        try:
-            yield conn
-        finally:
-            conn.close()
+def get_connection():
+    return sqlite3.connect(DB_FILE, check_same_thread=False)
 
-    @classmethod
-    def init_db(cls):
-        with cls.get_connection() as conn:
-            with conn:
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS bookings (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        session_date TEXT NOT NULL,
-                        session_day TEXT NOT NULL,
-                        name TEXT NOT NULL,
-                        phone TEXT NOT NULL,
-                        level TEXT DEFAULT 'متوسط ⚡',
-                        amount REAL NOT NULL,
-                        is_free INTEGER DEFAULT 0,
-                        is_paid INTEGER DEFAULT 0,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE(session_date, phone)
-                    )
-                """)
-                # ترقية تلقائية في حال كان الجدول موجوداً مسبقاً
-                try:
-                    conn.execute("ALTER TABLE bookings ADD COLUMN level TEXT DEFAULT 'متوسط ⚡'")
-                except sqlite3.OperationalError:
-                    pass
-                try:
-                    conn.execute("ALTER TABLE bookings ADD COLUMN is_paid INTEGER DEFAULT 0")
-                except sqlite3.OperationalError:
-                    pass
+def init_db():
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bookings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                phone TEXT NOT NULL,
+                session_day TEXT NOT NULL,
+                court INTEGER DEFAULT 1,
+                level TEXT NOT NULL,
+                status TEXT DEFAULT 'confirmed',
+                payment_status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        # فحص إضافة عمود court إذا كان الجدول قديماً لتفادي أي أخطاء
+        cursor.execute("PRAGMA table_info(bookings)")
+        cols = [c[1] for c in cursor.fetchall()]
+        if 'court' not in cols:
+            cursor.execute("ALTER TABLE bookings ADD COLUMN court INTEGER DEFAULT 1")
 
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS loyalty (
-                        phone TEXT PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        paid_count INTEGER DEFAULT 0,
-                        free_claimed INTEGER DEFAULT 0
-                    )
-                """)
-                conn.execute("""
-                    CREATE TABLE IF NOT EXISTS waitlist (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        session_date TEXT NOT NULL,
-                        session_day TEXT NOT NULL,
-                        name TEXT NOT NULL,
-                        phone TEXT NOT NULL,
-                        level TEXT DEFAULT 'متوسط ⚡',
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE(session_date, phone)
-                    )
-                """)
-                try:
-                    conn.execute("ALTER TABLE waitlist ADD COLUMN level TEXT DEFAULT 'متوسط ⚡'")
-                except sqlite3.OperationalError:
-                    pass
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS cancellations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                player_name TEXT,
+                player_phone TEXT,
+                session_day TEXT,
+                court INTEGER,
+                reason TEXT,
+                feedback_rating TEXT,
+                feedback_notes TEXT,
+                cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        conn.commit()
 
+init_db()
 
-DB.init_db()
+# ==========================================
+# 3. الهيدر وعرض الملعبين
+# ==========================================
+st.title(t["title"])
+st.caption(t["caption"])
 
+with st.expander(t["rules_title"]):
+    st.markdown(t["rules_body"])
 
-# ==============================================================================
-# 4. محرك الجدولة والتحقق
-# ==============================================================================
-class ScheduleManager:
-    @staticmethod
-    def clean_phone(p: str) -> str:
-        digits = str(p).translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
-        cleaned = re.sub(r"\D", "", digits)
-        if cleaned.startswith("966"):
-            cleaned = "0" + cleaned[3:]
-        return cleaned
+day_map_ar = {"Sunday": "الأحد", "Tuesday": "الثلاثاء", "Thursday": "الخميس"}
+day_choice = st.selectbox(t["select_day"], t["days"])
+db_day = day_map_ar.get(day_choice, day_choice)
 
-    @staticmethod
-    def get_next_date_for_day(day_name: str) -> str:
-        target_weekday = config.DAYS_MAP[day_name]
-        today = date.today()
-        days_ahead = target_weekday - today.weekday()
-        if days_ahead < 0:
-            days_ahead += 7
-        return (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+COURT_CAP = 4  # سعة كل ملعب (4 لاعبين للمباراة)
 
-    @classmethod
-    def check_cutoff(cls, session_date_str: str) -> tuple[bool, str]:
-        now = datetime.now()
-        d = datetime.strptime(session_date_str, "%Y-%m-%d").date()
-        h, m = map(int, config.SESSION_START_TIME.split(":"))
-        session_start = datetime.combine(d, time(h, m))
-        cutoff_time = session_start - timedelta(hours=config.CUTOFF_HOURS_BEFORE)
+# جلب بيانات الملعبين
+with get_connection() as conn:
+    c = conn.cursor()
+    c.execute("SELECT id, name, phone, level, payment_status, court FROM bookings WHERE session_day=? AND court=1 AND status='confirmed' ORDER BY id ASC", (db_day,))
+    c1_players = c.fetchall()
+    c.execute("SELECT id, name, phone, level, payment_status, court FROM bookings WHERE session_day=? AND court=2 AND status='confirmed' ORDER BY id ASC", (db_day,))
+    c2_players = c.fetchall()
+    c.execute("SELECT id, name, phone, level FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC", (db_day,))
+    waitlist = c.fetchall()
 
-        if now > session_start:
-            return False, "⚠️ انتهى موعد هذا التمرين بالفعل."
-        if now >= cutoff_time:
-            cutoff_str = cutoff_time.strftime("%I:%M %p").replace("PM", "م").replace("AM", "ص")
-            return False, f"⏳ أُغلق باب الحجز والإلغاء الذاتي (يقفل الحجز تلقائياً الساعة {cutoff_str})."
-        return True, "متاح"
+# عرض تشكيلة الملعبين جنباً إلى جنب
+col_court1, col_court2 = st.columns(2)
 
-
-# ==============================================================================
-# 5. منطق الخدمات والعمليات
-# ==============================================================================
-class PadelService:
-    @classmethod
-    def get_public_roster(cls, session_date: str) -> list[dict]:
-        """جلب أسماء ومستويات اللاعبين فقط دون كشف أرقام الجوالات"""
-        with DB.get_connection() as conn:
-            c = conn.cursor()
-            c.execute("SELECT name, level FROM bookings WHERE session_date = ? ORDER BY id ASC", (session_date,))
-            return [{"name": r[0], "level": r[1] or "متوسط ⚡"} for r in c.fetchall()]
-
-    @classmethod
-    def process_booking(cls, name: str, phone: str, level: str, day_name: str) -> tuple[bool, str, dict]:
-        session_date = ScheduleManager.get_next_date_for_day(day_name)
-
-        is_open, msg = ScheduleManager.check_cutoff(session_date)
-        if not is_open:
-            return False, msg, {}
-
-        clean_name = html.escape(name.strip())
-        valid_phone = ScheduleManager.clean_phone(phone)
-        if not clean_name or not re.match(r"^05\d{8}$", valid_phone):
-            return False, "⚠️ يرجى إدخال اسم صحيح ورقم جوال بصيغة (05XXXXXXXX).", {}
-
-        with DB.get_connection() as conn:
-            cursor = conn.cursor()
-            try:
-                conn.execute("BEGIN IMMEDIATE")
-
-                cursor.execute("SELECT COUNT(*) FROM bookings WHERE session_date = ?", (session_date,))
-                if cursor.fetchone()[0] >= config.COURT_CAPACITY:
-                    return False, "⚠️ عذراً! اكتملت مقاعد هذا التمرين بالكامل.", {}
-
-                cursor.execute("SELECT paid_count FROM loyalty WHERE phone = ?", (valid_phone,))
-                row = cursor.fetchone()
-                paid_count = row[0] if row else 0
-                is_free = (paid_count > 0) and (paid_count % config.LOYALTY_THRESHOLD == 0)
-                due_amount = 0.0 if is_free else config.BASE_SHARE_PRICE
-
-                cursor.execute("""
-                    INSERT INTO bookings (session_date, session_day, name, phone, level, amount, is_free)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (session_date, day_name, clean_name, valid_phone, level, due_amount, 1 if is_free else 0))
-
-                if is_free:
-                    cursor.execute("""
-                        UPDATE loyalty SET paid_count = 0, free_claimed = free_claimed + 1, name = ?
-                        WHERE phone = ?
-                    """, (clean_name, valid_phone))
-                else:
-                    cursor.execute("""
-                        INSERT INTO loyalty (phone, name, paid_count) VALUES (?, ?, 1)
-                        ON CONFLICT(phone) DO UPDATE SET paid_count = paid_count + 1, name = ?
-                    """, (valid_phone, clean_name, clean_name))
-
-                conn.commit()
-                return True, "تم قفل مقعدك بنجاح!", {
-                    "name": clean_name, "phone": valid_phone, "level": level, "day": day_name,
-                    "date": session_date, "amount": due_amount, "is_free": is_free
-                }
-            except sqlite3.IntegrityError:
-                conn.rollback()
-                return False, "⚠️ أنت مسجل بالفعل كلاعب أساسي في هذا التمرين!", {}
-            except Exception as e:
-                conn.rollback()
-                return False, f"حدث خطأ: {str(e)}", {}
-
-    @classmethod
-    def join_waitlist(cls, name: str, phone: str, level: str, day_name: str) -> tuple[bool, str]:
-        session_date = ScheduleManager.get_next_date_for_day(day_name)
-        clean_name = html.escape(name.strip())
-        valid_phone = ScheduleManager.clean_phone(phone)
-
-        if not clean_name or not re.match(r"^05\d{8}$", valid_phone):
-            return False, "⚠️ يرجى إدخال اسم صحيح ورقم جوال صالح."
-
-        with DB.get_connection() as conn:
-            cursor = conn.cursor()
-            try:
-                cursor.execute("SELECT id FROM bookings WHERE session_date = ? AND phone = ?",
-                               (session_date, valid_phone))
-                if cursor.fetchone():
-                    return False, "⚠️ أنت مسجل بالفعل كلاعب أساسي!"
-
-                cursor.execute("""
-                    INSERT INTO waitlist (session_date, session_day, name, phone, level)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (session_date, day_name, clean_name, valid_phone, level))
-                conn.commit()
-                return True, f"تم تسجيلك في قائمة الاحتياط لتمرين {day_name} ({session_date}) ⏳"
-            except sqlite3.IntegrityError:
-                return False, "⚠️ أنت مسجل مسبقاً في قائمة الاحتياط لهذا اليوم."
-
-    @classmethod
-    def player_self_cancel(cls, phone: str, day_name: str) -> tuple[bool, str]:
-        session_date = ScheduleManager.get_next_date_for_day(day_name)
-        is_open, msg = ScheduleManager.check_cutoff(session_date)
-        if not is_open:
-            return False, msg
-
-        valid_phone = ScheduleManager.clean_phone(phone)
-        with DB.get_connection() as conn:
-            cursor = conn.cursor()
-            try:
-                conn.execute("BEGIN IMMEDIATE")
-                cursor.execute("SELECT id, is_free, name FROM bookings WHERE session_date = ? AND phone = ?",
-                               (session_date, valid_phone))
-                row = cursor.fetchone()
-                if not row:
-                    return False, "⚠️ لم يتم العثور على حجز نشط بهذا الرقم لتمرين هذا اليوم."
-
-                b_id, is_free, player_name = row[0], bool(row[1]), row[2]
-                cursor.execute("DELETE FROM bookings WHERE id = ?", (b_id,))
-
-                if is_free:
-                    cursor.execute(
-                        "UPDATE loyalty SET paid_count = ?, free_claimed = MAX(0, free_claimed - 1) WHERE phone = ?",
-                        (config.LOYALTY_THRESHOLD, valid_phone))
-                else:
-                    cursor.execute("UPDATE loyalty SET paid_count = MAX(0, paid_count - 1) WHERE phone = ?",
-                                   (valid_phone,))
-
-                conn.commit()
-                return True, f"✅ تم إلغاء حجزك بنجاح كابتن {player_name}."
-            except Exception as e:
-                conn.rollback()
-                return False, f"حدث خطأ: {str(e)}"
-
-
-# ==============================================================================
-# 6. واجهة المستخدم
-# ==============================================================================
-tab_book, tab_cancel, tab_admin = st.tabs(["🎾 حجز مقعد", "🚫 اعتذار عن تمرين", "📊 لوحة الإدارة"])
-
-# ------------------------------------------------------------------------------
-# تبويب 1: الحجز وعرض الأسماء
-# ------------------------------------------------------------------------------
-with tab_book:
-    st.title("🎾 حجز تمرين بادل (قروب 99)")
-    st.caption(
-        f"⚡ الموعد: {config.SESSION_START_TIME} - {config.SESSION_END_TIME} | الوفاء: كل {config.LOYALTY_THRESHOLD} تمارين والـ 7 مجاناً 🎁")
-
-    selected_day = st.selectbox("اختر موعد التمرين القادم:", list(config.DAYS_MAP.keys()), key="book_day")
-    session_date = ScheduleManager.get_next_date_for_day(selected_day)
-    is_open, window_msg = ScheduleManager.check_cutoff(session_date)
-
-    if not is_open:
-        st.error(window_msg)
+with col_court1:
+    st.markdown(f"<div class='court-header'>{t['court1_title']} ({len(c1_players)}/{COURT_CAP})</div>", unsafe_allow_html=True)
+    if c1_players:
+        for idx, p in enumerate(c1_players, 1):
+            pay_icon = "✅" if p[4] == "paid" else "⏳"
+            st.markdown(f"""
+            <div class="player-card">
+                <b>🎾 {idx}. {p[1]}</b><br>
+                <span style="font-size:0.8em; opacity:0.85;">{t['level_lbl']}: <b>{p[3]}</b> | {t['pay_lbl']}: {pay_icon}</span>
+            </div>
+            """, unsafe_allow_html=True)
     else:
-        # إشهار قائمة اللاعبين المؤكدين بدون أرقام جوالاتهم
-        roster = PadelService.get_public_roster(session_date)
-        seats_left = max(0, config.COURT_CAPACITY - len(roster))
+        st.caption(t["empty_court"])
 
-        st.markdown(f"#### 👥 تشكيلة تمرين {selected_day} ({len(roster)}/{config.COURT_CAPACITY} لاعبين):")
-        if roster:
-            cols = st.columns(2)
-            for idx, p in enumerate(roster):
-                with cols[idx % 2]:
-                    st.markdown(
-                        f"<div class='step-card' style='padding:10px 14px; margin-bottom:8px;'>"
-                        f"<b>{idx + 1}. {p['name']}</b> &nbsp; "
-                        f"<span style='color:#94A3B8; font-size:13px;'>({p['level']})</span>"
-                        f"</div>",
-                        unsafe_allow_html=True
-                    )
-        else:
-            st.caption("لا يوجد لاعبين مسجلين حتى الآن.. كن أول المنضمين! 🚀")
+with col_court2:
+    st.markdown(f"<div class='court-header'>{t['court2_title']} ({len(c2_players)}/{COURT_CAP})</div>", unsafe_allow_html=True)
+    if c2_players:
+        for idx, p in enumerate(c2_players, 1):
+            pay_icon = "✅" if p[4] == "paid" else "⏳"
+            st.markdown(f"""
+            <div class="player-card">
+                <b>🎾 {idx}. {p[1]}</b><br>
+                <span style="font-size:0.8em; opacity:0.85;">{t['level_lbl']}: <b>{p[3]}</b> | {t['pay_lbl']}: {pay_icon}</span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.caption(t["empty_court"])
 
-        st.markdown("---")
+if waitlist:
+    st.caption(f"{t['waitlist_lbl']} " + " • ".join([f"{w[1]} ({w[3]})" for w in waitlist]))
 
-        if seats_left > 0:
-            st.info(f"🔥 متبقي **{seats_left} مقاعد** لإغلاق تمرين {selected_day}")
-            with st.form("book_form"):
-                u_name = st.text_input("الاسم الكريم:", placeholder="مثال: فارس")
-                u_phone = st.text_input("رقم الجوال:", placeholder="05XXXXXXXX")
-                u_level = st.selectbox("مستواك في اللعبة:", config.LEVELS, index=1)
-                submit_book = st.form_submit_button("🚀 تأكيد الحجز الفوري")
+st.divider()
 
-            if submit_book:
-                success, msg, summary = PadelService.process_booking(u_name, u_phone, u_level, selected_day)
-                if success:
-                    st.markdown(f"""
-                        <div class="ticket-box">
-                            <h3 style="color:#34D399; margin:0;">🎉 {msg}</h3>
-                            <p style="margin:5px 0;">اللاعب: <strong>{summary['name']}</strong> ({summary['level']})</p>
-                            <p style="margin:5px 0;">📅 <strong>{summary['day']}</strong> ({summary['date']}) | ⏰ 9:30 م</p>
-                            <p style="margin:5px 0; color:#FBBF24;">المطلوب: <strong>{summary['amount']} ريال</strong> {'(مجاني 🎁)' if summary['is_free'] else ''}</p>
-                        </div>
-                    """, unsafe_allow_html=True)
+# ==========================================
+# 4. التبويبات العامة (حجز واعتذار)
+# ==========================================
+tab_book, tab_cancel = st.tabs([t["tab_book"], t["tab_cancel"]])
 
-                    if not summary['is_free']:
-                        with st.expander("💳 بيانات التحويل البنكي (القطة)", expanded=True):
-                            st.markdown(f"**المستفيد:** {config.BENEFICIARY_NAME} | **البنك:** {config.BANK_NAME}")
-                            st.write("📋 **رقم الآيبان (اضغط للنسخ):**")
-                            st.code(config.IBAN_NUMBER, language="text")
+# --- تبويب الحجز مع التوزيع الذكي للملعبين ---
+with tab_book:
+    total_confirmed = len(c1_players) + len(c2_players)
+    total_max = COURT_CAP * 2
+    
+    with st.form("form_booking", clear_on_submit=True):
+        name = st.text_input(t["name_lbl"])
+        phone = st.text_input(t["phone_lbl"])
+        level = st.selectbox(t["skill_lbl"], t["levels"])
+        btn_book = st.form_submit_button(t["btn_book"])
 
-                    pay_text = "🎁 مجاناً (مكافأة ولاء)" if summary[
-                        'is_free'] else f"{summary['amount']} ريال\n💳 الآيبان: `{config.IBAN_NUMBER}`"
-                    wa_msg = (
-                        f"🎾 *تأكيد حجز بادل — قروب 99* 🎾\n\n"
-                        f"👤 *اللاعب:* {summary['name']} ({summary['level']})\n"
-                        f"📅 *الموعد:* {summary['day']} ({summary['date']})\n"
-                        f"⏰ *الوقت:* 9:30 م - 11:00 م\n"
-                        f"💰 *المبلغ:* {pay_text}\n"
-                        f"📍 *الموقع:* Padel IN (سوق 7)\n"
-                        f"جاهزين لتكسير الملاعب! 🔥"
-                    )
-                    wa_url = f"https://wa.me/{config.ADMIN_WHATSAPP}?text={urllib.parse.quote(wa_msg)}"
-                    st.link_button("📲 إرسال التأكيد لقروب الواتساب مباشرة", wa_url)
+        if btn_book:
+            clean_phone = phone.strip()
+            clean_name = name.strip()
+            if len(clean_name) < 3 or len(clean_phone) < 10:
+                st.error(t["err_fields"])
+            else:
+                # منطق التوزيع الذكي حسب المستوى والمقاعد المتاحة
+                target_court = 1
+                status_to_set = 'confirmed'
+                
+                # المتقدم والمتوسط يفضلون ملعب 1، المبتدئ يفضل ملعب 2
+                pref_c1 = level in ["متقدم", "Advanced", "متوسط", "Intermediate"]
+                
+                if pref_c1:
+                    if len(c1_players) < COURT_CAP:
+                        target_court = 1
+                    elif len(c2_players) < COURT_CAP:
+                        target_court = 2
+                    else:
+                        status_to_set = 'waitlist'
                 else:
-                    st.error(msg)
-        else:
-            st.warning(f"⚠️ تمرين {selected_day} مكتمل بالكامل (6/6 لاعبين).")
-            st.markdown("<div class='step-card'><b>⏳ الانضمام لقائمة الاحتياط:</b></div>", unsafe_allow_html=True)
-            with st.form("waitlist_form"):
-                w_name = st.text_input("الاسم الكريم:", placeholder="مثال: أحمد")
-                w_phone = st.text_input("رقم الجوال:", placeholder="05XXXXXXXX")
-                w_level = st.selectbox("مستواك في اللعبة:", config.LEVELS, index=1)
-                submit_wait = st.form_submit_button("⏳ تسجيل في قائمة الاحتياط")
-            if submit_wait:
-                w_ok, w_msg = PadelService.join_waitlist(w_name, w_phone, w_level, selected_day)
-                if w_ok:
-                    st.success(w_msg)
-                else:
-                    st.error(w_msg)
+                    if len(c2_players) < COURT_CAP:
+                        target_court = 2
+                    elif len(c1_players) < COURT_CAP:
+                        target_court = 1
+                    else:
+                        status_to_set = 'waitlist'
 
-# ------------------------------------------------------------------------------
-# تبويب 2: خدمة الاعتذار الذاتي
-# ------------------------------------------------------------------------------
+                with get_connection() as conn:
+                    cur = conn.cursor()
+                    cur.execute("INSERT INTO bookings (name, phone, session_day, court, level, status) VALUES (?, ?, ?, ?, ?, ?)",
+                                (clean_name, clean_phone, db_day, target_court, level, status_to_set))
+                    conn.commit()
+
+                if status_to_set == 'confirmed':
+                    if target_court == 1:
+                        st.success(t["succ_book_c1"].format(clean_name))
+                    else:
+                        st.success(t["succ_book_c2"].format(clean_name))
+                else:
+                    st.info(t["succ_wait"])
+                st.rerun()
+
+# --- تبويب الاعتذار مع الترقية الذكية ---
 with tab_cancel:
-    st.subheader("🚫 الاعتذار عن حضور التمرين")
-    st.caption("متاح قبل موعد التمرين بساعتين (حتى الساعة 7:30 م) لإتاحة المقعد للاحتياط.")
+    st.subheader(t["cancel_title"])
+    st.caption(t["cancel_sub"])
+    
+    with st.form("form_cancellation"):
+        c_phone = st.text_input(t["phone_lbl"])
+        c_reason = st.selectbox(t["reason_lbl"], t["reasons"])
+        c_speed = st.select_slider(t["speed_lbl"], options=t["speed_opts"])
+        c_notes = st.text_input(t["notes_lbl"])
+        btn_cancel = st.form_submit_button(t["btn_cancel"])
 
-    with st.form("self_cancel_form"):
-        c_day = st.selectbox("اختر يوم التمرين المراد الاعتذار عنه:", list(config.DAYS_MAP.keys()), key="cancel_day")
-        c_phone = st.text_input("رقم الجوال المسجل به الحجز:", placeholder="05XXXXXXXX")
-        submit_cancel = st.form_submit_button("إلغاء حجزي وتحرير المقعد")
+        if btn_cancel:
+            clean_cp = c_phone.strip()
+            with get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("SELECT id, name, status, court FROM bookings WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')",
+                            (clean_cp, db_day))
+                target = cur.fetchone()
 
-    if submit_cancel:
-        c_ok, c_msg = PadelService.player_self_cancel(c_phone, c_day)
-        if c_ok:
-            st.success(c_msg)
-        else:
-            st.error(c_msg)
+                if target:
+                    cur.execute("UPDATE bookings SET status='cancelled' WHERE id=?", (target[0],))
+                    cur.execute("""
+                        INSERT INTO cancellations (player_name, player_phone, session_day, court, reason, feedback_rating, feedback_notes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (target[1], clean_cp, db_day, target[3], c_reason, c_speed, c_notes.strip()))
+                    
+                    # ترقية أول احتياط إلى نفس الملعب الشاغر
+                    if target[2] == 'confirmed':
+                        cur.execute("SELECT id FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC LIMIT 1", (db_day,))
+                        first_wait = cur.fetchone()
+                        if first_wait:
+                            cur.execute("UPDATE bookings SET status='confirmed', court=? WHERE id=?", (target[3], first_wait[0]))
+                    conn.commit()
 
-# ------------------------------------------------------------------------------
-# تبويب 3: لوحة الإدارة
-# ------------------------------------------------------------------------------
-with tab_admin:
-    if "admin_auth" not in st.session_state:
-        st.session_state.admin_auth = False
-
-    if not st.session_state.admin_auth:
-        st.subheader("🔒 لوحة تحكم القروب (خاص بالإدارة)")
-        with st.form("admin_login"):
-            pin_code = st.text_input("أدخل الرمز السري:", type="password")
-            if st.form_submit_button("دخول"):
-                if hmac.compare_digest(pin_code.strip(), config.ADMIN_PIN):
-                    st.session_state.admin_auth = True
+                    st.success(t["succ_cancel"].format(target[1]))
                     st.rerun()
                 else:
-                    st.error("الرمز السري غير صحيح!")
-    else:
-        col_t, col_l = st.columns([3, 1])
-        col_t.subheader("📈 الإحصائيات وإدارة السداد")
-        if col_l.button("🚪 خروج"):
-            st.session_state.admin_auth = False
-            st.rerun()
+                    st.error(t["err_cancel"])
 
-        with DB.get_connection() as conn:
-            c = conn.cursor()
-            c.execute("""
-                SELECT 
-                    COUNT(*),
-                    COALESCE(SUM(CASE WHEN is_paid = 1 THEN amount ELSE 0 END), 0),
-                    COALESCE(SUM(CASE WHEN is_paid = 0 AND is_free = 0 THEN amount ELSE 0 END), 0),
-                    COALESCE(SUM(is_free), 0)
-                FROM bookings
-            """)
-            tot_b, col_rev, pend_rev, tot_free = c.fetchone()
+# ==========================================
+# 5. لوحة الإدارة المخفية (تبديل الملاعب والدفع)
+# ==========================================
+st.write("")
+with st.expander(t["admin_lock"], expanded=False):
+    pin_input = st.text_input(t["admin_pin_lbl"], type="password", key="admin_pin_key")
+    if pin_input == "9900":
+        st.success(t["admin_welcome"])
 
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("إجمالي المقاعد", tot_b)
-        m2.metric("المحصل 💰", f"{col_rev:.2f} ر.س")
-        m3.metric("المعلق ⏳", f"{pend_rev:.2f} ر.س")
-        m4.metric("المجانية 🎁", tot_free)
+        st.write(f"### ⚙️ إدارة لاعبي {day_choice}")
+        with get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT id, name, phone, level, payment_status, court FROM bookings WHERE session_day=? AND status='confirmed' ORDER BY court ASC, id ASC", (db_day,))
+            all_admin = cur.fetchall()
 
-        # زر تصدير Excel متضمناً مستوى اللاعب
-        st.markdown("---")
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(
-            ["رقم الحجز", "التاريخ", "اليوم", "اللاعب", "المستوى", "الجوال", "المبلغ", "النوع", "حالة السداد",
-             "تاريخ التسجيل"])
-        with DB.get_connection() as conn:
-            c = conn.cursor()
-            c.execute(
-                "SELECT id, session_date, session_day, name, level, phone, amount, is_free, is_paid, created_at FROM bookings ORDER BY session_date DESC")
-            for r in c.fetchall():
-                writer.writerow([r[0], r[1], r[2], r[3], r[4], r[5], r[6], "مجاني" if r[7] else "مدفوع",
-                                 "تم التحويل" if r[8] else ("معفى" if r[7] else "معلق"), r[9]])
-        st.download_button("📥 تنزيل تقرير كشف الحسابات (Excel/CSV)", data=output.getvalue().encode("utf-8-sig"),
-                           file_name=f"padel_report_{date.today()}.csv", mime="text/csv")
+        if all_admin:
+            for p in all_admin:
+                c_lbl = f"🏟️ M{p[5]}"
+                col_info, col_move, col_pay, col_del = st.columns([3, 3, 2, 2])
+                col_info.write(f"{c_lbl}: **{p[1]}** (`{p[3]}`)")
+                
+                # زر نقل اللاعب بين الملعبين
+                if p[5] == 1:
+                    if col_move.button(t["btn_move_c2"], key=f"move_{p[0]}"):
+                        with get_connection() as conn:
+                            conn.execute("UPDATE bookings SET court=2 WHERE id=?", (p[0],))
+                        st.rerun()
+                else:
+                    if col_move.button(t["btn_move_c1"], key=f"move_{p[0]}"):
+                        with get_connection() as conn:
+                            conn.execute("UPDATE bookings SET court=1 WHERE id=?", (p[0],))
+                        st.rerun()
 
-        # إدارة الحجوزات والسداد
-        st.markdown("---")
-        st.subheader("📋 الحجوزات الحالية")
-        with DB.get_connection() as conn:
-            c = conn.cursor()
-            c.execute(
-                "SELECT id, session_date, session_day, name, level, phone, amount, is_free, is_paid FROM bookings ORDER BY session_date ASC, id ASC")
-            bookings = c.fetchall()
-
-        if bookings:
-            for b in bookings:
-                b_id, b_date, b_day, b_name, b_level, b_phone, b_amt, b_free, b_paid = b
-                with st.container():
-                    c1, c2, c3, c4 = st.columns([3, 2.5, 2.5, 2])
-                    with c1:
-                        st.markdown(f"**👤 {b_name}** <small>({b_level})</small>", unsafe_allow_html=True)
-                        st.caption(f"📱 {b_phone}")
-                    with c2:
-                        st.markdown(f"📅 **{b_day}** ({b_date})")
-                        st.caption("🎁 مجاني" if b_free else f"💰 {b_amt} ريال")
-                    with c3:
-                        if b_free:
-                            st.markdown("🟢 **معفى (مجاني)**")
-                        elif b_paid:
-                            st.markdown("✅ **تم التحويل**")
-                            if st.button("تحويل لمعلق", key=f"u_{b_id}"):
-                                with DB.get_connection() as conn:
-                                    conn.execute("UPDATE bookings SET is_paid = 0 WHERE id = ?", (b_id,))
-                                st.rerun()
-                        else:
-                            st.markdown("🔴 **معلق**")
-                            btn_p, btn_w = st.columns(2)
-                            if btn_p.button("سدد 💰", key=f"p_{b_id}"):
-                                with DB.get_connection() as conn:
-                                    conn.execute("UPDATE bookings SET is_paid = 1 WHERE id = ?", (b_id,))
-                                st.rerun()
-                            remind_msg = f"أهلاً كابتن {b_name} 👋\nتذكير بسداد قطة البادل ({b_amt} ريال) لتمرين يوم {b_day}.\n💳 الآيبان: `{config.IBAN_NUMBER}` ({config.BENEFICIARY_NAME})"
-                            target_p = "966" + b_phone[1:]
-                            btn_w.link_button("📲", f"https://wa.me/{target_p}?text={urllib.parse.quote(remind_msg)}")
-                    with c4:
-                        if st.button("❌ حذف", key=f"del_{b_id}"):
-                            with DB.get_connection() as conn:
-                                conn.execute("DELETE FROM bookings WHERE id = ?", (b_id,))
-                            st.rerun()
-                    st.divider()
+                # تأكيد / إلغاء الدفع
+                if p[4] == 'pending':
+                    if col_pay.button(t["btn_pay"], key=f"pay_{p[0]}"):
+                        with get_connection() as conn:
+                            conn.execute("UPDATE bookings SET payment_status='paid' WHERE id=?", (p[0],))
+                        st.rerun()
+                else:
+                    if col_pay.button(t["btn_unpay"], key=f"unpay_{p[0]}"):
+                        with get_connection() as conn:
+                            conn.execute("UPDATE bookings SET payment_status='pending' WHERE id=?", (p[0],))
+                        st.rerun()
+                
+                # حذف الحجز
+                if col_del.button(t["btn_del"], key=f"del_{p[0]}"):
+                    with get_connection() as conn:
+                        conn.execute("DELETE FROM bookings WHERE id=?", (p[0],))
+                    st.rerun()
         else:
-            st.info("لا توجد حجوزات مسجلة حالياً.")
+            st.info("لا توجد حجوزات مؤكدة لهذا اليوم.")
 
-        # قائمة الاحتياط
-        st.markdown("---")
-        st.subheader("⏳ قائمة الاحتياط (تواصل يدوي قبل التثبيت)")
-        with DB.get_connection() as conn:
-            c = conn.cursor()
-            c.execute("SELECT id, session_date, session_day, name, phone, level FROM waitlist ORDER BY id ASC")
-            waits = c.fetchall()
+        st.divider()
 
-        if waits:
-            for w in waits:
-                w_id, w_date, w_day, w_name, w_phone, w_lvl = w
-                col_w1, col_w2, col_w3 = st.columns([3, 3, 2])
-                with col_w1:
-                    st.write(f"**{w_name}** ({w_phone}) — <small>{w_lvl}</small>", unsafe_allow_html=True)
-                with col_w2:
-                    st.caption(f"{w_day} ({w_date})")
-                with col_w3:
-                    w_msg = f"أهلاً كابتن {w_name} 👋\nتوفر مقعد شاغر لتمرين يوم {w_day} ({w_date}). هل لا زلت متاحاً للحضور معنا؟"
-                    st.link_button("📲 مراسلة الاحتياط",
-                                   f"https://wa.me/966{w_phone[1:]}?text={urllib.parse.quote(w_msg)}")
-                st.divider()
+        # سجل الاستبيانات والاعتذارات
+        st.write(f"### {t['feedback_title']}")
+        with get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT player_name, player_phone, session_day, reason, feedback_rating, feedback_notes, cancelled_at FROM cancellations ORDER BY id DESC LIMIT 10")
+            feedbacks = cur.fetchall()
+
+        if feedbacks:
+            for row in feedbacks:
+                note_str = f" | ملاحظة: _{row[5]}_" if row[5] else ""
+                st.caption(f"👤 **{row[0]}** ({row[1]}) | يوم: {row[2]} | السبب: **{row[3]}** | السرعة: {row[4]}{note_str} | 🕒 {row[6]}")
         else:
-            st.caption("لا يوجد لاعبين في قائمة الاحتياط حالياً.")
+            st.caption("لا توجد بيانات اعتذار مسجلة حتى الآن.")
+            
+    elif pin_input:
+        st.error("الرمز السري غير صحيح.")
+
+        
