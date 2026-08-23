@@ -6,7 +6,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة واللغات (Lean & High-Performance)
+# 1. إعداد الصفحة واللغات (Apple Aesthetic & Minimalist Copy)
 # ==========================================
 st.set_page_config(
     page_title="Padel 99 | بادل 99",
@@ -15,7 +15,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# معالجة وتوحيد أرقام الجوال (عربي/إنجليزي + إزالة الزوائد)
 def normalize_phone(phone_input):
     if not phone_input:
         return ""
@@ -32,86 +31,92 @@ LANG = {
     "ar": {
         "dir": "rtl",
         "align": "right",
-        "title": "🎾 تمرين {} — قروب 99",
-        "promo_badge": "🔥 عداد الوفاء: العب 6 تمارين والـ 7 مجاناً بالكامل! 🎁",
-        "discount_badge": "⚡ عرض خاص: خصم 20% على قطة تمرين اليوم! 🏷️",
-        "time_str": "⏰ ٩:٣٠ م حتى ١١:٠٠ م | كورت 1 & 2 (12 مقعد)",
-        "privacy_note": "🔒 خصوصيتك محفوظة: رقم جوالك يُستخدم للتحقق واحتساب الوفاء والاسترجاع فقط.",
+        "hero_title": "Padel 99.",
+        "hero_sub": "تمرين {}. اللعب كما ينبغي أن يكون.",
+        "promo_badge": "✨ برنامج الوفاء: 6 تمارين تمنحك السابع مجاناً بالكامل.",
+        "discount_badge": "🏷️ عرض استثنائي: خصم 20% لتمرين اليوم.",
+        "time_str": "⏰ ٩:٣٠ م – ١١:٠٠ م | كورت 1 & 2 • المقاعد محدودة (12 لاعب)",
+        "privacy_note": "🔒 أمان وخصوصية تامة: بياناتك تُستخدم حصرياً لتأكيد مقعدك وبرنامج الوفاء.",
         "court1": "🏟️ كورت 1",
         "court2": "🏟️ كورت 2",
-        "tab_book": "⚡ حجز مقعد فوري",
-        "tab_cancel": "❌ اعتذار / إلغاء",
-        "name_lbl": "اسم اللاعب:",
-        "phone_lbl": "الجوال (05xxxxxxx):",
-        "level_lbl": "المستوى:",
+        "tab_book": "⚡ تأكيد المقعد",
+        "tab_cancel": "❌ تعديل / اعتذار",
+        "name_lbl": "الاسم الكامل",
+        "phone_lbl": "رقم الجوال",
+        "level_lbl": "مستوى الأداء",
         "levels": ["متوسط", "متقدم", "مبتدئ"],
-        "btn_book": "🚀 تأكيد الحجز الفوري",
-        "err_fields": "فضلاً أدخل الاسم ورقم الجوال بالشكل الصحيح.",
-        "succ_book": "كفو يا كابتن {}! تم تثبيت مقعدك في {}.",
-        "succ_wait": "اكتملت المقاعد! تم تسجيلك في قائمة الاحتياط.",
-        "cancel_phone": "رقم الجوال المسجل:",
+        "btn_book": "انضم إلى التشكيلة 🚀",
+        "err_fields": "يرجى التحقق من صحة الاسم ورقم الجوال للمتابعة.",
+        "succ_book": "أهلاً بك في الملعب يا كابتن {}! تم حجز مكانك في {}.",
+        "succ_wait": "اكتملت التشكيلة الأساسية. تم إدراجك في أولوية قائمة الاحتياط.",
+        "cancel_phone": "رقم الجوال المسجل به الحجز:",
         "cancel_reason": "سبب الاعتذار الرئيسي:",
         "reasons": [
-            "السعر / قيمة القطة غير مناسبة",
-            "مكان أو جودة الملعب غير مريحة",
-            "لقيت حجز في ملعب أفضل أو أقرب",
-            "صديقي أو مجموعتي يلعبون في مكان آخر",
-            "مستوى التمرين غير متكافئ معي",
-            "تعارض في الوقت / ارتباط مفاجئ",
-            "إجهاد بدني أو إصابة عضلية",
-            "بعد المسافة / صعوبة مواصلات",
-            "أخرى (ظرف شخصي طارئ)"
+            "قيمة المساهمة غير مناسبة",
+            "أفضّل ملعباً بمواصفات أو موقع آخر",
+            "وجدت خياراً بديلاً أقرب",
+            "انضممت لمجموعة لعب أخرى",
+            "أبحث عن مستوى تنافسي مختلف",
+            "ارتباط مفاجئ / تعارض في الجدول",
+            "إجهاد بدني أو حاجة للاستشفاء",
+            "صعوبة في الوصول أو المواصلات",
+            "ظرف شخصي طارئ"
         ],
-        "btn_cancel": "تأكيد الاعتذار وتفريغ المقعد",
-        "succ_cancel": "تم قبول اعتذارك يا كابتن {} وتفريغ المقعد.",
-        "succ_cancel_refund": "تم قبول اعتذارك يا كابتن {} وتفريغ المقعد. (تم تسجيل طلب استرجاع المبلغ للكابتن ✅).",
-        "err_cancel": "لم يتم العثور على حجز مؤكد بهذا الرقم في تمرين اليوم.",
-        "admin_pin": "الرمز السري:",
-        "export_btn": "📥 تحميل تايم شيت وسجل الاسترجاعات (Excel)",
-        "btn_wa_captain": "📲 إرسال إشعار التحويل للكابتن مباشرة (واتساب)",
-        "cal_btn": "📅 إضافة موعد التمرين إلى تقويم جوالك"
+        "btn_cancel": "تأكيد الاعتذار وإتاحة المقعد",
+        "succ_cancel": "تم تسجيل اعتذارك يا كابتن {}. نتطلع لرؤيتك في التمرين القادم.",
+        "succ_cancel_refund": "تم قبول اعتذارك يا كابتن {}. تم توثيق طلب استرجاع مساهمتك تلقائياً ✅.",
+        "err_cancel": "لم يتم العثور على حجز مؤكد مرتبط بهذا الرقم في تمرين اليوم.",
+        "admin_pin": "رمز الدخول السري:",
+        "export_btn": "📥 تصدير سجل الحضور والمطابقات (Excel)",
+        "btn_wa_captain": "مشاركة إشعار التأكيد مع الكابتن (WhatsApp) ⚡",
+        "cal_btn": "إضافة الموعد إلى التقويم 📅",
+        "pay_card_title": "المحفظة الرقمية | التحويل المباشر",
+        "pay_subtitle": "اللمسة الأخيرة لاكتمال مقعدك في التشكيلة الأساسية"
     },
     "en": {
         "dir": "ltr",
         "align": "left",
-        "title": "🎾 {} Session — Group 99",
-        "promo_badge": "🔥 Loyalty Counter: Play 6 sessions, get the 7th FREE! 🎁",
-        "discount_badge": "⚡ Special Offer: 20% OFF today's session share! 🏷️",
-        "time_str": "⏰ 9:30 PM until 11:00 PM | Courts 1 & 2 (12 Spots)",
-        "privacy_note": "🔒 Privacy Protected: Phone used solely for verification, loyalty points & refunds.",
+        "hero_title": "Padel 99.",
+        "hero_sub": "{} Session. Pure padel, perfected.",
+        "promo_badge": "✨ Loyalty Pass: Play 6 sessions, get the 7th entirely on us.",
+        "discount_badge": "🏷️ Special Edition: 20% OFF today's session pass.",
+        "time_str": "⏰ 9:30 PM – 11:00 PM | Courts 1 & 2 • Limited (12 Slots)",
+        "privacy_note": "🔒 Privacy Guaranteed: Your data is solely used for court access & loyalty perks.",
         "court1": "🏟️ Court 1",
         "court2": "🏟️ Court 2",
-        "tab_book": "⚡ Quick Book",
-        "tab_cancel": "❌ Cancel",
-        "name_lbl": "Player Name:",
-        "phone_lbl": "Mobile (05xxxxxxx):",
-        "level_lbl": "Skill Level:",
+        "tab_book": "⚡ Reserve Spot",
+        "tab_cancel": "❌ Manage / Cancel",
+        "name_lbl": "Full Name",
+        "phone_lbl": "Mobile Number",
+        "level_lbl": "Performance Level",
         "levels": ["Intermediate", "Advanced", "Beginner"],
-        "btn_book": "🚀 Confirm Slot",
-        "err_fields": "Please enter a valid name and phone number.",
-        "succ_book": "Confirmed for Captain {} in {}!",
-        "succ_wait": "Courts full! Added to waitlist.",
+        "btn_book": "Join the Squad 🚀",
+        "err_fields": "Please check your name and mobile number to proceed.",
+        "succ_book": "Welcome to the court, Captain {}! Secured in {}.",
+        "succ_wait": "Main roster full. You have priority access on the waitlist.",
         "cancel_phone": "Registered Mobile:",
-        "cancel_reason": "Cancellation Reason:",
+        "cancel_reason": "Primary Cancellation Reason:",
         "reasons": [
-            "Price not suitable",
-            "Venue quality uncomfortable",
-            "Found a better / closer venue",
-            "Group playing elsewhere",
-            "Skill level mismatch",
-            "Schedule conflict / Work",
-            "Fatigue / Injury",
-            "Distance issue",
-            "Other"
+            "Session fee is not optimal",
+            "Prefer a different court venue",
+            "Found an alternate match nearby",
+            "Playing with another group",
+            "Seeking a different competitive tier",
+            "Sudden schedule or work conflict",
+            "Physical fatigue / Recovery day",
+            "Commute / Transportation issue",
+            "Personal emergency"
         ],
-        "btn_cancel": "Confirm Cancellation",
-        "succ_cancel": "Cancelled for Captain {}. Spot released.",
-        "succ_cancel_refund": "Cancelled for Captain {}. (Refund logged for processing ✅).",
-        "err_cancel": "No confirmed booking found for this number today.",
-        "admin_pin": "Admin PIN:",
-        "export_btn": "📥 Download Timesheet & Refunds (Excel)",
-        "btn_wa_captain": "📲 Send Payment Receipt to Captain (WhatsApp)",
-        "cal_btn": "📅 Add Session to Calendar"
+        "btn_cancel": "Confirm Cancellation & Release Spot",
+        "succ_cancel": "Cancelled for Captain {}. We hope to see you next time.",
+        "succ_cancel_refund": "Cancelled for Captain {}. Your refund is logged for priority processing ✅.",
+        "err_cancel": "No confirmed reservation found for this number today.",
+        "admin_pin": "Passcode:",
+        "export_btn": "📥 Export Timesheet & Logs (Excel)",
+        "btn_wa_captain": "Share Pass Receipt via WhatsApp ⚡",
+        "cal_btn": "Add to Calendar 📅",
+        "pay_card_title": "Digital Wallet | Direct Pass",
+        "pay_subtitle": "The final touch to secure your place on the roster"
     }
 }
 
@@ -122,73 +127,94 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 2. الهوية البصرية (Zero Clutter CSS)
+# 2. الهوية البصرية بنمط Apple (Dark Mode, Frosted Glass & SF Aesthetics)
 # ==========================================
 st.markdown(f"""<style>
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap');
-* {{ font-family: 'Cairo', sans-serif; direction: {t['dir']}; text-align: {t['align']}; }}
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=SF+Pro+Display:wght@400;600;700;800&display=swap');
+* {{ font-family: 'SF Pro Display', 'Cairo', sans-serif; direction: {t['dir']}; text-align: {t['align']}; }}
 
 .block-container {{
     padding-top: 0.6rem !important;
-    padding-bottom: 0.6rem !important;
+    padding-bottom: 0.8rem !important;
     padding-left: 0.4rem !important;
     padding-right: 0.4rem !important;
     max-width: 580px !important;
 }}
 .stAppHeader {{ display: none; }}
 
-.promo-box {{
-    background: linear-gradient(90deg, #1e3a8a 0%, #1e40af 100%);
-    border: 1px solid #3b82f6;
-    border-radius: 6px;
-    padding: 3px 6px;
-    text-align: center;
-    color: #eff6ff;
-    font-weight: 800;
-    font-size: 0.78em;
-    margin-bottom: 2px;
+/* Hero Styling */
+.hero-header {{
+    font-size: 1.6em;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    margin: 0;
+    color: #f4f4f5;
 }}
-.discount-box {{
-    background: linear-gradient(90deg, #b45309 0%, #d97706 100%);
-    border: 1px solid #f59e0b;
-    border-radius: 6px;
-    padding: 3px 6px;
-    text-align: center;
-    color: #ffffff;
-    font-weight: 800;
-    font-size: 0.78em;
-    margin-bottom: 3px;
-}}
-.privacy-badge {{
-    font-size: 0.68em;
-    color: #94a3b8;
-    text-align: center;
-    margin-top: 2px;
+.hero-sub {{
+    font-size: 0.9em;
+    color: #a1a1aa;
+    margin-top: -2px;
     margin-bottom: 4px;
 }}
 
-/* بطاقة الدفع والمحفظة الرقمية */
-.qr-wallet-card {{
-    background: #09090b;
-    border: 1.5px solid #27272a;
-    border-radius: 12px;
+.promo-badge {{
+    background: rgba(30, 58, 138, 0.4);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    padding: 4px 8px;
+    text-align: center;
+    color: #bfdbfe;
+    font-weight: 700;
+    font-size: 0.78em;
+    margin-bottom: 3px;
+}}
+.discount-badge {{
+    background: rgba(180, 83, 9, 0.35);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    padding: 4px 8px;
+    text-align: center;
+    color: #fde68a;
+    font-weight: 700;
+    font-size: 0.78em;
+    margin-bottom: 4px;
+}}
+.privacy-badge {{
+    font-size: 0.68em;
+    color: #71717a;
+    text-align: center;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}}
+
+/* Apple Wallet Style Digital Card */
+.apple-card {{
+    background: linear-gradient(145deg, #18181b 0%, #09090b 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
     padding: 12px;
     margin: 6px 0;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
 }}
-.qr-container {{
+.apple-card-title {{
+    color: #10b981;
+    font-size: 0.85em;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+}}
+.apple-card-sub {{
+    color: #a1a1aa;
+    font-size: 0.72em;
+    margin-bottom: 8px;
+}}
+.qr-frame {{
     background: #ffffff;
     padding: 6px;
     border-radius: 8px;
     display: inline-block;
-    margin-bottom: 6px;
-}}
-.qr-name {{
-    color: #f4f4f5;
-    font-size: 1em;
-    font-weight: 900;
-    margin-top: 2px;
     margin-bottom: 6px;
 }}
 .card-row {{
@@ -196,78 +222,91 @@ st.markdown(f"""<style>
     justify-content: space-between;
     align-items: center;
     margin: 3px 0;
-    font-size: 0.78em;
+    font-size: 0.76em;
 }}
-.card-lbl {{ color: #a1a1aa; }}
-.card-val {{ color: #ffffff; font-weight: 800; font-family: monospace; letter-spacing: 0.5px; }}
+.card-lbl {{ color: #71717a; font-weight: 600; }}
+.card-val {{ color: #f4f4f5; font-weight: 800; font-family: monospace; }}
 
+/* Form Components */
 div[data-testid="stForm"] {{
-    border: 1px solid #334155 !important;
-    border-radius: 8px !important;
-    padding: 6px 8px !important;
-    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 10px !important;
+    padding: 8px 10px !important;
+    background: #121215;
     margin-top: 2px !important;
     margin-bottom: 4px !important;
 }}
 .stTextInput, .stSelectbox {{
-    margin-bottom: -12px !important;
+    margin-bottom: -10px !important;
 }}
 div[data-baseweb="input"] > div {{
-    min-height: 34px !important;
-    height: 34px !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    background-color: #18181b !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 6px !important;
 }}
 .stButton>button {{
     width: 100%;
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: 800;
-    height: 2.5em;
+    height: 2.6em;
     font-size: 0.95em;
-    margin-top: 4px !important;
+    background: #10b981;
+    color: #ffffff;
+    border: none;
+    transition: all 0.2s ease;
 }}
-.wa-btn {{
+.stButton>button:hover {{
+    background: #059669;
+    color: #ffffff;
+}}
+.wa-apple-btn {{
     display: block;
     width: 100%;
     background-color: #25D366;
     color: white !important;
     text-align: center;
     padding: 8px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: 800;
     text-decoration: none;
-    margin-top: 3px;
+    margin-top: 4px;
     margin-bottom: 3px;
-    font-size: 0.9em;
+    font-size: 0.88em;
 }}
-.cal-btn {{
+.cal-apple-btn {{
     display: block;
     width: 100%;
-    background-color: #0284c7;
-    color: white !important;
+    background-color: #1e293b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8 !important;
     text-align: center;
     padding: 6px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: 700;
     text-decoration: none;
     margin-top: 2px;
     margin-bottom: 4px;
-    font-size: 0.82em;
+    font-size: 0.8em;
 }}
 
+/* Pitch Aesthetics */
 .padel-court {{
     background: radial-gradient(circle, #064e3b 0%, #022c22 100%);
-    border: 1.5px solid #10b981;
-    border-radius: 8px;
-    padding: 4px;
-    margin-bottom: 2px;
+    border: 1.5px solid rgba(16, 185, 129, 0.6);
+    border-radius: 10px;
+    padding: 5px;
+    margin-bottom: 3px;
 }}
 .court-title {{
     text-align: center;
     color: #a7f3d0;
     font-weight: 800;
-    font-size: 0.8em;
-    margin-bottom: 3px;
-    border-bottom: 1px dashed #10b981;
-    padding-bottom: 1px;
+    font-size: 0.82em;
+    margin-bottom: 4px;
+    border-bottom: 1px dashed rgba(16, 185, 129, 0.4);
+    padding-bottom: 2px;
 }}
 .court-grid {{
     display: grid;
@@ -275,25 +314,25 @@ div[data-baseweb="input"] > div {{
     gap: 3px;
 }}
 .slot-box {{
-    background: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 5px;
-    padding: 2px 4px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 3px 4px;
     text-align: center;
-    min-height: 36px;
+    min-height: 38px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
 }}
-.slot-occupied {{ color: #f8fafc; font-weight: 700; font-size: 0.75em; line-height: 1.1; }}
+.slot-occupied {{ color: #f4f4f5; font-weight: 700; font-size: 0.76em; line-height: 1.1; }}
 .slot-meta {{ font-size: 0.65em; margin-top: 1px; }}
-.slot-empty {{ color: #64748b; font-size: 0.68em; }}
-.badge-loyalty {{ background-color: #1e3a8a; color: #93c5fd; padding: 0px 2px; border-radius: 2px; font-size: 0.7em; font-weight: 700; }}
+.slot-empty {{ color: #52525b; font-size: 0.68em; }}
+.badge-loyalty {{ background-color: #1e3a8a; color: #93c5fd; padding: 0px 3px; border-radius: 3px; font-size: 0.7em; font-weight: 700; }}
 .refund-alert-box {{
-    background: #451a03;
-    border: 1px solid #f59e0b;
-    border-radius: 6px;
+    background: rgba(69, 26, 3, 0.6);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    border-radius: 8px;
     padding: 6px 8px;
     margin-bottom: 5px;
     color: #fef3c7;
@@ -302,7 +341,7 @@ div[data-baseweb="input"] > div {{
 </style>""", unsafe_allow_html=True)
 
 # ==========================================
-# 3. محرك قاعدة البيانات (High Concurrency & WAL)
+# 3. محرك قاعدة البيانات عالي الاستقرار (WAL Mode)
 # ==========================================
 DB_FILE = "group99_padel.db"
 
@@ -377,7 +416,7 @@ def get_loyalty_score(norm_phone):
         return res[0] if res else 0
 
 # ==========================================
-# 4. التحديد الآلي للتمرين القادم ومزامنة التقويم
+# 4. التحديد الآلي للتمرين القادم
 # ==========================================
 def get_next_session():
     ksa_tz = timezone(timedelta(hours=3))
@@ -430,7 +469,6 @@ def get_next_session():
     label_en = f"{day_name_en} ({date_str})"
     db_key = f"{day_name_ar} {target_date.strftime('%Y-%m-%d')}"
     
-    # تجهيز رابط تقويم Google المباشر (ابتكار 80/20 للتذكير الآلي)
     cal_start = target_date.strftime("%Y%m%d") + "T213000"
     cal_end = target_date.strftime("%Y%m%d") + "T230000"
     cal_url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={urllib.parse.quote('🎾 تمرين بادل — قروب 99')}&dates={cal_start}/{cal_end}&details={urllib.parse.quote('تمرين بادل قروب 99 من 9:30 حتى 11:00 مساءً')}&location={urllib.parse.quote('ملعب بادل 99')}"
@@ -457,18 +495,19 @@ with get_db() as conn:
 total_booked = len(c1) + len(c2)
 
 # ==========================================
-# 5. الترويسة والعداد
+# 5. الترويسة الأنيقة (Apple Hero Section)
 # ==========================================
-st.markdown(f"<h3 style='margin:0; font-size:1.15em;'>{t['title'].format(display_session)}</h3>", unsafe_allow_html=True)
-st.markdown(f'<div class="promo-box">{t["promo_badge"]}</div>', unsafe_allow_html=True)
+st.markdown(f"<div class='hero-header'>{t['hero_title']}</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='hero-sub'>{t['hero_sub'].format(display_session)}</div>", unsafe_allow_html=True)
+st.markdown(f'<div class="promo-badge">{t["promo_badge"]}</div>', unsafe_allow_html=True)
 
 if is_promo_active:
-    st.markdown(f'<div class="discount-box">{t["discount_badge"]}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="discount-badge">{t["discount_badge"]}</div>', unsafe_allow_html=True)
 
-st.caption(f"{t['time_str']} • <b>المسجلين: {total_booked}/12</b>", unsafe_allow_html=True)
+st.caption(f"{t['time_str']} • <b>المؤكدين: {total_booked}/12</b>", unsafe_allow_html=True)
 
 # ==========================================
-# 6. نموذج الحجز السريع وبطاقة الدفع الرشيقة
+# 6. الحجز السريع والبطاقة الرقمية
 # ==========================================
 tab_book, tab_cancel = st.tabs([t["tab_book"], t["tab_cancel"]])
 
@@ -520,48 +559,52 @@ with tab_book:
                 }
                 st.rerun()
 
-    # بعد تأكيد الحجز: بطاقة الدفع + إشعار الواتساب + إضافة للتقويم
+    # بطاقة الدفع الرقمية الأنيقة بعد الحجز
     if "recent_book" in st.session_state:
         b = st.session_state["recent_book"]
         if b["status"] == "confirmed":
             st.success(t["succ_book"].format(b["name"], b["court"]))
             
-            # بطاقة الـ QR الفاخرة للتحويل الفوري
+            # بطاقة Apple Wallet للتحويل
             qr_api_url = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=SA9380000222608016013114&margin=0"
             st.markdown(f"""
-            <div class="qr-wallet-card">
-                <div class="qr-container">
-                    <img src="{qr_api_url}" width="140" height="140" alt="QR Code" style="display:block; border-radius:6px;">
+            <div class="apple-card">
+                <div class="apple-card-title">{t['pay_card_title']}</div>
+                <div class="apple-card-sub">{t['pay_subtitle']}</div>
+                <div class="qr-frame">
+                    <img src="{qr_api_url}" width="130" height="130" alt="QR Code" style="display:block; border-radius:6px;">
                 </div>
-                <div class="qr-name">فارس ربيع بن عواض العصيمي</div>
-                <div style="border-top: 1px solid #27272a; margin: 6px 0;"></div>
+                <div class="card-row" style="margin-top: 6px;">
+                    <span class="card-lbl">المستفيد:</span>
+                    <span style="color:#ffffff; font-weight:700;">فارس ربيع بن عواض العصيمي</span>
+                </div>
                 <div class="card-row">
                     <span class="card-lbl">رقم الحساب:</span>
                     <span class="card-val">222000010006086013114</span>
                 </div>
                 <div class="card-row">
-                    <span class="card-lbl">رقم الايبان:</span>
+                    <span class="card-lbl">رقم الآيبان:</span>
                     <span class="card-val">SA93 8000 0222 6080 1601 3114</span>
                 </div>
                 <div class="card-row">
-                    <span class="card-lbl">كود سويفت:</span>
+                    <span class="card-lbl">سويفت كود:</span>
                     <span class="card-val">RJHISARI</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
-            st.caption("📋 **اضغط لنسخ رقم الآيبان مباشرة (IBAN):**")
+            st.caption("📋 **اضغط لنسخ رقم الآيبان فوراً:**")
             st.code("SA9380000222608016013114", language=None)
 
             msg = f"🎾 هلا كابتن فارس، تم تأكيد حجزي ({b['name']}) في تمرين {b['session']} - {b['court']}. تم التحويل على حساب الراجحي ومرفق الإشعار ⚡"
             wa_url = f"https://wa.me/{captain_wa_number}?text={urllib.parse.quote(msg)}"
-            st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">{t["btn_wa_captain"]}</a>', unsafe_allow_html=True)
-            st.markdown(f'<a href="{session_cal_url}" target="_blank" class="cal-btn">{t["cal_btn"]}</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-apple-btn">{t["btn_wa_captain"]}</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{session_cal_url}" target="_blank" class="cal-apple-btn">{t["cal_btn"]}</a>', unsafe_allow_html=True)
         else:
             st.info(t["succ_wait"])
             msg = f"🎾 هلا كابتن فارس، سجلت اسمي ({b['name']}) في قائمة الاحتياط لتمرين {b['session']} ⏳"
             wa_url = f"https://wa.me/{captain_wa_number}?text={urllib.parse.quote(msg)}"
-            st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">{t["btn_wa_captain"]}</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-apple-btn">{t["btn_wa_captain"]}</a>', unsafe_allow_html=True)
 
     st.markdown(f'<div class="privacy-badge">{t["privacy_note"]}</div>', unsafe_allow_html=True)
 
@@ -610,7 +653,7 @@ with tab_cancel:
                     st.error(t["err_cancel"])
 
 # ==========================================
-# 7. العين والتشكيلة المباشرة للكورتين
+# 7. التشكيلة والملاعب (The Arena Visual)
 # ==========================================
 col_c1, col_c2 = st.columns(2)
 
@@ -634,10 +677,10 @@ with col_c2:
     st.markdown(build_court_ui(t["court2"], c2), unsafe_allow_html=True)
 
 if waitlist:
-    st.caption("📋 **قائمة الاحتياط:** " + " • ".join([f"{w[1]}" for w in waitlist]))
+    st.caption("📋 **أولوية الاحتياط:** " + " • ".join([f"{w[1]}" for w in waitlist]))
 
 # ==========================================
-# 8. لوحة الإدارة (20% جهد -> 80% سيطرة إدارية ومالية)
+# 8. لوحة الإدارة الذكية (Executive Control)
 # ==========================================
 with st.expander("⚙️", expanded=False):
     pin = st.text_input(t["admin_pin"], type="password", key="adm_pin")
