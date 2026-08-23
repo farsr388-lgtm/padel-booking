@@ -6,7 +6,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة واللغات (Apple Aesthetic & Minimalist Copy)
+# 1. إعداد الصفحة واللغات (Apple Philosophy)
 # ==========================================
 st.set_page_config(
     page_title="Padel 99 | بادل 99",
@@ -31,8 +31,9 @@ LANG = {
     "ar": {
         "dir": "rtl",
         "align": "right",
-        "hero_title": "Padel 99.",
+        "brand": "Padel 99.",
         "hero_sub": "تمرين {}. اللعب كما ينبغي أن يكون.",
+        "contrast_banner": "⚡ حجز ذكي في ثوانٍ • تشكيلة حية • تمرينك الـ 7 مجاناً بالكامل",
         "promo_badge": "✨ برنامج الوفاء: 6 تمارين تمنحك السابع مجاناً بالكامل.",
         "discount_badge": "🏷️ عرض استثنائي: خصم 20% لتمرين اليوم.",
         "time_str": "⏰ ٩:٣٠ م – ١١:٠٠ م | كورت 1 & 2 • المقاعد محدودة (12 لاعب)",
@@ -42,7 +43,7 @@ LANG = {
         "tab_book": "⚡ تأكيد المقعد",
         "tab_cancel": "❌ تعديل / اعتذار",
         "name_lbl": "الاسم الكامل",
-        "phone_lbl": "رقم الجوال",
+        "phone_lbl": "رقم الجوال (05xxxxxxx)",
         "level_lbl": "مستوى الأداء",
         "levels": ["متوسط", "متقدم", "مبتدئ"],
         "btn_book": "انضم إلى التشكيلة 🚀",
@@ -63,7 +64,7 @@ LANG = {
             "ظرف شخصي طارئ"
         ],
         "btn_cancel": "تأكيد الاعتذار وإتاحة المقعد",
-        "succ_cancel": "تم تسجيل اعتذارك يا كابتن {}. نتطلع لرؤيتك في التمرين القادم.",
+        "succ_cancel": "تم قبول اعتذارك يا كابتن {}. نتطلع لرؤيتك في التمرين القادم.",
         "succ_cancel_refund": "تم قبول اعتذارك يا كابتن {}. تم توثيق طلب استرجاع مساهمتك تلقائياً ✅.",
         "err_cancel": "لم يتم العثور على حجز مؤكد مرتبط بهذا الرقم في تمرين اليوم.",
         "admin_pin": "رمز الدخول السري:",
@@ -76,8 +77,9 @@ LANG = {
     "en": {
         "dir": "ltr",
         "align": "left",
-        "hero_title": "Padel 99.",
+        "brand": "Padel 99.",
         "hero_sub": "{} Session. Pure padel, perfected.",
+        "contrast_banner": "⚡ Instant 3-Sec Booking • Live Arena • 7th Session Free",
         "promo_badge": "✨ Loyalty Pass: Play 6 sessions, get the 7th entirely on us.",
         "discount_badge": "🏷️ Special Edition: 20% OFF today's session pass.",
         "time_str": "⏰ 9:30 PM – 11:00 PM | Courts 1 & 2 • Limited (12 Slots)",
@@ -87,7 +89,7 @@ LANG = {
         "tab_book": "⚡ Reserve Spot",
         "tab_cancel": "❌ Manage / Cancel",
         "name_lbl": "Full Name",
-        "phone_lbl": "Mobile Number",
+        "phone_lbl": "Mobile Number (05xxxxxxx)",
         "level_lbl": "Performance Level",
         "levels": ["Intermediate", "Advanced", "Beginner"],
         "btn_book": "Join the Squad 🚀",
@@ -127,11 +129,11 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 2. الهوية البصرية بنمط Apple (Dark Mode, Frosted Glass & SF Aesthetics)
+# 2. الهوية البصرية (Apple Dark Minimalist CSS)
 # ==========================================
 st.markdown(f"""<style>
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=SF+Pro+Display:wght@400;600;700;800&display=swap');
-* {{ font-family: 'SF Pro Display', 'Cairo', sans-serif; direction: {t['dir']}; text-align: {t['align']}; }}
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+* {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Cairo', sans-serif; direction: {t['dir']}; text-align: {t['align']}; }}
 
 .block-container {{
     padding-top: 0.6rem !important;
@@ -144,48 +146,57 @@ st.markdown(f"""<style>
 
 /* Hero Styling */
 .hero-header {{
-    font-size: 1.6em;
+    font-size: 1.55em;
     font-weight: 900;
     letter-spacing: -0.5px;
     margin: 0;
     color: #f4f4f5;
 }}
 .hero-sub {{
-    font-size: 0.9em;
+    font-size: 0.88em;
     color: #a1a1aa;
     margin-top: -2px;
     margin-bottom: 4px;
 }}
-
+.contrast-pill {{
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 3px 6px;
+    font-size: 0.74em;
+    color: #cbd5e1;
+    font-weight: 600;
+    margin-bottom: 3px;
+}}
 .promo-badge {{
     background: rgba(30, 58, 138, 0.4);
     border: 1px solid rgba(59, 130, 246, 0.4);
     backdrop-filter: blur(10px);
-    border-radius: 8px;
-    padding: 4px 8px;
+    border-radius: 6px;
+    padding: 3px 6px;
     text-align: center;
     color: #bfdbfe;
     font-weight: 700;
-    font-size: 0.78em;
+    font-size: 0.76em;
     margin-bottom: 3px;
 }}
 .discount-badge {{
     background: rgba(180, 83, 9, 0.35);
     border: 1px solid rgba(245, 158, 11, 0.4);
     backdrop-filter: blur(10px);
-    border-radius: 8px;
-    padding: 4px 8px;
+    border-radius: 6px;
+    padding: 3px 6px;
     text-align: center;
     color: #fde68a;
     font-weight: 700;
-    font-size: 0.78em;
+    font-size: 0.76em;
     margin-bottom: 4px;
 }}
 .privacy-badge {{
     font-size: 0.68em;
     color: #71717a;
     text-align: center;
-    margin-top: 4px;
+    margin-top: 3px;
     margin-bottom: 4px;
 }}
 
@@ -193,7 +204,7 @@ st.markdown(f"""<style>
 .apple-card {{
     background: linear-gradient(145deg, #18181b 0%, #09090b 100%);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
+    border-radius: 12px;
     padding: 12px;
     margin: 6px 0;
     text-align: center;
@@ -203,7 +214,6 @@ st.markdown(f"""<style>
     color: #10b981;
     font-size: 0.85em;
     font-weight: 800;
-    letter-spacing: 0.3px;
 }}
 .apple-card-sub {{
     color: #a1a1aa;
@@ -227,30 +237,29 @@ st.markdown(f"""<style>
 .card-lbl {{ color: #71717a; font-weight: 600; }}
 .card-val {{ color: #f4f4f5; font-weight: 800; font-family: monospace; }}
 
-/* Form Components */
 div[data-testid="stForm"] {{
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 10px !important;
-    padding: 8px 10px !important;
+    padding: 6px 8px !important;
     background: #121215;
     margin-top: 2px !important;
     margin-bottom: 4px !important;
 }}
 .stTextInput, .stSelectbox {{
-    margin-bottom: -10px !important;
+    margin-bottom: -12px !important;
 }}
 div[data-baseweb="input"] > div {{
-    min-height: 36px !important;
-    height: 36px !important;
+    min-height: 34px !important;
+    height: 34px !important;
     background-color: #18181b !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
     border-radius: 6px !important;
 }}
 .stButton>button {{
     width: 100%;
-    border-radius: 8px;
+    border-radius: 6px;
     font-weight: 800;
-    height: 2.6em;
+    height: 2.5em;
     font-size: 0.95em;
     background: #10b981;
     color: #ffffff;
@@ -268,7 +277,7 @@ div[data-baseweb="input"] > div {{
     color: white !important;
     text-align: center;
     padding: 8px;
-    border-radius: 8px;
+    border-radius: 6px;
     font-weight: 800;
     text-decoration: none;
     margin-top: 4px;
@@ -283,7 +292,7 @@ div[data-baseweb="input"] > div {{
     color: #94a3b8 !important;
     text-align: center;
     padding: 6px;
-    border-radius: 8px;
+    border-radius: 6px;
     font-weight: 700;
     text-decoration: none;
     margin-top: 2px;
@@ -291,20 +300,20 @@ div[data-baseweb="input"] > div {{
     font-size: 0.8em;
 }}
 
-/* Pitch Aesthetics */
+/* Arena Visuals */
 .padel-court {{
     background: radial-gradient(circle, #064e3b 0%, #022c22 100%);
     border: 1.5px solid rgba(16, 185, 129, 0.6);
-    border-radius: 10px;
-    padding: 5px;
-    margin-bottom: 3px;
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 2px;
 }}
 .court-title {{
     text-align: center;
     color: #a7f3d0;
     font-weight: 800;
-    font-size: 0.82em;
-    margin-bottom: 4px;
+    font-size: 0.8em;
+    margin-bottom: 3px;
     border-bottom: 1px dashed rgba(16, 185, 129, 0.4);
     padding-bottom: 2px;
 }}
@@ -316,23 +325,23 @@ div[data-baseweb="input"] > div {{
 .slot-box {{
     background: rgba(15, 23, 42, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-    padding: 3px 4px;
+    border-radius: 5px;
+    padding: 2px 4px;
     text-align: center;
-    min-height: 38px;
+    min-height: 36px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
 }}
-.slot-occupied {{ color: #f4f4f5; font-weight: 700; font-size: 0.76em; line-height: 1.1; }}
+.slot-occupied {{ color: #f4f4f5; font-weight: 700; font-size: 0.75em; line-height: 1.1; }}
 .slot-meta {{ font-size: 0.65em; margin-top: 1px; }}
 .slot-empty {{ color: #52525b; font-size: 0.68em; }}
-.badge-loyalty {{ background-color: #1e3a8a; color: #93c5fd; padding: 0px 3px; border-radius: 3px; font-size: 0.7em; font-weight: 700; }}
+.badge-loyalty {{ background-color: #1e3a8a; color: #93c5fd; padding: 0px 2px; border-radius: 2px; font-size: 0.7em; font-weight: 700; }}
 .refund-alert-box {{
     background: rgba(69, 26, 3, 0.6);
     border: 1px solid rgba(245, 158, 11, 0.5);
-    border-radius: 8px;
+    border-radius: 6px;
     padding: 6px 8px;
     margin-bottom: 5px;
     color: #fef3c7;
@@ -341,7 +350,7 @@ div[data-baseweb="input"] > div {{
 </style>""", unsafe_allow_html=True)
 
 # ==========================================
-# 3. محرك قاعدة البيانات عالي الاستقرار (WAL Mode)
+# 3. محرك قاعدة البيانات (High Concurrency & WAL)
 # ==========================================
 DB_FILE = "group99_padel.db"
 
@@ -416,7 +425,7 @@ def get_loyalty_score(norm_phone):
         return res[0] if res else 0
 
 # ==========================================
-# 4. التحديد الآلي للتمرين القادم
+# 4. التحديد الآلي لموعد التمرين القادم
 # ==========================================
 def get_next_session():
     ksa_tz = timezone(timedelta(hours=3))
@@ -495,10 +504,11 @@ with get_db() as conn:
 total_booked = len(c1) + len(c2)
 
 # ==========================================
-# 5. الترويسة الأنيقة (Apple Hero Section)
+# 5. الترويسة الأنيقة والتباين التسويقي
 # ==========================================
-st.markdown(f"<div class='hero-header'>{t['hero_title']}</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='hero-header'>{t['brand']}</div>", unsafe_allow_html=True)
 st.markdown(f"<div class='hero-sub'>{t['hero_sub'].format(display_session)}</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='contrast-pill'>{t['contrast_banner']}</div>", unsafe_allow_html=True)
 st.markdown(f'<div class="promo-badge">{t["promo_badge"]}</div>', unsafe_allow_html=True)
 
 if is_promo_active:
@@ -507,7 +517,7 @@ if is_promo_active:
 st.caption(f"{t['time_str']} • <b>المؤكدين: {total_booked}/12</b>", unsafe_allow_html=True)
 
 # ==========================================
-# 6. الحجز السريع والبطاقة الرقمية
+# 6. الحجز السريع وتدفق المحفظة الرقمية
 # ==========================================
 tab_book, tab_cancel = st.tabs([t["tab_book"], t["tab_cancel"]])
 
@@ -559,13 +569,12 @@ with tab_book:
                 }
                 st.rerun()
 
-    # بطاقة الدفع الرقمية الأنيقة بعد الحجز
+    # بطاقة Apple Wallet الرقمية المدمجة
     if "recent_book" in st.session_state:
         b = st.session_state["recent_book"]
         if b["status"] == "confirmed":
             st.success(t["succ_book"].format(b["name"], b["court"]))
             
-            # بطاقة Apple Wallet للتحويل
             qr_api_url = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=SA9380000222608016013114&margin=0"
             st.markdown(f"""
             <div class="apple-card">
@@ -596,13 +605,13 @@ with tab_book:
             st.caption("📋 **اضغط لنسخ رقم الآيبان فوراً:**")
             st.code("SA9380000222608016013114", language=None)
 
-            msg = f"🎾 هلا كابتن فارس، تم تأكيد حجزي ({b['name']}) في تمرين {b['session']} - {b['court']}. تم التحويل على حساب الراجحي ومرفق الإشعار ⚡"
+            msg = f"🎾 هلا كابتن فارس، تم تأكيد مقعدي ({b['name']}) في تمرين {b['session']} - {b['court']}. تم التحويل ومرفق إشعار التأكيد ⚡"
             wa_url = f"https://wa.me/{captain_wa_number}?text={urllib.parse.quote(msg)}"
             st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-apple-btn">{t["btn_wa_captain"]}</a>', unsafe_allow_html=True)
             st.markdown(f'<a href="{session_cal_url}" target="_blank" class="cal-apple-btn">{t["cal_btn"]}</a>', unsafe_allow_html=True)
         else:
             st.info(t["succ_wait"])
-            msg = f"🎾 هلا كابتن فارس، سجلت اسمي ({b['name']}) في قائمة الاحتياط لتمرين {b['session']} ⏳"
+            msg = f"🎾 هلا كابتن فارس، تم تسجيلي ({b['name']}) في قائمة الاحتياط لتمرين {b['session']} ⏳"
             wa_url = f"https://wa.me/{captain_wa_number}?text={urllib.parse.quote(msg)}"
             st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-apple-btn">{t["btn_wa_captain"]}</a>', unsafe_allow_html=True)
 
@@ -653,7 +662,7 @@ with tab_cancel:
                     st.error(t["err_cancel"])
 
 # ==========================================
-# 7. التشكيلة والملاعب (The Arena Visual)
+# 7. التشكيلة المباشرة (The Arena)
 # ==========================================
 col_c1, col_c2 = st.columns(2)
 
