@@ -6,7 +6,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة والهوية البصرية (Mobile First)
+# 1. ضبط الصفحة والهوية البصرية للجوال
 # ==========================================
 st.set_page_config(
     page_title="حجز بادل 99 | Padel 99",
@@ -15,107 +15,88 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap');
-    * { font-family: 'Cairo', sans-serif; direction: rtl; text-align: right; }
-    
-    /* تصميم أرضية الملاعب الخضراء */
-    .padel-court {
-        background: radial-gradient(circle, #064e3b 0%, #022c22 100%);
-        border: 2px solid #10b981;
-        border-radius: 12px;
-        padding: 10px;
-        margin-bottom: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-    }
-    .court-title {
-        text-align: center;
-        color: #a7f3d0;
-        font-weight: 900;
-        font-size: 1.05em;
-        margin-bottom: 8px;
-        border-bottom: 1px dashed #10b981;
-        padding-bottom: 4px;
-    }
-    .court-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-    }
-    .slot-box {
-        background: #0f172a;
-        border: 1px solid #334155;
-        border-radius: 8px;
-        padding: 6px 8px;
-        text-align: center;
-        min-height: 60px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-    }
-    .slot-occupied {
-        color: #f8fafc;
-        font-weight: 800;
-        font-size: 0.88em;
-    }
-    .slot-meta {
-        font-size: 0.72em;
-        color: #94a3b8;
-        margin-top: 2px;
-    }
-    .slot-empty {
-        color: #64748b;
-        font-size: 0.75em;
-    }
-    .badge-paid { color: #34d399; font-weight: 700; }
-    .badge-wait { color: #fbbf24; font-weight: 700; }
-    .badge-loyalty { background-color: #1e3a8a; color: #93c5fd; padding: 1px 5px; border-radius: 4px; font-size: 0.7em; }
-    
-    .stButton>button { width: 100%; border-radius: 10px; font-weight: 800; height: 3.2em; font-size: 1.05em; }
-    .wa-btn {
-        display: inline-block;
-        width: 100%;
-        background-color: #25D366;
-        color: white !important;
-        text-align: center;
-        padding: 12px;
-        border-radius: 10px;
-        font-weight: 800;
-        text-decoration: none;
-        margin-top: 8px;
-    }
-</style>
-""", unsafe_allow_html=True)
+st.markdown("""<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap');
+* { font-family: 'Cairo', sans-serif; direction: rtl; text-align: right; }
+.padel-court {
+    background: radial-gradient(circle, #064e3b 0%, #022c22 100%);
+    border: 2px solid #10b981;
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 12px;
+}
+.court-title {
+    text-align: center;
+    color: #a7f3d0;
+    font-weight: 900;
+    font-size: 1em;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed #10b981;
+    padding-bottom: 4px;
+}
+.court-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.slot-box {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 6px;
+    text-align: center;
+    min-height: 58px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.slot-occupied { color: #f8fafc; font-weight: 800; font-size: 0.85em; }
+.slot-meta { font-size: 0.72em; margin-top: 2px; }
+.slot-empty { color: #64748b; font-size: 0.75em; }
+.badge-loyalty { background-color: #1e3a8a; color: #93c5fd; padding: 1px 4px; border-radius: 4px; font-size: 0.85em; }
+.stButton>button { width: 100%; border-radius: 10px; font-weight: 800; height: 3.2em; font-size: 1.05em; }
+.wa-btn {
+    display: block;
+    width: 100%;
+    background-color: #25D366;
+    color: white !important;
+    text-align: center;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 800;
+    text-decoration: none;
+    margin-top: 8px;
+}
+</style>""", unsafe_allow_html=True)
 
 # ==========================================
-# 2. التحديد الآلي لأقرب تمرين (توقيت السعودية)
+# 2. تحديد أقرب تمرين آلياً (توقيت السعودية)
 # ==========================================
 def get_auto_session_day():
     ksa_tz = timezone(timedelta(hours=3))
     now = datetime.now(ksa_tz)
-    weekday = now.weekday()  # 0: الإثنين, 1: الثلاثاء, 2: الأربعاء, 3: الخميس, 4: الجمعة, 5: السبت, 6: الأحد
+    weekday = now.weekday()
     hour = now.hour
 
-    if weekday == 6:  # الأحد
+    if weekday == 6:
         return "الأحد" if hour < 23 else "الثلاثاء"
-    elif weekday == 0:  # الإثنين
+    elif weekday == 0:
         return "الثلاثاء"
-    elif weekday == 1:  # الثلاثاء
+    elif weekday == 1:
         return "الثلاثاء" if hour < 23 else "الخميس"
-    elif weekday == 2:  # الأربعاء
+    elif weekday == 2:
         return "الخميس"
-    elif weekday == 3:  # الخميس
+    elif weekday == 3:
         return "الخميس" if hour < 23 else "الأحد"
-    elif weekday in [4, 5]:  # الجمعة والسبت
+    elif weekday in [4, 5]:
         return "الأحد"
     return "الأحد"
 
 current_session_day = get_auto_session_day()
 
 # ==========================================
-# 3. إدارة وتحديث قاعدة البيانات
+# 3. إدارة قاعدة البيانات
 # ==========================================
 DB_FILE = "group99_padel.db"
 
@@ -138,14 +119,6 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        # فحص إضافة الأعمدة في حال التحديث
-        cursor.execute("PRAGMA table_info(bookings)")
-        cols = [c[1] for c in cursor.fetchall()]
-        if 'court' not in cols:
-            cursor.execute("ALTER TABLE bookings ADD COLUMN court INTEGER DEFAULT 1")
-        if 'level' not in cols:
-            cursor.execute("ALTER TABLE bookings ADD COLUMN level TEXT DEFAULT 'متوسط'")
-
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS cancellations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -161,7 +134,6 @@ def init_db():
 
 init_db()
 
-# حساب عدد مرات حضور اللاعب لبرنامج الوفاء (6+1)
 def get_player_loyalty_count(phone):
     with get_db() as conn:
         cur = conn.cursor()
@@ -170,12 +142,11 @@ def get_player_loyalty_count(phone):
         return res[0] if res else 0
 
 # ==========================================
-# 4. الهيدر وتشكيلة الملاعب التفاعلية
+# 4. واجهة تشكيلة الملاعب (بدون فراغات برمجية)
 # ==========================================
 st.title(f"🎾 تمرين {current_session_day} — قروب 99")
 st.caption("⚡ الموعد: 21:30 - 23:00 | نظام الملعبين | التمرين الـ 7 مجاناً 🎁")
 
-# جلب بيانات الملاعب
 with get_db() as conn:
     c = conn.cursor()
     c.execute("SELECT id, name, phone, level, payment_status FROM bookings WHERE session_day=? AND court=1 AND status='confirmed' ORDER BY id ASC", (current_session_day,))
@@ -189,43 +160,25 @@ st.markdown(f"### 🏟️ تشكيلة تمرين {current_session_day} ({len(c1
 
 col_c1, col_c2 = st.columns(2)
 
-def render_court_card(title, players):
-    html = f"""
-    <div class="padel-court">
-        <div class="court-title">{title} ({len(players)}/4)</div>
-        <div class="court-grid">
-    """
+def render_court_clean(title, players):
+    items_html = ""
     for i in range(4):
         if i < len(players):
             p = players[i]
             loyalty_cnt = (get_player_loyalty_count(p[2]) % 7)
-            loyalty_str = f"⭐ {loyalty_cnt}/6" if loyalty_cnt < 6 else "🎁 تمرين مجاني!"
-            pay_str = "✅ مدفوع" if p[4] == "paid" else "⏳ بانتظار القطة"
-            pay_cls = "badge-paid" if p[4] == "paid" else "badge-wait"
-            
-            html += f"""
-            <div class="slot-box">
-                <span class="slot-occupied">🎾 {p[1]}</span>
-                <div class="slot-meta">
-                    <span class="badge-loyalty">{loyalty_str}</span>
-                    <span class="{pay_cls}">{pay_str}</span>
-                </div>
-            </div>
-            """
+            loyalty_str = f"⭐ {loyalty_cnt}/6" if loyalty_cnt < 6 else "🎁 مجاني!"
+            pay_str = "✅ مدفوع" if p[4] == "paid" else "⏳ قطة"
+            pay_color = "#34d399" if p[4] == "paid" else "#fbbf24"
+            items_html += f'<div class="slot-box"><div class="slot-occupied">🎾 {p[1]}</div><div class="slot-meta"><span class="badge-loyalty">{loyalty_str}</span> <span style="color:{pay_color};font-weight:700;">{pay_str}</span></div></div>'
         else:
-            html += f"""
-            <div class="slot-box">
-                <span class="slot-empty">مقعد {i+1} شاغر ✨</span>
-            </div>
-            """
-    html += "</div></div>"
-    return html
+            items_html += f'<div class="slot-box"><div class="slot-empty">مقعد {i+1} شاغر ✨</div></div>'
+    return f'<div class="padel-court"><div class="court-title">{title} ({len(players)}/4)</div><div class="court-grid">{items_html}</div></div>'
 
 with col_c1:
-    st.markdown(render_court_card("🏟️ الملعب 1", c1), unsafe_allow_html=True)
+    st.markdown(render_court_clean("🏟️ الملعب 1", c1), unsafe_allow_html=True)
 
 with col_c2:
-    st.markdown(render_court_card("🏟️ الملعب 2", c2), unsafe_allow_html=True)
+    st.markdown(render_court_clean("🏟️ الملعب 2", c2), unsafe_allow_html=True)
 
 if waitlist:
     st.caption("📋 **قائمة الاحتياط:** " + " • ".join([f"{w[1]}" for w in waitlist]))
@@ -233,7 +186,7 @@ if waitlist:
 st.divider()
 
 # ==========================================
-# 5. الحجز السريع (3 خطوات) والربط مع الواتساب
+# 5. الحجز السريع وزر الواتساب
 # ==========================================
 tab_book, tab_cancel = st.tabs(["⚡ الحجز السريع", "❌ اعتذار / إلغاء"])
 
@@ -250,9 +203,8 @@ with tab_book:
             c_phone = phone.strip()
             
             if len(c_name) < 3 or len(c_phone) < 10:
-                st.error("يرجى إدخال الاسم ورقم الجوال بالشكل الصحيح.")
+                st.error("يرجى إدخال الاسم ورقم الجوال بشكل صحيح.")
             else:
-                # توزيع ذكي تلقائي
                 if level == "متقدم":
                     target_court = 1 if len(c1) < 4 else (2 if len(c2) < 4 else 0)
                 elif level == "مبتدئ":
@@ -269,7 +221,7 @@ with tab_book:
                                 (c_name, c_phone, current_session_day, final_court, level, status_to_set))
                     conn.commit()
 
-                st.session_state["just_booked"] = {
+                st.session_state["booked_user"] = {
                     "name": c_name,
                     "court": final_court,
                     "status": status_to_set,
@@ -277,20 +229,19 @@ with tab_book:
                 }
                 st.rerun()
 
-    # عرض زر تأكيد الواتساب المباشر بعد الحجز
-    if "just_booked" in st.session_state:
-        b_info = st.session_state["just_booked"]
-        if b_info["status"] == "confirmed":
-            st.success(f"كفو يا كابتن {b_info['name']}! تم تثبيت مقعدك في 🏟️ الملعب {b_info['court']}.")
-            wa_text = f"🎾 تم حجز مقعدي يا كابتن ({b_info['name']}) في تمرين {b_info['day']} - 🏟️ ملعب {b_info['court']}! مرفق إشعار التحويل ⚡"
+    if "booked_user" in st.session_state:
+        b = st.session_state["booked_user"]
+        if b["status"] == "confirmed":
+            st.success(f"كفو يا كابتن {b['name']}! تم تثبيت مقعدك في 🏟️ الملعب {b['court']}.")
+            wa_msg = f"🎾 تم حجز مقعدي ({b['name']}) في تمرين {b['day']} - 🏟️ ملعب {b['court']}! مرفق إشعار التحويل ⚡"
         else:
-            st.info(f"الملاعب مكتملة! تمت إضافتك يا كابتن {b_info['name']} لقائمة الاحتياط لتمرين {b_info['day']}.")
-            wa_text = f"🎾 تم تسجيل اسمي ({b_info['name']}) في قائمة الاحتياط لتمرين {b_info['day']} ⏳"
+            st.info(f"الملاعب مكتملة! تمت إضافتك يا كابتن {b['name']} لقائمة الاحتياط.")
+            wa_msg = f"🎾 تم تسجيل اسمي ({b['name']}) في قائمة احتياط تمرين {b['day']} ⏳"
 
-        wa_url = f"https://wa.me/?text={urllib.parse.quote(wa_text)}"
-        st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال إشعار التأكيد في قروب الواتساب</a>', unsafe_allow_html=True)
+        wa_link = f"https://wa.me/?text={urllib.parse.quote(wa_msg)}"
+        st.markdown(f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 إرسال إشعار التأكيد في قروب الواتساب</a>', unsafe_allow_html=True)
 
-# --- تبويب الاعتذار مع الحماية ---
+# --- تبويب الاعتذار ---
 with tab_cancel:
     st.caption("أدخل رقم جوالك لتفريغ المقعد تلقائياً للاعبين في قائمة الاحتياط.")
     with st.form("quick_cancel"):
@@ -319,14 +270,14 @@ with tab_cancel:
                     conn.commit()
 
                     st.success(f"تم قبول اعتذارك يا كابتن {target[1]} وتفريغ المقعد بنجاح.")
-                    if "just_booked" in st.session_state:
-                        del st.session_state["just_booked"]
+                    if "booked_user" in st.session_state:
+                        del st.session_state["booked_user"]
                     st.rerun()
                 else:
                     st.error("لم يتم العثور على حجز مسجل بهذا الرقم في تمرين اليوم.")
 
 # ==========================================
-# 6. لوحة الإدارة المخفية (تصدير إكسل + تحكم الملاعب)
+# 6. لوحة الإدارة المخفية
 # ==========================================
 st.write("")
 with st.expander("⚙️", expanded=False):
@@ -334,7 +285,6 @@ with st.expander("⚙️", expanded=False):
     if pin == "9900":
         st.success("لوحة تحكم الكابتن 👑")
 
-        # تصدير ملف إكسل للحضور والوفاء
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute("""
@@ -356,7 +306,6 @@ with st.expander("⚙️", expanded=False):
 
         st.divider()
 
-        # إدارة التبديل وتأكيد الدفع
         st.write(f"### إدارة لاعبي تمرين {current_session_day}")
         with get_db() as conn:
             cur = conn.cursor()
@@ -368,7 +317,6 @@ with st.expander("⚙️", expanded=False):
                 col_i, col_m, col_p, col_d = st.columns([3, 3, 2, 2])
                 col_i.write(f"🏟️ M{p[5]}: **{p[1]}** (`{p[3]}`)")
                 
-                # تبديل الملعب لجمع الأصحاب
                 if p[5] == 1:
                     if col_m.button("نقل لـ 2 ➡️", key=f"m2_{p[0]}"):
                         with get_db() as conn:
@@ -380,7 +328,6 @@ with st.expander("⚙️", expanded=False):
                             conn.execute("UPDATE bookings SET court=1 WHERE id=?", (p[0],))
                         st.rerun()
 
-                # تأكيد الدفع
                 if p[4] == 'pending':
                     if col_p.button("تأكيد 💳", key=f"pay_{p[0]}"):
                         with get_db() as conn:
