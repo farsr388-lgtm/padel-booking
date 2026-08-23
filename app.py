@@ -6,7 +6,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة واللغات
+# 1. إعداد الصفحة واللغات (Lean & High-Performance)
 # ==========================================
 st.set_page_config(
     page_title="Padel 99 | بادل 99",
@@ -15,6 +15,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# معالجة وتوحيد أرقام الجوال (عربي/إنجليزي + إزالة الزوائد)
 def normalize_phone(phone_input):
     if not phone_input:
         return ""
@@ -35,7 +36,7 @@ LANG = {
         "promo_badge": "🔥 عداد الوفاء: العب 6 تمارين والـ 7 مجاناً بالكامل! 🎁",
         "discount_badge": "⚡ عرض خاص: خصم 20% على قطة تمرين اليوم! 🏷️",
         "time_str": "⏰ ٩:٣٠ م حتى ١١:٠٠ م | كورت 1 & 2 (12 مقعد)",
-        "privacy_note": "🔒 خصوصيتك محفوظة: رقم جوالك يُستخدم للتحقق ونقاط وفائك واسترجاع المبالغ فقط.",
+        "privacy_note": "🔒 خصوصيتك محفوظة: رقم جوالك يُستخدم للتحقق واحتساب الوفاء والاسترجاع فقط.",
         "court1": "🏟️ كورت 1",
         "court2": "🏟️ كورت 2",
         "tab_book": "⚡ حجز مقعد فوري",
@@ -67,7 +68,8 @@ LANG = {
         "err_cancel": "لم يتم العثور على حجز مؤكد بهذا الرقم في تمرين اليوم.",
         "admin_pin": "الرمز السري:",
         "export_btn": "📥 تحميل تايم شيت وسجل الاسترجاعات (Excel)",
-        "btn_wa_captain": "📲 إرسال إشعار التحويل للكابتن مباشرة (واتساب)"
+        "btn_wa_captain": "📲 إرسال إشعار التحويل للكابتن مباشرة (واتساب)",
+        "cal_btn": "📅 إضافة موعد التمرين إلى تقويم جوالك"
     },
     "en": {
         "dir": "ltr",
@@ -108,7 +110,8 @@ LANG = {
         "err_cancel": "No confirmed booking found for this number today.",
         "admin_pin": "Admin PIN:",
         "export_btn": "📥 Download Timesheet & Refunds (Excel)",
-        "btn_wa_captain": "📲 Send Payment Receipt to Captain (WhatsApp)"
+        "btn_wa_captain": "📲 Send Payment Receipt to Captain (WhatsApp)",
+        "cal_btn": "📅 Add Session to Calendar"
     }
 }
 
@@ -119,7 +122,7 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 2. التنسيق البصري الفائق (Zero Friction)
+# 2. الهوية البصرية (Zero Clutter CSS)
 # ==========================================
 st.markdown(f"""<style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap');
@@ -164,6 +167,40 @@ st.markdown(f"""<style>
     margin-bottom: 4px;
 }}
 
+/* بطاقة الدفع والمحفظة الرقمية */
+.qr-wallet-card {{
+    background: #09090b;
+    border: 1.5px solid #27272a;
+    border-radius: 12px;
+    padding: 12px;
+    margin: 6px 0;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}}
+.qr-container {{
+    background: #ffffff;
+    padding: 6px;
+    border-radius: 8px;
+    display: inline-block;
+    margin-bottom: 6px;
+}}
+.qr-name {{
+    color: #f4f4f5;
+    font-size: 1em;
+    font-weight: 900;
+    margin-top: 2px;
+    margin-bottom: 6px;
+}}
+.card-row {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 3px 0;
+    font-size: 0.78em;
+}}
+.card-lbl {{ color: #a1a1aa; }}
+.card-val {{ color: #ffffff; font-weight: 800; font-family: monospace; letter-spacing: 0.5px; }}
+
 div[data-testid="stForm"] {{
     border: 1px solid #334155 !important;
     border-radius: 8px !important;
@@ -198,8 +235,22 @@ div[data-baseweb="input"] > div {{
     font-weight: 800;
     text-decoration: none;
     margin-top: 3px;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
     font-size: 0.9em;
+}}
+.cal-btn {{
+    display: block;
+    width: 100%;
+    background-color: #0284c7;
+    color: white !important;
+    text-align: center;
+    padding: 6px;
+    border-radius: 6px;
+    font-weight: 700;
+    text-decoration: none;
+    margin-top: 2px;
+    margin-bottom: 4px;
+    font-size: 0.82em;
 }}
 
 .padel-court {{
@@ -326,7 +377,7 @@ def get_loyalty_score(norm_phone):
         return res[0] if res else 0
 
 # ==========================================
-# 4. التحديد الآلي للتمرين القادم
+# 4. التحديد الآلي للتمرين القادم ومزامنة التقويم
 # ==========================================
 def get_next_session():
     ksa_tz = timezone(timedelta(hours=3))
@@ -379,16 +430,21 @@ def get_next_session():
     label_en = f"{day_name_en} ({date_str})"
     db_key = f"{day_name_ar} {target_date.strftime('%Y-%m-%d')}"
     
-    return label_ar, label_en, db_key
+    # تجهيز رابط تقويم Google المباشر (ابتكار 80/20 للتذكير الآلي)
+    cal_start = target_date.strftime("%Y%m%d") + "T213000"
+    cal_end = target_date.strftime("%Y%m%d") + "T230000"
+    cal_url = f"https://calendar.google.com/calendar/render?action=TEMPLATE&text={urllib.parse.quote('🎾 تمرين بادل — قروب 99')}&dates={cal_start}/{cal_end}&details={urllib.parse.quote('تمرين بادل قروب 99 من 9:30 حتى 11:00 مساءً')}&location={urllib.parse.quote('ملعب بادل 99')}"
 
-sess_ar, sess_en, db_session_key = get_next_session()
+    return label_ar, label_en, db_key, cal_url
+
+sess_ar, sess_en, db_session_key, session_cal_url = get_next_session()
 display_session = sess_ar if l_code == "ar" else sess_en
 
 COURT_CAPACITY = 6
 is_promo_active = (get_setting("promo_20_active", "0") == "1")
-captain_wa_number = get_setting("captain_whatsapp", "966500000000")
+captain_wa_number = get_setting("captain_whatsapp", "966566261868")
 
-# جلب بيانات الملاعب لتمرين اليوم
+# جلب بيانات الملاعب
 with get_db() as conn:
     c = conn.cursor()
     c.execute("SELECT id, name, phone, payment_status FROM bookings WHERE session_day=? AND court=1 AND status='confirmed' ORDER BY id ASC LIMIT 6", (db_session_key,))
@@ -412,7 +468,7 @@ if is_promo_active:
 st.caption(f"{t['time_str']} • <b>المسجلين: {total_booked}/12</b>", unsafe_allow_html=True)
 
 # ==========================================
-# 6. نموذج الحجز السريع والواتساب المباشر للكابتن
+# 6. نموذج الحجز السريع وبطاقة الدفع الرشيقة
 # ==========================================
 tab_book, tab_cancel = st.tabs([t["tab_book"], t["tab_cancel"]])
 
@@ -464,18 +520,48 @@ with tab_book:
                 }
                 st.rerun()
 
+    # بعد تأكيد الحجز: بطاقة الدفع + إشعار الواتساب + إضافة للتقويم
     if "recent_book" in st.session_state:
         b = st.session_state["recent_book"]
         if b["status"] == "confirmed":
             st.success(t["succ_book"].format(b["name"], b["court"]))
-            msg = f"🎾 هلا كابتن، تم تأكيد حجزي ({b['name']}) في تمرين {b['session']} - {b['court']}. مرفق إشعار التحويل لتأكيد القطة ⚡"
+            
+            # بطاقة الـ QR الفاخرة للتحويل الفوري
+            qr_api_url = "https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=SA9380000222608016013114&margin=0"
+            st.markdown(f"""
+            <div class="qr-wallet-card">
+                <div class="qr-container">
+                    <img src="{qr_api_url}" width="140" height="140" alt="QR Code" style="display:block; border-radius:6px;">
+                </div>
+                <div class="qr-name">فارس ربيع بن عواض العصيمي</div>
+                <div style="border-top: 1px solid #27272a; margin: 6px 0;"></div>
+                <div class="card-row">
+                    <span class="card-lbl">رقم الحساب:</span>
+                    <span class="card-val">222000010006086013114</span>
+                </div>
+                <div class="card-row">
+                    <span class="card-lbl">رقم الايبان:</span>
+                    <span class="card-val">SA93 8000 0222 6080 1601 3114</span>
+                </div>
+                <div class="card-row">
+                    <span class="card-lbl">كود سويفت:</span>
+                    <span class="card-val">RJHISARI</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.caption("📋 **اضغط لنسخ رقم الآيبان مباشرة (IBAN):**")
+            st.code("SA9380000222608016013114", language=None)
+
+            msg = f"🎾 هلا كابتن فارس، تم تأكيد حجزي ({b['name']}) في تمرين {b['session']} - {b['court']}. تم التحويل على حساب الراجحي ومرفق الإشعار ⚡"
+            wa_url = f"https://wa.me/{captain_wa_number}?text={urllib.parse.quote(msg)}"
+            st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">{t["btn_wa_captain"]}</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{session_cal_url}" target="_blank" class="cal-btn">{t["cal_btn"]}</a>', unsafe_allow_html=True)
         else:
             st.info(t["succ_wait"])
-            msg = f"🎾 هلا كابتن، سجلت اسمي ({b['name']}) في قائمة الاحتياط لتمرين {b['session']} ⏳"
-
-        # رابط مباشر لرقم الكابتن
-        wa_url = f"https://wa.me/{captain_wa_number}?text={urllib.parse.quote(msg)}"
-        st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">{t["btn_wa_captain"]}</a>', unsafe_allow_html=True)
+            msg = f"🎾 هلا كابتن فارس، سجلت اسمي ({b['name']}) في قائمة الاحتياط لتمرين {b['session']} ⏳"
+            wa_url = f"https://wa.me/{captain_wa_number}?text={urllib.parse.quote(msg)}"
+            st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">{t["btn_wa_captain"]}</a>', unsafe_allow_html=True)
 
     st.markdown(f'<div class="privacy-badge">{t["privacy_note"]}</div>', unsafe_allow_html=True)
 
@@ -551,25 +637,14 @@ if waitlist:
     st.caption("📋 **قائمة الاحتياط:** " + " • ".join([f"{w[1]}" for w in waitlist]))
 
 # ==========================================
-# 8. لوحة الإدارة (تعديل رقم واتساب الكابتن + الاسترجاع)
+# 8. لوحة الإدارة (20% جهد -> 80% سيطرة إدارية ومالية)
 # ==========================================
 with st.expander("⚙️", expanded=False):
     pin = st.text_input(t["admin_pin"], type="password", key="adm_pin")
     if pin == "9900":
         st.success("لوحة تحكم الكابتن 👑")
         
-        # ضبط رقم واتساب الكابتن لاستقبال التحويلات
-        st.markdown("### 📱 إعدادات واتساب الكابتن")
-        new_wa = st.text_input("رقم جوال الكابتن مع مفتاح الدولة (مثال: 9665xxxxxxxx):", value=captain_wa_number)
-        if st.button("💾 حفظ رقم الواتساب"):
-            clean_wa = "".join([c for c in new_wa if c.isdigit()])
-            set_setting("captain_whatsapp", clean_wa)
-            st.success("تم تحديث رقم واتساب الكابتن بنجاح!")
-            st.rerun()
-
-        st.divider()
-
-        # إدارة استرجاع المبالغ
+        # 1. إدارة استرجاع المبالغ
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute("""
@@ -598,7 +673,7 @@ with st.expander("⚙️", expanded=False):
                     st.rerun()
             st.divider()
 
-        # حاسبة العروض وخصم الـ 20%
+        # 2. حاسبة العروض وخصم الـ 20%
         st.markdown("### 🏷️ حاسبة العروض وخصم الـ 20%")
         c_p1, c_p2 = st.columns(2)
         with c_p1:
@@ -615,7 +690,7 @@ with st.expander("⚙️", expanded=False):
 
         st.divider()
 
-        # تصدير التايم شيت لإكسل
+        # 3. تصدير التايم شيت لإكسل
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute("""
@@ -639,7 +714,7 @@ with st.expander("⚙️", expanded=False):
 
         st.divider()
 
-        # إدارة لاعبي اليوم والتبديل والدفع
+        # 4. إدارة لاعبي اليوم والتبديل والدفع
         st.write(f"### إدارة وتوزيع لاعبي {display_session}")
         with get_db() as conn:
             cur = conn.cursor()
