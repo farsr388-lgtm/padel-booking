@@ -32,17 +32,18 @@ LANG = {
         "dir": "rtl",
         "align": "right",
         "title": "🎾 تمرين {} — قروب 99",
-        "promo_badge": "🔥 العب 6 تمارين والـ 7 مجاناً 🎁",
+        "promo_badge": "🔥 عداد الوفاء: العب 6 تمارين والـ 7 مجاناً بالكامل! 🎁",
         "time_str": "⏰ ٩:٣٠ م حتى ١١:٠٠ م | كورت 1 & 2 (12 مقعد)",
+        "privacy_note": "🔒 خصوصيتك محفوظة: رقم جوالك يُستخدم للتحقق واحتساب نقاط وفائك فقط.",
         "court1": "🏟️ كورت 1",
         "court2": "🏟️ كورت 2",
-        "tab_book": "⚡ حجز فوري",
-        "tab_cancel": "❌ اعتذار",
-        "name_lbl": "الاسم:",
+        "tab_book": "⚡ حجز مقعد فوري",
+        "tab_cancel": "❌ اعتذار / إلغاء",
+        "name_lbl": "اسم اللاعب:",
         "phone_lbl": "الجوال (05xxxxxxx):",
         "level_lbl": "المستوى:",
         "levels": ["متوسط", "متقدم", "مبتدئ"],
-        "btn_book": "🚀 تأكيد الحجز",
+        "btn_book": "🚀 تأكيد الحجز الفوري",
         "err_fields": "فضلاً أدخل الاسم ورقم الجوال بالشكل الصحيح.",
         "succ_book": "كفو يا كابتن {}! تم تثبيت مقعدك في {}.",
         "succ_wait": "اكتملت المقاعد! تم تسجيلك في الاحتياط.",
@@ -55,9 +56,9 @@ LANG = {
             "صديقي أو مجموعتي يلعبون في مكان آخر",
             "مستوى التمرين غير متكافئ معي",
             "تعارض في الوقت / ارتباط مفاجئ",
-            "إجهاد بدني أو إصابة",
+            "إجهاد بدني أو إصابة عضلية",
             "بعد المسافة / صعوبة مواصلات",
-            "أخرى (ظرف شخصي)"
+            "أخرى (ظرف شخصي طارئ)"
         ],
         "btn_cancel": "تأكيد الاعتذار وتفريغ المقعد",
         "succ_cancel": "تم قبول اعتذارك يا كابتن {} وتفريغ المقعد.",
@@ -71,27 +72,28 @@ LANG = {
         "dir": "ltr",
         "align": "left",
         "title": "🎾 {} Session — Group 99",
-        "promo_badge": "🔥 Play 6 sessions, get the 7th FREE! 🎁",
+        "promo_badge": "🔥 Loyalty Counter: Play 6 sessions, get the 7th FREE! 🎁",
         "time_str": "⏰ 9:30 PM until 11:00 PM | Courts 1 & 2 (12 Spots)",
+        "privacy_note": "🔒 Privacy Protected: Your phone is used solely for verification & loyalty points.",
         "court1": "🏟️ Court 1",
         "court2": "🏟️ Court 2",
         "tab_book": "⚡ Quick Book",
         "tab_cancel": "❌ Cancel",
-        "name_lbl": "Name:",
+        "name_lbl": "Player Name:",
         "phone_lbl": "Mobile (05xxxxxxx):",
-        "level_lbl": "Level:",
+        "level_lbl": "Skill Level:",
         "levels": ["Intermediate", "Advanced", "Beginner"],
         "btn_book": "🚀 Confirm Slot",
         "err_fields": "Please enter a valid name and phone number.",
         "succ_book": "Confirmed for Captain {} in {}!",
         "succ_wait": "Courts full! Added to waitlist.",
         "cancel_phone": "Registered Mobile:",
-        "cancel_reason": "Reason:",
+        "cancel_reason": "Cancellation Reason:",
         "reasons": [
-            "Price is not suitable",
-            "Court quality uncomfortable",
+            "Price not suitable",
+            "Venue quality uncomfortable",
             "Found a better / closer venue",
-            "Friends playing elsewhere",
+            "Group playing elsewhere",
             "Skill level mismatch",
             "Schedule conflict / Work",
             "Fatigue / Injury",
@@ -108,7 +110,6 @@ LANG = {
     }
 }
 
-# شريط اللغة المدمج بدون فراغات
 col_t1, col_t2 = st.columns([5, 1])
 with col_t2:
     curr_lang = st.selectbox("🌐", ["العربية", "English"], label_visibility="collapsed")
@@ -116,98 +117,64 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 2. CSS فائق الانضغاط (إلغاء الفراغات والاحتكاك)
+# 2. CSS فائق الانضغاط (صفر احتكاك ومساحات ملائمة)
 # ==========================================
 st.markdown(f"""<style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap');
 * {{ font-family: 'Cairo', sans-serif; direction: {t['dir']}; text-align: {t['align']}; }}
 
-/* إزالة هوامش الصفحة العلوية والسفلية */
 .block-container {{
-    padding-top: 1rem !important;
-    padding-bottom: 1rem !important;
+    padding-top: 0.8rem !important;
+    padding-bottom: 0.8rem !important;
     padding-left: 0.5rem !important;
     padding-right: 0.5rem !important;
-    max-width: 650px !important;
-}}
-
-/* ضغط العنا النصوص والفقرات */
-h1, h2, h3, p {{
-    margin: 0px !important;
-    padding: 0px !important;
+    max-width: 600px !important;
 }}
 .stAppHeader {{ display: none; }}
 
 .promo-box {{
-    background: #1e3a8a;
+    background: linear-gradient(90deg, #1e3a8a 0%, #1e40af 100%);
+    border: 1px solid #3b82f6;
     border-radius: 6px;
-    padding: 3px 8px;
+    padding: 3px 6px;
     text-align: center;
     color: #eff6ff;
     font-weight: 800;
     font-size: 0.78em;
+    margin-top: 1px;
+    margin-bottom: 2px;
+}}
+.privacy-badge {{
+    font-size: 0.68em;
+    color: #94a3b8;
+    text-align: center;
     margin-top: 2px;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }}
-.padel-court {{
-    background: radial-gradient(circle, #064e3b 0%, #022c22 100%);
-    border: 1.5px solid #10b981;
-    border-radius: 8px;
-    padding: 5px;
-    margin-bottom: 4px;
-}}
-.court-title {{
-    text-align: center;
-    color: #a7f3d0;
-    font-weight: 800;
-    font-size: 0.85em;
-    margin-bottom: 4px;
-    border-bottom: 1px dashed #10b981;
-    padding-bottom: 2px;
-}}
-.court-grid {{
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
-}}
-.slot-box {{
-    background: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 5px;
-    padding: 3px 4px;
-    text-align: center;
-    min-height: 38px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}}
-.slot-occupied {{ color: #f8fafc; font-weight: 700; font-size: 0.78em; line-height: 1.1; }}
-.slot-meta {{ font-size: 0.68em; margin-top: 1px; }}
-.slot-empty {{ color: #64748b; font-size: 0.7em; }}
-.badge-loyalty {{ background-color: #1e3a8a; color: #93c5fd; padding: 0px 3px; border-radius: 3px; font-size: 0.72em; font-weight: 700; }}
 
-/* ضغط مدخلات النموذج */
+/* ضغط النموذج في الأعلى */
 div[data-testid="stForm"] {{
     border: 1px solid #334155 !important;
     border-radius: 8px !important;
-    padding: 8px 10px !important;
-    margin-top: 4px !important;
+    padding: 6px 8px !important;
+    background: #0f172a;
+    margin-top: 2px !important;
+    margin-bottom: 4px !important;
 }}
 .stTextInput, .stSelectbox {{
-    margin-bottom: -10px !important;
+    margin-bottom: -12px !important;
 }}
 div[data-baseweb="input"] > div {{
-    min-height: 36px !important;
-    height: 36px !important;
+    min-height: 34px !important;
+    height: 34px !important;
 }}
 .stButton>button {{
     width: 100%;
     border-radius: 6px;
     font-weight: 800;
-    height: 2.6em;
+    height: 2.5em;
     font-size: 0.95em;
-    margin-top: 6px !important;
+    margin-top: 4px !important;
 }}
 .wa-btn {{
     display: block;
@@ -215,17 +182,57 @@ div[data-baseweb="input"] > div {{
     background-color: #25D366;
     color: white !important;
     text-align: center;
-    padding: 8px;
+    padding: 6px;
     border-radius: 6px;
     font-weight: 800;
     text-decoration: none;
-    margin-top: 4px;
-    font-size: 0.9em;
+    margin-top: 3px;
+    margin-bottom: 4px;
+    font-size: 0.85em;
 }}
+
+/* تصميم الملاعب في الأسفل */
+.padel-court {{
+    background: radial-gradient(circle, #064e3b 0%, #022c22 100%);
+    border: 1.5px solid #10b981;
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 2px;
+}}
+.court-title {{
+    text-align: center;
+    color: #a7f3d0;
+    font-weight: 800;
+    font-size: 0.8em;
+    margin-bottom: 3px;
+    border-bottom: 1px dashed #10b981;
+    padding-bottom: 1px;
+}}
+.court-grid {{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+}}
+.slot-box {{
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 5px;
+    padding: 2px 4px;
+    text-align: center;
+    min-height: 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}}
+.slot-occupied {{ color: #f8fafc; font-weight: 700; font-size: 0.75em; line-height: 1.1; }}
+.slot-meta {{ font-size: 0.65em; margin-top: 1px; }}
+.slot-empty {{ color: #64748b; font-size: 0.68em; }}
+.badge-loyalty {{ background-color: #1e3a8a; color: #93c5fd; padding: 0px 2px; border-radius: 2px; font-size: 0.7em; font-weight: 700; }}
 </style>""", unsafe_allow_html=True)
 
 # ==========================================
-# 3. حساب موعد التمرين القادم آلياً
+# 3. حساب موعد وتاريخ التمرين
 # ==========================================
 def get_next_session():
     ksa_tz = timezone(timedelta(hours=3))
@@ -284,7 +291,7 @@ sess_ar, sess_en, db_session_key = get_next_session()
 display_session = sess_ar if l_code == "ar" else sess_en
 
 # ==========================================
-# 4. قاعدة البيانات
+# 4. قاعدة البيانات وحساب نقاط الوفاء
 # ==========================================
 DB_FILE = "group99_padel.db"
 
@@ -329,15 +336,8 @@ def get_loyalty_score(norm_phone):
         res = cur.fetchone()
         return res[0] if res else 0
 
-# ==========================================
-# 5. عرض التشكيلة المباشرة (كورت 1 وكورت 2)
-# ==========================================
-st.markdown(f"<h3 style='margin:0;'>{t['title'].format(display_session)}</h3>", unsafe_allow_html=True)
-st.markdown(f'<div class="promo-box">{t["promo_badge"]}</div>', unsafe_allow_html=True)
-st.caption(t["time_str"])
-
+# جلب بيانات الملاعب
 COURT_CAPACITY = 6
-
 with get_db() as conn:
     c = conn.cursor()
     c.execute("SELECT id, name, phone, payment_status FROM bookings WHERE session_day=? AND court=1 AND status='confirmed' ORDER BY id ASC LIMIT 6", (db_session_key,))
@@ -347,32 +347,17 @@ with get_db() as conn:
     c.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC", (db_session_key,))
     waitlist = c.fetchall()
 
-col_c1, col_c2 = st.columns(2)
-
-def build_court_ui(title, players):
-    items = ""
-    for i in range(COURT_CAPACITY):
-        if i < len(players):
-            p = players[i]
-            points = (get_loyalty_score(p[2]) % 7)
-            pts_badge = f"⭐ {points}/6" if points < 6 else "🎁 مجاني!"
-            pay_str = "✅" if p[3] == "paid" else "⏳"
-            items += f'<div class="slot-box"><div class="slot-occupied">🎾 {p[1]}</div><div class="slot-meta"><span class="badge-loyalty">{pts_badge}</span> {pay_str}</div></div>'
-        else:
-            items += f'<div class="slot-box"><div class="slot-empty">مقعد {i+1} شاغر ✨</div></div>'
-    return f'<div class="padel-court"><div class="court-title">{title} ({len(players)}/{COURT_CAPACITY})</div><div class="court-grid">{items}</div></div>'
-
-with col_c1:
-    st.markdown(build_court_ui(t["court1"], c1), unsafe_allow_html=True)
-
-with col_c2:
-    st.markdown(build_court_ui(t["court2"], c2), unsafe_allow_html=True)
-
-if waitlist:
-    st.caption("📋 **الاحتياط:** " + " • ".join([f"{w[1]}" for w in waitlist]))
+total_booked = len(c1) + len(c2)
 
 # ==========================================
-# 6. الحجز السريع المدمج (صفر احتكاك ومساحات مضغوطة)
+# 5. الترويسة والعداد فوق أولاً
+# ==========================================
+st.markdown(f"<h3 style='margin:0; font-size:1.15em;'>{t['title'].format(display_session)}</h3>", unsafe_allow_html=True)
+st.markdown(f'<div class="promo-box">{t["promo_badge"]}</div>', unsafe_allow_html=True)
+st.caption(f"{t['time_str']} • <b>المسجلين: {total_booked}/12</b>", unsafe_allow_html=True)
+
+# ==========================================
+# 6. التسجيل أولاً (مباشرة في الأعلى لتقليل الاحتكاك)
 # ==========================================
 tab_book, tab_cancel = st.tabs([t["tab_book"], t["tab_cancel"]])
 
@@ -430,6 +415,9 @@ with tab_book:
         wa_url = f"https://wa.me/?text={urllib.parse.quote(msg)}"
         st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال التأكيد في قروب الواتساب</a>', unsafe_allow_html=True)
 
+    # عبارة الخصوصية والأمان تحت زر الحجز
+    st.markdown(f'<div class="privacy-badge">{t["privacy_note"]}</div>', unsafe_allow_html=True)
+
 # --- تبويب الاعتذار ---
 with tab_cancel:
     with st.form("cancel_form"):
@@ -465,14 +453,40 @@ with tab_cancel:
                     st.error(t["err_cancel"])
 
 # ==========================================
-# 7. لوحة الإدارة
+# 7. العين والتشكيلة المباشرة (في الأسفل)
+# ==========================================
+col_c1, col_c2 = st.columns(2)
+
+def build_court_ui(title, players):
+    items = ""
+    for i in range(COURT_CAPACITY):
+        if i < len(players):
+            p = players[i]
+            points = (get_loyalty_score(p[2]) % 7)
+            pts_badge = f"⭐ {points}/6" if points < 6 else "🎁 مجاني!"
+            pay_str = "✅" if p[3] == "paid" else "⏳"
+            items += f'<div class="slot-box"><div class="slot-occupied">🎾 {p[1]}</div><div class="slot-meta"><span class="badge-loyalty">{pts_badge}</span> {pay_str}</div></div>'
+        else:
+            items += f'<div class="slot-box"><div class="slot-empty">مقعد {i+1} شاغر ✨</div></div>'
+    return f'<div class="padel-court"><div class="court-title">{title} ({len(players)}/{COURT_CAPACITY})</div><div class="court-grid">{items}</div></div>'
+
+with col_c1:
+    st.markdown(build_court_ui(t["court1"], c1), unsafe_allow_html=True)
+
+with col_c2:
+    st.markdown(build_court_ui(t["court2"], c2), unsafe_allow_html=True)
+
+if waitlist:
+    st.caption("📋 **قائمة الاحتياط:** " + " • ".join([f"{w[1]}" for w in waitlist]))
+
+# ==========================================
+# 8. لوحة الإدارة المخفية
 # ==========================================
 with st.expander("⚙️", expanded=False):
     pin = st.text_input(t["admin_pin"], type="password", key="adm_pin")
     if pin == "9900":
         st.success("لوحة تحكم الكابتن 👑")
         paid_count = len([p for p in (c1 + c2) if p[3] == 'paid'])
-        total_booked = len(c1) + len(c2)
         
         m1, m2, m3 = st.columns(3)
         m1.metric("الأساسيين", f"{total_booked}/12")
@@ -500,7 +514,7 @@ with st.expander("⚙️", expanded=False):
                 writer.writerow([r[0], f"كورت {r[1]}", r[2], f'="{formatted_phone}"', r[4], r[5], r[6]])
             st.download_button(t["export_btn"], output.getvalue().encode('utf-8-sig'), f"padel_timesheet_{datetime.now().strftime('%Y_%m')}.csv", "text/csv")
 
-        st.write(f"### إدارة لاعبي {display_session}")
+        st.write(f"### إدارة وتوزيع لاعبي {display_session}")
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute("SELECT id, name, phone, payment_status, court, level FROM bookings WHERE session_day=? AND status='confirmed' ORDER BY court ASC, id ASC", (db_session_key,))
@@ -537,3 +551,5 @@ with st.expander("⚙️", expanded=False):
                     with get_db() as conn:
                         conn.execute("DELETE FROM bookings WHERE id=?", (p[0],))
                     st.rerun()
+        else:
+            st.info("لا توجد حجوزات لهذا اليوم.")
