@@ -6,7 +6,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة واللغات (20% UI -> 80% Speed)
+# 1. إعداد الصفحة واللغات
 # ==========================================
 st.set_page_config(
     page_title="Padel 99 | بادل 99",
@@ -15,7 +15,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# دالة توحيد وتنظيف رقم الجوال (تقضي على 80% من أخطاء الإدخال)
 def normalize_phone(phone_input):
     if not phone_input:
         return ""
@@ -68,8 +67,7 @@ LANG = {
         "err_cancel": "لم يتم العثور على حجز مؤكد بهذا الرقم في تمرين اليوم.",
         "admin_pin": "الرمز السري:",
         "export_btn": "📥 تحميل تايم شيت وسجل الاسترجاعات (Excel)",
-        "wa_msg_conf": "🎾 تم تأكيد حجز مقعدي ({}) في تمرين {} - {}! مرفق إشعار القطة ⚡",
-        "wa_msg_wait": "🎾 تم تسجيل اسمي ({}) في احتياط تمرين {} ⏳"
+        "btn_wa_captain": "📲 إرسال إشعار التحويل للكابتن مباشرة (واتساب)"
     },
     "en": {
         "dir": "ltr",
@@ -110,8 +108,7 @@ LANG = {
         "err_cancel": "No confirmed booking found for this number today.",
         "admin_pin": "Admin PIN:",
         "export_btn": "📥 Download Timesheet & Refunds (Excel)",
-        "wa_msg_conf": "🎾 Confirmed ({}) for {} - {}! Receipt attached ⚡",
-        "wa_msg_wait": "🎾 Added ({}) to waitlist for {} ⏳"
+        "btn_wa_captain": "📲 Send Payment Receipt to Captain (WhatsApp)"
     }
 }
 
@@ -122,7 +119,7 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 2. التنسيق البصري الفائق (Zero Padding & Max Compactness)
+# 2. التنسيق البصري الفائق (Zero Friction)
 # ==========================================
 st.markdown(f"""<style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap');
@@ -196,13 +193,13 @@ div[data-baseweb="input"] > div {{
     background-color: #25D366;
     color: white !important;
     text-align: center;
-    padding: 6px;
+    padding: 8px;
     border-radius: 6px;
     font-weight: 800;
     text-decoration: none;
     margin-top: 3px;
     margin-bottom: 4px;
-    font-size: 0.85em;
+    font-size: 0.9em;
 }}
 
 .padel-court {{
@@ -389,6 +386,7 @@ display_session = sess_ar if l_code == "ar" else sess_en
 
 COURT_CAPACITY = 6
 is_promo_active = (get_setting("promo_20_active", "0") == "1")
+captain_wa_number = get_setting("captain_whatsapp", "966500000000")
 
 # جلب بيانات الملاعب لتمرين اليوم
 with get_db() as conn:
@@ -403,7 +401,7 @@ with get_db() as conn:
 total_booked = len(c1) + len(c2)
 
 # ==========================================
-# 5. الترويسة والعداد فوق أولاً
+# 5. الترويسة والعداد
 # ==========================================
 st.markdown(f"<h3 style='margin:0; font-size:1.15em;'>{t['title'].format(display_session)}</h3>", unsafe_allow_html=True)
 st.markdown(f'<div class="promo-box">{t["promo_badge"]}</div>', unsafe_allow_html=True)
@@ -414,7 +412,7 @@ if is_promo_active:
 st.caption(f"{t['time_str']} • <b>المسجلين: {total_booked}/12</b>", unsafe_allow_html=True)
 
 # ==========================================
-# 6. التسجيل أولاً (مباشرة بالأعلى لتقليل الاحتكاك)
+# 6. نموذج الحجز السريع والواتساب المباشر للكابتن
 # ==========================================
 tab_book, tab_cancel = st.tabs([t["tab_book"], t["tab_cancel"]])
 
@@ -470,13 +468,14 @@ with tab_book:
         b = st.session_state["recent_book"]
         if b["status"] == "confirmed":
             st.success(t["succ_book"].format(b["name"], b["court"]))
-            msg = t["wa_msg_conf"].format(b["name"], b["session"], b["court"])
+            msg = f"🎾 هلا كابتن، تم تأكيد حجزي ({b['name']}) في تمرين {b['session']} - {b['court']}. مرفق إشعار التحويل لتأكيد القطة ⚡"
         else:
             st.info(t["succ_wait"])
-            msg = t["wa_msg_wait"].format(b["name"], b["session"])
+            msg = f"🎾 هلا كابتن، سجلت اسمي ({b['name']}) في قائمة الاحتياط لتمرين {b['session']} ⏳"
 
-        wa_url = f"https://wa.me/?text={urllib.parse.quote(msg)}"
-        st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال التأكيد في قروب الواتساب</a>', unsafe_allow_html=True)
+        # رابط مباشر لرقم الكابتن
+        wa_url = f"https://wa.me/{captain_wa_number}?text={urllib.parse.quote(msg)}"
+        st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">{t["btn_wa_captain"]}</a>', unsafe_allow_html=True)
 
     st.markdown(f'<div class="privacy-badge">{t["privacy_note"]}</div>', unsafe_allow_html=True)
 
@@ -525,7 +524,7 @@ with tab_cancel:
                     st.error(t["err_cancel"])
 
 # ==========================================
-# 7. العين والتشكيلة المباشرة (في الأسفل)
+# 7. العين والتشكيلة المباشرة للكورتين
 # ==========================================
 col_c1, col_c2 = st.columns(2)
 
@@ -552,14 +551,25 @@ if waitlist:
     st.caption("📋 **قائمة الاحتياط:** " + " • ".join([f"{w[1]}" for w in waitlist]))
 
 # ==========================================
-# 8. لوحة الإدارة (20% جهد تشغيلي -> 80% تحكم كامل)
+# 8. لوحة الإدارة (تعديل رقم واتساب الكابتن + الاسترجاع)
 # ==========================================
 with st.expander("⚙️", expanded=False):
     pin = st.text_input(t["admin_pin"], type="password", key="adm_pin")
     if pin == "9900":
         st.success("لوحة تحكم الكابتن 👑")
         
-        # 1. إدارة استرجاع المبالغ (دفعوا واعتذروا)
+        # ضبط رقم واتساب الكابتن لاستقبال التحويلات
+        st.markdown("### 📱 إعدادات واتساب الكابتن")
+        new_wa = st.text_input("رقم جوال الكابتن مع مفتاح الدولة (مثال: 9665xxxxxxxx):", value=captain_wa_number)
+        if st.button("💾 حفظ رقم الواتساب"):
+            clean_wa = "".join([c for c in new_wa if c.isdigit()])
+            set_setting("captain_whatsapp", clean_wa)
+            st.success("تم تحديث رقم واتساب الكابتن بنجاح!")
+            st.rerun()
+
+        st.divider()
+
+        # إدارة استرجاع المبالغ
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute("""
@@ -588,7 +598,7 @@ with st.expander("⚙️", expanded=False):
                     st.rerun()
             st.divider()
 
-        # 2. حاسبة العروض وخصم الـ 20%
+        # حاسبة العروض وخصم الـ 20%
         st.markdown("### 🏷️ حاسبة العروض وخصم الـ 20%")
         c_p1, c_p2 = st.columns(2)
         with c_p1:
@@ -605,7 +615,7 @@ with st.expander("⚙️", expanded=False):
 
         st.divider()
 
-        # 3. تصدير التايم شيت لإكسل
+        # تصدير التايم شيت لإكسل
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute("""
@@ -629,7 +639,7 @@ with st.expander("⚙️", expanded=False):
 
         st.divider()
 
-        # 4. إدارة لاعبي اليوم والتبديل والدفع
+        # إدارة لاعبي اليوم والتبديل والدفع
         st.write(f"### إدارة وتوزيع لاعبي {display_session}")
         with get_db() as conn:
             cur = conn.cursor()
