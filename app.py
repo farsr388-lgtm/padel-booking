@@ -9,10 +9,10 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة والهوية البصرية (Apple Minimalist)
+# 1. إعداد الصفحة والهوية البصرية
 # ==========================================
 st.set_page_config(
-    page_title="Padel 99 | بادل 99",
+    page_title="بادل 99 | Padel 99",
     page_icon="🎾",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -22,33 +22,33 @@ LANG = {
     "ar": {
         "dir": "rtl",
         "align": "right",
-        "brand": "Padel 99.",
+        "brand": "بادل 99.",
         "hero_sub": "تمرين {}. متعة اللعب، بتنظيم أبسط.",
         "contrast_banner": "⚡ حجز فوري • 6 لاعبين للملعب • السابع علينا.",
-        "promo_badge": "✨ العب 6 تمارين. والسابع مجاناً.",
+        "promo_badge": "✨ العب 6 تمارين والسابع مجاناً",
         "price_tag": "65 ر.س",
-        "time_str": "⏰ ٩:٣٠ م – ١١:٠٠ م | كورت 1 (6 مقاعد)",
+        "time_str": "⏰ 9:30 م إلى 11:00 م | كورت 1 (6 مقاعد)",
         "court1": "🏟️ كورت 1",
         "tab_book": "⚡ حجز مقعد",
         "tab_rules": "📜 القواعد",
         "tab_cancel": "❌ اعتذار",
-        "name_lbl": "الاسم",
+        "name_lbl": "الاسم الثلاثي",
         "phone_lbl": "رقم الجوال (05xxxxxxxx)",
         "level_lbl": "مستوى اللعب",
         "levels": [
-            "🟢 متوسط • تبادل مستمر وثبات",
-            "🔥 متقدم • سرعة وتكتيك",
-            "⚪ مبتدئ • انطلاقة وتعلّم"
+            "🟢 متوسط - تبادل وثبات",
+            "🔥 متقدم - سرعة وتكتيك",
+            "⚪ مبتدئ - انطلاقة وتعلّم"
         ],
         "btn_book": "تأكيد الانضمام 🚀",
-        "err_fields": "فضلاً أدخل الاسم ورقم جوال سعودي يبدأ بـ 05.",
+        "err_fields": "فضلاً أدخل الاسم ورقم جوال صحيح يبدأ بـ 05.",
         "err_duplicate": "أنت مسجل بالفعل في تمرين اليوم.",
         "err_spam": "تم رفض الطلب للاشتباه في نشاط آلي.",
         "succ_book_title": "✅ تم تأكيد حجزك بنجاح! شكراً لك يا كابتن {}",
-        "succ_book_desc": "تم حجز مقعدك في <b>{}</b>. نتطلع لرؤيتك وتقديم تمرين ممتع!",
-        "succ_wait": "اكتملت المقاعد. أنت في صدارة الاحتياط (#{}).",
-        "cancel_phone": "رقم الجوال:",
-        "cancel_reason": "السبب:",
+        "succ_book_desc": "تم حجز مقعدك في <b>{}</b>. نلتقي في الملعب!",
+        "succ_wait": "اكتملت المقاعد. أنت في صدارة الاحتياط رقم ({}).",
+        "cancel_phone": "رقم الجوال المسجل:",
+        "cancel_reason": "سبب الاعتذار:",
         "reasons": [
             "تعارض في المواعيد",
             "إجهاد بدني أو إصابة",
@@ -74,13 +74,13 @@ LANG = {
         "tab_book": "⚡ Reserve",
         "tab_rules": "📜 Rules",
         "tab_cancel": "❌ Cancel",
-        "name_lbl": "Name",
+        "name_lbl": "Full Name",
         "phone_lbl": "Mobile (05xxxxxxxx)",
         "level_lbl": "Skill Level",
         "levels": [
-            "🟢 Intermediate • Steady rallies",
-            "🔥 Advanced • Fast & tactical",
-            "⚪ Beginner • Starting out"
+            "🟢 Intermediate - Steady rallies",
+            "🔥 Advanced - Fast & tactical",
+            "⚪ Beginner - Starting out"
         ],
         "btn_book": "Confirm Spot 🚀",
         "err_fields": "Enter a valid name and Saudi mobile (05xxxxxxxx).",
@@ -112,121 +112,98 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 2. الواجهة البصرية المستوحاة من Apple
+# 2. الواجهة البصرية (خطوط نظام سريعة وخفيفة)
 # ==========================================
 st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
-* {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Cairo', sans-serif; direction: {t['dir']}; text-align: {t['align']}; }}
-.block-container {{ padding: 0.8rem 0.5rem 1rem 0.5rem !important; max-width: 580px !important; }}
+* {{
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Geeza Pro", Tahoma, sans-serif !important;
+    direction: {t['dir']};
+    text-align: {t['align']};
+}}
+
+.block-container {{ 
+    padding: 0.8rem 0.5rem 1rem 0.5rem !important; 
+    max-width: 550px !important; 
+}}
+
 .stAppHeader {{ display: none; }}
 
-.hero-header {{ font-size: 1.65em; font-weight: 900; letter-spacing: -0.5px; color: #f4f4f5; margin: 0; }}
-.hero-sub {{ font-size: 0.88em; color: #a1a1aa; margin-bottom: 6px; }}
-.contrast-pill {{ background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 8px; font-size: 0.75em; color: #cbd5e1; font-weight: 600; margin-bottom: 4px; }}
+.hero-header {{ font-size: 1.65em; font-weight: 800; color: #f8fafc; margin: 0; }}
+.hero-sub {{ font-size: 0.88em; color: #94a3b8; margin-bottom: 6px; }}
+.contrast-pill {{ background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; padding: 4px 8px; font-size: 0.75em; color: #cbd5e1; font-weight: 600; margin-bottom: 4px; }}
 .promo-badge {{ background: rgba(30, 58, 138, 0.35); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; padding: 4px 8px; text-align: center; color: #bfdbfe; font-weight: 700; font-size: 0.75em; margin-bottom: 4px; }}
 
 .thankyou-box {{
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 78, 59, 0.25) 100%);
+    background: rgba(16, 185, 129, 0.15);
     border: 1.5px solid #10b981;
-    border-radius: 14px;
-    padding: 14px 16px;
+    border-radius: 12px;
+    padding: 12px 14px;
     margin: 10px 0;
     text-align: center;
 }}
-.thankyou-title {{
-    color: #34d399;
-    font-size: 1.05em;
-    font-weight: 800;
-    margin-bottom: 4px;
-}}
-.thankyou-sub {{
-    color: #e2e8f0;
-    font-size: 0.84em;
-}}
+.thankyou-title {{ color: #34d399; font-size: 1em; font-weight: 700; margin-bottom: 3px; }}
+.thankyou-sub {{ color: #e2e8f0; font-size: 0.82em; }}
 
-.rules-card {{
-    background: #18181b;
-    border: 1px solid #27272a;
-    border-radius: 14px;
-    padding: 14px;
-    margin: 8px 0;
-}}
-.rule-item {{
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 12px;
-    font-size: 0.82em;
-    color: #e2e8f0;
-    line-height: 1.4;
-}}
+.rules-card {{ background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 12px; margin: 8px 0; }}
+.rule-item {{ display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; font-size: 0.82em; color: #e2e8f0; line-height: 1.4; }}
 .rule-item:last-child {{ margin-bottom: 0; }}
-.rule-icon {{ font-size: 1.1em; }}
 
 .alrajhi-card {{
     background: #111418;
     border: 1.5px solid #2d3748;
-    border-radius: 18px;
-    padding: 16px;
-    margin: 12px 0;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+    border-radius: 16px;
+    padding: 14px;
+    margin: 10px 0;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     color: #ffffff;
 }}
-.card-top {{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-}}
-.bank-title {{ font-size: 0.95em; font-weight: 800; color: #f8fafc; }}
-.price-pill {{ background: #10b981; color: #022c22; padding: 3px 10px; border-radius: 20px; font-weight: 900; font-size: 0.85em; }}
-.qr-container {{ background: #ffffff; padding: 10px; border-radius: 12px; display: inline-block; margin: 4px auto 10px auto; }}
-.qr-container img {{ display: block; width: 135px; height: 135px; }}
-.card-owner {{ font-size: 1.15em; font-weight: 800; color: #f8fafc; margin-bottom: 10px; text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.12); padding-bottom: 8px; }}
+.card-top {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 6px; margin-bottom: 10px; }}
+.bank-title {{ font-size: 0.92em; font-weight: 700; color: #f8fafc; }}
+.price-pill {{ background: #10b981; color: #022c22; padding: 2px 8px; border-radius: 16px; font-weight: 700; font-size: 0.82em; }}
+.qr-container {{ background: #ffffff; padding: 8px; border-radius: 10px; display: inline-block; margin: 4px auto 8px auto; }}
+.qr-container img {{ display: block; width: 130px; height: 130px; }}
+.card-owner {{ font-size: 1.05em; font-weight: 700; color: #f8fafc; margin-bottom: 8px; text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.12); padding-bottom: 6px; }}
 .copy-badge {{
     background: #1e293b;
     border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 8px 10px;
+    border-radius: 6px;
+    padding: 6px 8px;
     font-family: monospace;
-    font-size: 0.92em;
+    font-size: 0.88em;
     color: #38bdf8;
-    font-weight: 700;
+    font-weight: 600;
     display: flex;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }}
 .copy-badge:active {{ background: #0f172a; border-color: #38bdf8; }}
 
 .wa-apple-btn {{
     display: block;
     width: 100%;
-    background: linear-gradient(180deg, #25D366 0%, #1da851 100%);
+    background: #25D366;
     color: white !important;
     text-align: center;
-    padding: 12px;
-    border-radius: 10px;
-    font-weight: 800;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 700;
     text-decoration: none;
-    margin-top: 8px;
-    font-size: 0.95em;
-    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+    margin-top: 6px;
+    font-size: 0.9em;
 }}
 
-.padel-court {{ background: radial-gradient(circle, #064e3b 0%, #022c22 100%); border: 1.5px solid rgba(16, 185, 129, 0.6); border-radius: 12px; padding: 12px; margin-bottom: 6px; }}
-.court-title {{ text-align: center; color: #a7f3d0; font-weight: 800; font-size: 0.95em; margin-bottom: 10px; border-bottom: 1px dashed rgba(16, 185, 129, 0.4); padding-bottom: 6px; }}
-.court-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }}
-.slot-box {{ background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 8px 6px; text-align: center; min-height: 52px; display: flex; flex-direction: column; justify-content: center; align-items: center; }}
-.slot-occupied {{ color: #f4f4f5; font-weight: 700; font-size: 0.84em; line-height: 1.2; }}
-.slot-meta {{ display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.70em; margin-top: 4px; flex-wrap: wrap; }}
-.slot-empty {{ color: #52525b; font-size: 0.78em; }}
-.badge-loyalty {{ background-color: #1e3a8a; color: #93c5fd; padding: 1px 4px; border-radius: 3px; font-size: 0.72em; font-weight: 700; }}
-.badge-level {{ background-color: rgba(255, 255, 255, 0.1); color: #e2e8f0; padding: 1px 4px; border-radius: 3px; font-size: 0.70em; font-weight: 600; border: 1px solid rgba(255, 255, 255, 0.15); }}
+.padel-court {{ background: #064e3b; border: 1.5px solid rgba(16, 185, 129, 0.6); border-radius: 10px; padding: 10px; margin-bottom: 6px; }}
+.court-title {{ text-align: center; color: #a7f3d0; font-weight: 700; font-size: 0.9em; margin-bottom: 8px; border-bottom: 1px dashed rgba(16, 185, 129, 0.4); padding-bottom: 4px; }}
+.court-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }}
+.slot-box {{ background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 6px 4px; text-align: center; min-height: 48px; display: flex; flex-direction: column; justify-content: center; align-items: center; }}
+.slot-occupied {{ color: #f4f4f5; font-weight: 600; font-size: 0.82em; line-height: 1.2; }}
+.slot-meta {{ display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.68em; margin-top: 3px; flex-wrap: wrap; }}
+.slot-empty {{ color: #64748b; font-size: 0.75em; }}
+.badge-loyalty {{ background-color: #1e3a8a; color: #93c5fd; padding: 1px 4px; border-radius: 3px; font-size: 0.7em; font-weight: 600; }}
+.badge-level {{ background-color: rgba(255, 255, 255, 0.1); color: #e2e8f0; padding: 1px 4px; border-radius: 3px; font-size: 0.7em; font-weight: 500; border: 1px solid rgba(255, 255, 255, 0.15); }}
 
 div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) {{ display: none !important; }}
 </style>
@@ -290,7 +267,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# 4. دوال التحقق والحماية العالية
+# 4. دوال التحقق والحماية
 # ==========================================
 def clean_and_validate_sa_phone(raw_phone):
     if not raw_phone:
@@ -526,24 +503,24 @@ with tab_book:
         </div>
     </div>
     <div class="card-owner">فارس ربيع بن عواض العصيمي</div>
-    <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الحساب (اضغط للنسخ):</div>
+    <div style="font-size:0.75em; color:#94a3b8; margin-bottom:2px;">رقم الحساب (اضغط للنسخ):</div>
     <div class="copy-badge" onclick="navigator.clipboard.writeText('{acc_raw}'); alert('تم نسخ رقم الحساب! 📋');">
         <span>{acc_raw}</span>
         <span>📋</span>
     </div>
-    <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الآيبان (اضغط للنسخ):</div>
+    <div style="font-size:0.75em; color:#94a3b8; margin-bottom:2px;">رقم الآيبان (اضغط للنسخ):</div>
     <div class="copy-badge" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('تم نسخ الآيبان بنجاح! 📋');">
         <span>{iban_display}</span>
         <span>📋</span>
     </div>
-    <div style="margin-top: 8px; padding: 8px 10px; background: rgba(56, 189, 248, 0.08); border-radius: 8px; border: 1px dashed rgba(56, 189, 248, 0.3); display: flex; justify-content: space-between; align-items: center;">
-        <div style="font-size: 0.74em; color: #cbd5e1;">💡 <b>لحفظ المستفيد في تطبيق بنكك:</b></div>
-        <div class="copy-badge" style="margin-bottom:0; padding:4px 8px; font-size:0.82em;" onclick="navigator.clipboard.writeText('بادل 99'); alert('تم نسخ اسم المستفيد: بادل 99 📋');">
+    <div style="margin-top: 6px; padding: 6px 8px; background: rgba(56, 189, 248, 0.08); border-radius: 6px; border: 1px dashed rgba(56, 189, 248, 0.3); display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-size: 0.75em; color: #cbd5e1;">💡 <b>لحفظ المستفيد في تطبيق بنكك:</b></div>
+        <div class="copy-badge" style="margin-bottom:0; padding:3px 6px; font-size:0.82em;" onclick="navigator.clipboard.writeText('بادل 99'); alert('تم نسخ اسم المستفيد: بادل 99 📋');">
             <span>بادل 99</span>
             <span>📋</span>
         </div>
     </div>
-    <div style="display:flex; justify-content:space-between; font-size:0.72em; color:#64748b; margin-top:8px;">
+    <div style="display:flex; justify-content:space-between; font-size:0.72em; color:#64748b; margin-top:6px;">
         <span>سويفت: <b>RJHISARI</b></span>
         <span>⚡ تحويل فوري</span>
     </div>
@@ -561,16 +538,16 @@ with tab_rules:
     st.markdown("""
 <div class="rules-card">
     <div class="rule-item">
-        <span class="rule-icon">⏱️</span>
-        <div><b>قبل 4 ساعات.</b> استرجاع كامل أو ترحيل فوري لتمرينك القادم.</div>
+        <span>⏱️</span>
+        <div><b>قبل 4 ساعات:</b> استرجاع كامل أو ترحيل فوري لتمرينك القادم.</div>
     </div>
     <div class="rule-item">
-        <span class="rule-icon">⚠️</span>
-        <div><b>أقل من 4 ساعات.</b> يُسترجع المبلغ فور تأكيد لاعب بديل من الاحتياط.</div>
+        <span>⚠️</span>
+        <div><b>أقل من 4 ساعات:</b> يُسترجع المبلغ فور تأكيد لاعب بديل من الاحتياط.</div>
     </div>
     <div class="rule-item">
-        <span class="rule-icon">⚡</span>
-        <div><b>تأكيد فوري.</b> أرسل إشعار التحويل خلال 15 دقيقة لضمان مقعدك.</div>
+        <span>⚡</span>
+        <div><b>تأكيد فوري:</b> أرسل إشعار التحويل خلال 15 دقيقة لضمان مقعدك.</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -615,7 +592,7 @@ with tab_cancel:
                         st.error(t["err_cancel"])
 
 # ==========================================
-# 7. التشكيلة المباشرة في الملعب (عرض المستوى والولاء)
+# 7. التشكيلة المباشرة في الملعب
 # ==========================================
 st.markdown("---")
 
