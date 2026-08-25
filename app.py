@@ -1,15 +1,15 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import sqlite3
 import io
 import csv
 import re
 import hmac
-import time
 import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة والهوية البصرية للجوال
+# 1. إعداد الصفحة وتهيئة الجوال
 # ==========================================
 st.set_page_config(
     page_title="بادل 99 | Padel 99",
@@ -20,7 +20,6 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* تصفير المساحات العلوية لرفع التطبيق لأعلى الشاشة */
 header[data-testid="stHeader"] { display: none !important; }
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
@@ -33,7 +32,6 @@ footer { visibility: hidden; }
     max-width: 100% !important; 
 }
 
-/* تطبيق الخط العربي الخفيف على النصوص فقط */
 html, body, p, div, span, label, input, select, button, .stMarkdown {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Geeza Pro", Tahoma, sans-serif;
     direction: rtl;
@@ -41,7 +39,6 @@ html, body, p, div, span, label, input, select, button, .stMarkdown {
     box-sizing: border-box;
 }
 
-/* استثناء وحماية خط أيقونات Streamlit لمنع ظهور نصوص مثل _arrow_right */
 [data-testid="stIconMaterial"], [data-testid="stExpanderToggleIcon"] {
     font-family: "Material Symbols Rounded", "Source Sans Pro", sans-serif !important;
 }
@@ -51,7 +48,6 @@ html, body, p, div, span, label, input, select, button, .stMarkdown {
 .contrast-pill { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; padding: 4px 8px; font-size: 0.74em; color: #cbd5e1; font-weight: 600; margin-bottom: 4px; }
 .promo-badge { background: rgba(30, 58, 138, 0.35); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; padding: 4px 8px; text-align: center; color: #bfdbfe; font-weight: 700; font-size: 0.74em; margin-bottom: 4px; }
 
-/* بطاقة التأكيد والشكر */
 .thankyou-box {
     background: rgba(16, 185, 129, 0.15);
     border: 1.5px solid #10b981;
@@ -63,7 +59,6 @@ html, body, p, div, span, label, input, select, button, .stMarkdown {
 .thankyou-title { color: #34d399; font-size: 0.95em; font-weight: 700; margin-bottom: 2px; }
 .thankyou-sub { color: #e2e8f0; font-size: 0.8em; }
 
-/* بطاقة الدفع البنكي */
 .alrajhi-card {
     background: #111418;
     border: 1.5px solid #2d3748;
@@ -123,7 +118,6 @@ html, body, p, div, span, label, input, select, button, .stMarkdown {
     font-size: 0.8em;
 }
 
-/* شبكة الملعب */
 .padel-court { background: #064e3b; border: 1.5px solid rgba(16, 185, 129, 0.6); border-radius: 10px; padding: 8px; margin: 8px 0; }
 .court-title { text-align: center; color: #a7f3d0; font-weight: 700; font-size: 0.85em; margin-bottom: 6px; border-bottom: 1px dashed rgba(16, 185, 129, 0.4); padding-bottom: 3px; }
 .court-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
@@ -139,7 +133,22 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) { disp
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. محرك قاعدة البيانات
+# 2. مؤقت التحديث الخفيف في الخلفية
+# ==========================================
+components.html(
+    """
+    <script>
+    setTimeout(function(){
+        window.parent.document.querySelector('button[kind="header"]')?.click();
+    }, 7000);
+    </script>
+    """,
+    height=0,
+    width=0
+)
+
+# ==========================================
+# 3. محرك قاعدة البيانات
 # ==========================================
 DB_FILE = "group99_padel.db"
 
@@ -164,10 +173,20 @@ def init_db():
                 status TEXT DEFAULT 'confirmed',
                 payment_status TEXT DEFAULT 'pending',
                 attendance TEXT DEFAULT 'unknown',
+                hear_about TEXT DEFAULT '',
+                player_note TEXT DEFAULT '',
                 ip_address TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        
+        cur.execute("PRAGMA table_info(bookings)")
+        cols = [c[1] for c in cur.fetchall()]
+        if "hear_about" not in cols:
+            cur.execute("ALTER TABLE bookings ADD COLUMN hear_about TEXT DEFAULT '';")
+        if "player_note" not in cols:
+            cur.execute("ALTER TABLE bookings ADD COLUMN player_note TEXT DEFAULT '';")
+
         cur.execute('''
             CREATE TABLE IF NOT EXISTS cancellations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -184,7 +203,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# 3. الدوال المساعدة وحساب اليوم القادم
+# 4. دوال الفحص والتوحيد
 # ==========================================
 def clean_and_validate_sa_phone(raw_phone):
     if not raw_phone:
@@ -258,12 +277,12 @@ with get_db() as conn:
 total_booked = len(c1)
 
 # ==========================================
-# 4. الواجهة الأساسية
+# 5. الواجهة الأساسية وحجز المقاعد
 # ==========================================
 st.markdown("<div class='hero-header'>بادل 99.</div>", unsafe_allow_html=True)
 st.markdown(f"<div class='hero-sub'>تمرين {display_session}. متعة اللعب، بتنظيم أبسط.</div>", unsafe_allow_html=True)
 st.markdown("<div class='contrast-pill'>⚡ حجز فوري • 6 لاعبين للملعب • السابع علينا.</div>", unsafe_allow_html=True)
-st.markdown("<div class='promo-badge'>✨ العب 6 تمارين والسابع مجاناً</div>", unsafe_allow_html=True)
+st.markdown("<div class='promo-badge'>✨ العب 6 تمارين واحصل على السابع مجاناً</div>", unsafe_allow_html=True)
 st.caption(f"⏰ 9:30 م إلى 11:00 م | كورت 1 • <b>المؤكدين: {total_booked}/6</b>", unsafe_allow_html=True)
 
 tab_book, tab_rules, tab_cancel = st.tabs(["⚡ حجز مقعد", "📜 القواعد", "❌ اعتذار"])
@@ -279,6 +298,10 @@ with tab_book:
         ])
         f_level = "متوسط" if "متوسط" in f_level_raw else ("متقدم" if "متقدم" in f_level_raw else "مبتدئ")
         
+        with st.expander("💡 استبيان سريع (اختياري)", expanded=False):
+            f_source = st.selectbox("كيف سمعت عن بادل 99؟", ["قروب واتساب", "توصية من صديق", "منصة إكس أو تيك توك", "أخرى"])
+            f_note = st.text_input("ملاحظة أو اقتراح لتمرين اليوم:", placeholder="مثلاً: تفضيل كور معينة أو وقت...")
+
         honeypot_val = st.text_input("hp_security_field", key="hp_val", label_visibility="collapsed")
         btn_submit = st.form_submit_button("تأكيد الانضمام 🚀", use_container_width=True)
 
@@ -303,9 +326,9 @@ with tab_book:
 
                     status_val = 'confirmed' if cur_c1 < COURT_CAPACITY else 'waitlist'
                     cur.execute("""
-                        INSERT INTO bookings (name, phone, session_day, court, level, status) 
-                        VALUES (?, ?, ?, 1, ?, ?)
-                    """, (clean_name, clean_phone, db_session_key, f_level, status_val))
+                        INSERT INTO bookings (name, phone, session_day, court, level, status, hear_about, player_note) 
+                        VALUES (?, ?, ?, 1, ?, ?, ?, ?)
+                    """, (clean_name, clean_phone, db_session_key, f_level, status_val, f_source, f_note))
                     
                     wait_pos = None
                     if status_val == 'waitlist':
@@ -367,7 +390,7 @@ with tab_book:
         <span>📋</span>
     </div>
     <div style="margin-top: 6px; padding: 6px 8px; background: rgba(56, 189, 248, 0.08); border-radius: 6px; border: 1px dashed rgba(56, 189, 248, 0.3); display: flex; justify-content: space-between; align-items: center;">
-        <div style="font-size: 0.75em; color: #cbd5e1;">💡 <b>لحفظ المستفيد:</b></div>
+        <div style="font-size: 0.75em; color: #cbd5e1;">💡 <b>اسم المستفيد:</b></div>
         <div class="copy-badge" style="margin-bottom:0; padding:2px 6px; font-size:0.8em;" onclick="navigator.clipboard.writeText('بادل 99'); alert('تم نسخ اسم المستفيد: بادل 99 📋');">
             <span>بادل 99</span>
             <span>📋</span>
@@ -385,13 +408,13 @@ with tab_book:
             wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
             st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل وتثبيت المقعد</a>', unsafe_allow_html=True)
         else:
-            st.info(f"اكتملت المقاعد. أنت في صدارة الاحتياط رقم ({lb.get('wait_pos', 1)}).")
+            st.info(f"اكتملت المقاعد. أنت في صدارة الاحتياط رقم ({lb.get('wait_pos', 1)}). سيتم إشعارك وتصعيدك فور اعتذار أي لاعب.")
 
 with tab_rules:
     st.markdown("""
     <div style="background:#18181b; border:1px solid #27272a; border-radius:10px; padding:10px; margin:8px 0; font-size:0.82em; color:#e2e8f0; line-height:1.4;">
         <div style="margin-bottom:8px;">⏱️ <b>قبل 4 ساعات:</b> استرجاع كامل أو ترحيل فوري لتمرينك القادم.</div>
-        <div style="margin-bottom:8px;">⚠️ <b>أقل من 4 ساعات:</b> يُسترجع المبلغ فور تأكيد لاعب بديل من الاحتياط.</div>
+        <div style="margin-bottom:8px;">⚠️ <b>أقل من 4 ساعات:</b> يُسترجع المبلغ فور تأكيد لاعب بديل من قائمة الانتظار.</div>
         <div>⚡ <b>تأكيد فوري:</b> أرسل إشعار التحويل خلال 15 دقيقة لضمان مقعدك.</div>
     </div>
     """, unsafe_allow_html=True)
@@ -400,9 +423,9 @@ with tab_cancel:
     with st.form("cancel_form"):
         can_phone_raw = st.text_input("رقم الجوال المسجل")
         can_reason = st.selectbox("سبب الاعتذار", [
-            "تعارض في المواعيد",
+            "تعارض في المواعيد أو انشغال طارئ",
             "إجهاد بدني أو إصابة",
-            "ظرف طارئ",
+            "ظرف عائلي طارئ",
             "صعوبة في المواصلات"
         ])
         btn_cancel_sub = st.form_submit_button("إلغاء المقعد وإتاحته للبديل", use_container_width=True)
@@ -423,22 +446,35 @@ with tab_cancel:
                         cur.execute("INSERT INTO cancellations (player_name, player_phone, session_day, court, reason) VALUES (?, ?, ?, 1, ?)",
                                     (target[1], clean_cp, db_session_key, can_reason))
 
+                        promoted_name = None
                         if target[2] == 'confirmed':
                             cur.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC LIMIT 1", (db_session_key,))
                             wait_player = cur.fetchone()
                             if wait_player:
                                 cur.execute("UPDATE bookings SET status='confirmed', court=1 WHERE id=?", (wait_player[0],))
+                                promoted_name = wait_player[1]
                         
                         conn.commit()
-                        st.success(f"تم قبول اعتذارك يا كابتن {target[1]}. نراك في التمرين القادم.")
+
+                        if "إصابة" in can_reason:
+                            msg = f"سلامتك وما تشوف شر يا كابتن {target[1]}! 🌸 تم إلغاء حجزك بنجاح، وترجع لنا أقوى في التمارين القادمة."
+                        elif "تعارض" in can_reason or "انشغال" in can_reason:
+                            msg = f"تم قبول اعتذارك يا كابتن {target[1]}، نقدّر إبلاغك المبكر لإتاحة الفرصة لغيرك. مكانك محفوظ ونشوفك في التمرين الجاي! 🎾"
+                        else:
+                            msg = f"تم إلغاء الحجز بنجاح يا كابتن {target[1]}. تيسر أمورك وبانتظارك دائماً في بادل 99! ✨"
+
+                        st.success(msg)
+                        if promoted_name:
+                            st.info(f"⚡ تم تصعيد الكابتن **{promoted_name}** من قائمة الانتظار للملعب مباشرة!")
+
                         if "last_booking" in st.session_state:
                             del st.session_state["last_booking"]
                         st.rerun()
                     else:
-                        st.error("لا يوجد حجز مؤكد مرتبط بهذا الرقم.")
+                        st.error("لا يوجد حجز نشط مرتبط بهذا الرقم لتمرين اليوم.")
 
 # ==========================================
-# 5. تشكيلة الملعب
+# 6. تشكيلة الملعب
 # ==========================================
 st.markdown("---")
 
@@ -471,19 +507,19 @@ for i in range(COURT_CAPACITY):
 st.markdown(f'<div class="padel-court"><div class="court-title">🏟️ كورت 1 ({len(c1)}/{COURT_CAPACITY})</div><div class="court-grid">{slots_html}</div></div>', unsafe_allow_html=True)
 
 if waitlist:
-    st.caption("📋 **أولوية الاحتياط:** " + " • ".join([f"{idx+1}. {w[1]}" for idx, w in enumerate(waitlist)]))
+    st.caption("📋 **قائمة الانتظار النشطة (تصعيد فوري):** " + " • ".join([f"#{idx+1} {w[1]}" for idx, w in enumerate(waitlist)]))
 
 # ==========================================
-# 6. زر الدعم المباشر عبر واتساب (بدون تشتيت)
+# 7. زر الدعم المباشر
 # ==========================================
 support_msg = "مرحباً كابتن فارس، عندي استفسار بخصوص حجز بادل 99."
 support_url = f"https://wa.me/966566261868?text={urllib.parse.quote(support_msg)}"
 st.markdown(f'<a href="{support_url}" target="_blank" class="support-btn">💬 تواجه مشكلة؟ تواصل مباشرة عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 7. لوحة الإدارة وتصدير البيانات
+# 8. لوحة الإدارة والتحليلات وتصدير البيانات
 # ==========================================
-with st.expander("⚙️ لوحة الإدارة", expanded=False):
+with st.expander("⚙️ لوحة الإدارة والتحليلات", expanded=False):
     pin_input = st.text_input("رمز الإدارة المشفر:", type="password")
     
     if pin_input:
@@ -498,22 +534,46 @@ with st.expander("⚙️ لوحة الإدارة", expanded=False):
         is_valid = hmac.compare_digest(p, str(master_secret).strip()) if master_secret else hmac.compare_digest(p, "Padel99#Master@2026")
         
         if is_valid:
-            st.success("تم تأكيد الهوية والصلاحيات 👑")
+            st.success("تم تأكيد الهوية 👑")
+            
             with get_db() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT session_day, name, phone, COALESCE(level, 'متوسط'), COALESCE(payment_status, 'pending'), created_at FROM bookings ORDER BY id DESC")
+                
+                cur.execute("SELECT COUNT(*) FROM bookings WHERE status='confirmed'")
+                total_confirmed = cur.fetchone()[0]
+                
+                cur.execute("SELECT COUNT(*) FROM bookings WHERE payment_status='paid'")
+                total_paid = cur.fetchone()[0]
+                
+                cur.execute("SELECT level, COUNT(*) FROM bookings GROUP BY level")
+                levels_count = dict(cur.fetchall())
+                
+                c_kpi1, c_kpi2, c_kpi3 = st.columns(3)
+                c_kpi1.metric("إجمالي الحجوزات", total_confirmed)
+                c_kpi2.metric("المؤكد دفعهم", f"{total_paid * 65} ر.س")
+                c_kpi3.metric("المتوسط / المتقدم", f"{levels_count.get('متوسط', 0)} / {levels_count.get('متقدم', 0)}")
+                
+                cur.execute("""
+                    SELECT session_day, name, phone, level, payment_status, 
+                           COALESCE(hear_about, '-'), COALESCE(player_note, '-'),
+                           strftime('%Y-%m-%d %H:%M', created_at)
+                    FROM bookings 
+                    ORDER BY id DESC
+                """)
                 raw_data = cur.fetchall()
 
             if raw_data:
                 csv_buf = io.StringIO()
                 csv_buf.write('\ufeff')
                 writer = csv.writer(csv_buf)
-                writer.writerow(["تاريخ التمرين", "اسم اللاعب", "رقم الجوال", "المستوى", "حالة الدفع", "وقت التسجيل"])
+                writer.writerow(["موعد التمرين", "اسم اللاعب", "رقم الجوال", "المستوى", "حالة الدفع", "مصدر المعرفة", "الملاحظات", "وقت التسجيل"])
+                
                 for row in raw_data:
-                    writer.writerow(row)
+                    clean_phone = clean_and_validate_sa_phone(row[2]) or row[2]
+                    writer.writerow([row[0], row[1], f"'{clean_phone}", row[3], row[4], row[5], row[6], row[7]])
                     
                 st.download_button(
-                    "📥 تصدير السجل (CSV)",
+                    "📥 تصدير السجل النظيف (Excel/CSV)",
                     csv_buf.getvalue().encode('utf-8-sig'),
                     f"padel_data_{datetime.now().strftime('%Y%m%d')}.csv",
                     "text/csv",
