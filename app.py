@@ -9,10 +9,10 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة وتصفير الهوامش العلوية للجوال
+# 1. Page Config & Full Mobile Lift
 # ==========================================
 st.set_page_config(
-    page_title="بادل 99",
+    page_title="Padel 99",
     page_icon="🎾",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -20,7 +20,7 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* تصفير الهوامش ورفع التطبيق للأعلى تماماً */
+/* Remove top header padding completely for mobile */
 header[data-testid="stHeader"] { display: none !important; }
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
@@ -34,19 +34,17 @@ footer { visibility: hidden; }
 }
 
 * {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Geeza Pro", Tahoma, sans-serif !important;
-    direction: rtl;
-    text-align: right;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+    direction: ltr;
+    text-align: left;
     box-sizing: border-box;
 }
 
-/* تنسيقات رأس الصفحة المصغرة للجوال */
-.hero-header { font-size: 1.55em; font-weight: 800; color: #f8fafc; margin: 0; line-height: 1.2; }
+.hero-header { font-size: 1.6em; font-weight: 800; color: #f8fafc; margin: 0; line-height: 1.2; }
 .hero-sub { font-size: 0.85em; color: #94a3b8; margin: 2px 0 6px 0; }
 .contrast-pill { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; padding: 4px 8px; font-size: 0.74em; color: #cbd5e1; font-weight: 600; margin-bottom: 4px; }
 .promo-badge { background: rgba(30, 58, 138, 0.35); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; padding: 4px 8px; text-align: center; color: #bfdbfe; font-weight: 700; font-size: 0.74em; margin-bottom: 4px; }
 
-/* بطاقة الشكر والتأكيد */
 .thankyou-box {
     background: rgba(16, 185, 129, 0.15);
     border: 1.5px solid #10b981;
@@ -58,7 +56,6 @@ footer { visibility: hidden; }
 .thankyou-title { color: #34d399; font-size: 0.95em; font-weight: 700; margin-bottom: 2px; }
 .thankyou-sub { color: #e2e8f0; font-size: 0.8em; }
 
-/* بطاقة الدفع السريع والآيبان */
 .alrajhi-card {
     background: #111418;
     border: 1.5px solid #2d3748;
@@ -72,7 +69,7 @@ footer { visibility: hidden; }
 .price-pill { background: #10b981; color: #022c22; padding: 2px 7px; border-radius: 12px; font-weight: 700; font-size: 0.8em; }
 .qr-container { background: #ffffff; padding: 6px; border-radius: 8px; display: inline-block; margin: 2px auto 6px auto; }
 .qr-container img { display: block; width: 115px; height: 115px; }
-.card-owner { font-size: 1em; font-weight: 700; color: #f8fafc; margin-bottom: 6px; text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.12); padding-bottom: 5px; }
+.card-owner { font-size: 0.98em; font-weight: 700; color: #f8fafc; margin-bottom: 6px; text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.12); padding-bottom: 5px; }
 .copy-badge {
     background: #1e293b;
     border: 1px solid #334155;
@@ -89,7 +86,7 @@ footer { visibility: hidden; }
     margin-bottom: 5px;
 }
 
-.wa-apple-btn {
+.wa-btn {
     display: block;
     width: 100%;
     background: #25D366;
@@ -103,7 +100,21 @@ footer { visibility: hidden; }
     font-size: 0.88em;
 }
 
-/* شبكة الملعب */
+.support-btn {
+    display: block;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #cbd5e1 !important;
+    text-align: center;
+    padding: 8px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-top: 10px;
+    font-size: 0.8em;
+}
+
 .padel-court { background: #064e3b; border: 1.5px solid rgba(16, 185, 129, 0.6); border-radius: 10px; padding: 8px; margin: 8px 0; }
 .court-title { text-align: center; color: #a7f3d0; font-weight: 700; font-size: 0.85em; margin-bottom: 6px; border-bottom: 1px dashed rgba(16, 185, 129, 0.4); padding-bottom: 3px; }
 .court-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
@@ -119,7 +130,7 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) { disp
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. قاعدة البيانات
+# 2. Database Engine
 # ==========================================
 DB_FILE = "group99_padel.db"
 
@@ -140,7 +151,7 @@ def init_db():
                 phone TEXT NOT NULL,
                 session_day TEXT NOT NULL,
                 court INTEGER DEFAULT 1,
-                level TEXT DEFAULT 'متوسط',
+                level TEXT DEFAULT 'Intermediate',
                 status TEXT DEFAULT 'confirmed',
                 payment_status TEXT DEFAULT 'pending',
                 attendance TEXT DEFAULT 'unknown',
@@ -164,7 +175,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# 3. الدوال المساندة
+# 3. Helpers & Session Calculation
 # ==========================================
 def clean_and_validate_sa_phone(raw_phone):
     if not raw_phone:
@@ -198,32 +209,32 @@ def get_next_session():
     now = datetime.now(ksa_tz)
     weekday = now.weekday()
 
-    if weekday == 6:     # الأحد
+    if weekday == 6:     # Sunday
         days_to_add = 0
-        d_ar = "الأحد"
-    elif weekday == 0:   # الإثنين
+        d_name = "Sunday"
+    elif weekday == 0:   # Monday
         days_to_add = 1
-        d_ar = "الثلاثاء"
-    elif weekday == 1:   # الثلاثاء
+        d_name = "Tuesday"
+    elif weekday == 1:   # Tuesday
         days_to_add = 0
-        d_ar = "الثلاثاء"
-    elif weekday == 2:   # الأربعاء
+        d_name = "Tuesday"
+    elif weekday == 2:   # Wednesday
         days_to_add = 1
-        d_ar = "الخميس"
-    elif weekday == 3:   # الخميس
+        d_name = "Thursday"
+    elif weekday == 3:   # Thursday
         days_to_add = 0
-        d_ar = "الخميس"
-    elif weekday == 4:   # الجمعة
+        d_name = "Thursday"
+    elif weekday == 4:   # Friday
         days_to_add = 2
-        d_ar = "الأحد"
-    else:                # السبت
+        d_name = "Sunday"
+    else:                # Saturday
         days_to_add = 1
-        d_ar = "الأحد"
+        d_name = "Sunday"
 
     target_date = now + timedelta(days=days_to_add)
-    label_ar = f"{d_ar} ({target_date.strftime('%d/%m')})"
-    db_key = f"{d_ar} {target_date.strftime('%Y-%m-%d')}"
-    return label_ar, db_key
+    display_label = f"{d_name} ({target_date.strftime('%d/%m')})"
+    db_key = f"{d_name} {target_date.strftime('%Y-%m-%d')}"
+    return display_label, db_key
 
 display_session, db_session_key = get_next_session()
 COURT_CAPACITY = 6
@@ -238,42 +249,42 @@ with get_db() as conn:
 total_booked = len(c1)
 
 # ==========================================
-# 4. الواجهة الرئيسية للجوال
+# 4. Main UI (English & Fast)
 # ==========================================
-st.markdown("<div class='hero-header'>بادل 99.</div>", unsafe_allow_html=True)
-st.markdown(f"<div class='hero-sub'>تمرين {display_session}. متعة اللعب، بتنظيم أبسط.</div>", unsafe_allow_html=True)
-st.markdown("<div class='contrast-pill'>⚡ حجز فوري • 6 لاعبين للملعب • السابع علينا.</div>", unsafe_allow_html=True)
-st.markdown("<div class='promo-badge'>✨ العب 6 تمارين والسابع مجاناً</div>", unsafe_allow_html=True)
-st.caption(f"⏰ 9:30 م إلى 11:00 م | كورت 1 • <b>المؤكدين: {total_booked}/6</b>", unsafe_allow_html=True)
+st.markdown("<div class='hero-header'>Padel 99.</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='hero-sub'>{display_session} Session. Pure play, zero hassle.</div>", unsafe_allow_html=True)
+st.markdown("<div class='contrast-pill'>⚡ Instant Booking • 6 Players/Court • 7th on Us.</div>", unsafe_allow_html=True)
+st.markdown("<div class='promo-badge'>✨ Play 6 sessions. The 7th is FREE.</div>", unsafe_allow_html=True)
+st.caption(f"⏰ 9:30 PM – 11:00 PM | Court 1 • <b>Confirmed: {total_booked}/6</b>", unsafe_allow_html=True)
 
-tab_book, tab_rules, tab_cancel = st.tabs(["⚡ حجز مقعد", "📜 القواعد", "❌ اعتذار"])
+tab_book, tab_rules, tab_cancel = st.tabs(["⚡ Book Slot", "📜 Rules", "❌ Cancel"])
 
 with tab_book:
     with st.form("booking_form", clear_on_submit=False):
-        f_name = st.text_input("الاسم الثلاثي")
-        f_phone = st.text_input("رقم الجوال (05xxxxxxxx)", placeholder="05xxxxxxxx")
-        f_level_raw = st.selectbox("مستوى اللعب", [
-            "🟢 متوسط - تبادل وثبات",
-            "🔥 متقدم - سرعة وتكتيك",
-            "⚪ مبتدئ - انطلاقة وتعلّم"
+        f_name = st.text_input("Full Name")
+        f_phone = st.text_input("Mobile Number (05xxxxxxxx)", placeholder="05xxxxxxxx")
+        f_level_raw = st.selectbox("Skill Level", [
+            "🟢 Intermediate - Steady rallies",
+            "🔥 Advanced - Fast & tactical",
+            "⚪ Beginner - Starting out"
         ])
-        f_level = "متوسط" if "متوسط" in f_level_raw else ("متقدم" if "متقدم" in f_level_raw else "مبتدئ")
+        f_level = "Intermediate" if "Intermediate" in f_level_raw else ("Advanced" if "Advanced" in f_level_raw else "Beginner")
         
         honeypot_val = st.text_input("hp_security_field", key="hp_val", label_visibility="collapsed")
-        btn_submit = st.form_submit_button("تأكيد الانضمام 🚀", use_container_width=True)
+        btn_submit = st.form_submit_button("Confirm Spot 🚀", use_container_width=True)
 
         if btn_submit:
             if honeypot_val:
-                st.error("تم رفض الطلب للاشتباه في نشاط آلي.")
+                st.error("Request rejected due to automated activity.")
                 st.stop()
                 
             clean_name = f_name.strip()
             clean_phone = clean_and_validate_sa_phone(f_phone)
 
             if len(clean_name) < 2 or not clean_phone:
-                st.error("فضلاً أدخل الاسم ورقم جوال صحيح يبدأ بـ 05.")
+                st.error("Please enter a valid name and Saudi mobile (05xxxxxxxx).")
             elif check_active_booking(clean_phone, db_session_key):
-                st.warning("أنت مسجل بالفعل في تمرين اليوم.")
+                st.warning("You are already registered for this session.")
             else:
                 with get_db() as conn:
                     conn.execute("BEGIN IMMEDIATE")
@@ -297,7 +308,7 @@ with tab_book:
                 st.session_state["last_booking"] = {
                     "name": clean_name,
                     "phone": clean_phone,
-                    "court": "كورت 1",
+                    "court": "Court 1",
                     "status": status_val,
                     "wait_pos": wait_pos,
                     "session": display_session,
@@ -314,8 +325,8 @@ with tab_book:
 
             st.markdown(f"""
             <div class="thankyou-box">
-                <div class="thankyou-title">✅ تم تأكيد حجزك بنجاح! شكراً لك يا كابتن {lb['name']}</div>
-                <div class="thankyou-sub">تم حجز مقعدك في <b>{lb['session']}</b>. نلتقي في الملعب!</div>
+                <div class="thankyou-title">✅ Booking Confirmed! Thank you Captain {lb['name']}</div>
+                <div class="thankyou-sub">Slot secured for <b>{lb['session']}</b>. See you on the court!</div>
             </div>
             """, unsafe_allow_html=True)
             
@@ -327,70 +338,63 @@ with tab_book:
             card_html = f"""
 <div class="alrajhi-card">
     <div class="card-top">
-        <div class="bank-title">🏛️ مصرف الراجحي</div>
-        <div class="price-pill">65 ر.س</div>
+        <div class="bank-title">🏛️ Al Rajhi Bank</div>
+        <div class="price-pill">65 SAR</div>
     </div>
     <div style="text-align:center;">
         <div class="qr-container">
             <img src="{qr_url}" alt="QR" />
         </div>
     </div>
-    <div class="card-owner">فارس ربيع بن عواض العصيمي</div>
-    <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الحساب (اضغط للنسخ):</div>
-    <div class="copy-badge" onclick="navigator.clipboard.writeText('{acc_raw}'); alert('تم نسخ رقم الحساب! 📋');">
+    <div class="card-owner">Fares Rabie Al-Otaibi</div>
+    <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">Account Number (Tap to copy):</div>
+    <div class="copy-badge" onclick="navigator.clipboard.writeText('{acc_raw}'); alert('Account number copied! 📋');">
         <span>{acc_raw}</span>
         <span>📋</span>
     </div>
-    <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الآيبان (اضغط للنسخ):</div>
-    <div class="copy-badge" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('تم نسخ الآيبان بنجاح! 📋');">
+    <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">IBAN (Tap to copy):</div>
+    <div class="copy-badge" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('IBAN copied! 📋');">
         <span>{iban_display}</span>
         <span>📋</span>
     </div>
-    <div style="margin-top: 6px; padding: 6px 8px; background: rgba(56, 189, 248, 0.08); border-radius: 6px; border: 1px dashed rgba(56, 189, 248, 0.3); display: flex; justify-content: space-between; align-items: center;">
-        <div style="font-size: 0.75em; color: #cbd5e1;">💡 <b>لحفظ المستفيد:</b></div>
-        <div class="copy-badge" style="margin-bottom:0; padding:2px 6px; font-size:0.8em;" onclick="navigator.clipboard.writeText('بادل 99'); alert('تم نسخ اسم المستفيد: بادل 99 📋');">
-            <span>بادل 99</span>
-            <span>📋</span>
-        </div>
-    </div>
     <div style="display:flex; justify-content:space-between; font-size:0.72em; color:#64748b; margin-top:6px;">
-        <span>سويفت: <b>RJHISARI</b></span>
-        <span>⚡ تحويل فوري</span>
+        <span>SWIFT: <b>RJHISARI</b></span>
+        <span>⚡ Instant Transfer</span>
     </div>
 </div>
 """
             st.markdown(card_html, unsafe_allow_html=True)
             
-            wa_msg = f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {lb['name']}\nالتمرين: {lb['session']} (كورت 1)\nالمبلغ: 65 ر.س\n\nمرفق إشعار التحويل البنكي لحساب كابتن فارس العصيمي. نلتقي في الملعب."
+            wa_msg = f"🎾 Booking Confirmation | Padel 99\n\nCaptain: {lb['name']}\nSession: {lb['session']} (Court 1)\nAmount: 65 SAR\n\nPayment receipt attached. See you on the court!"
             wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
-            st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-apple-btn">📲 إرسال إشعار التحويل وتثبيت المقعد</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 Send Receipt via WhatsApp</a>', unsafe_allow_html=True)
         else:
-            st.info(f"اكتملت المقاعد. أنت في صدارة الاحتياط رقم ({lb.get('wait_pos', 1)}).")
+            st.info(f"Roster full. You are #{lb.get('wait_pos', 1)} on the waitlist.")
 
 with tab_rules:
     st.markdown("""
     <div style="background:#18181b; border:1px solid #27272a; border-radius:10px; padding:10px; margin:8px 0; font-size:0.82em; color:#e2e8f0; line-height:1.4;">
-        <div style="margin-bottom:8px;">⏱️ <b>قبل 4 ساعات:</b> استرجاع كامل أو ترحيل فوري لتمرينك القادم.</div>
-        <div style="margin-bottom:8px;">⚠️ <b>أقل من 4 ساعات:</b> يُسترجع المبلغ فور تأكيد لاعب بديل من الاحتياط.</div>
-        <div>⚡ <b>تأكيد فوري:</b> أرسل إشعار التحويل خلال 15 دقيقة لضمان مقعدك.</div>
+        <div style="margin-bottom:8px;">⏱️ <b>4+ Hours Prior:</b> Full refund or transfer to next session.</div>
+        <div style="margin-bottom:8px;">⚠️ <b>Under 4 Hours:</b> Refunded once a waitlist player replaces you.</div>
+        <div>⚡ <b>Payment:</b> Please send receipt within 15 minutes to secure spot.</div>
     </div>
     """, unsafe_allow_html=True)
 
 with tab_cancel:
     with st.form("cancel_form"):
-        can_phone_raw = st.text_input("رقم الجوال المسجل")
-        can_reason = st.selectbox("سبب الاعتذار", [
-            "تعارض في المواعيد",
-            "إجهاد بدني أو إصابة",
-            "ظرف طارئ",
-            "صعوبة في المواصلات"
+        can_phone_raw = st.text_input("Registered Mobile Number")
+        can_reason = st.selectbox("Cancellation Reason", [
+            "Schedule conflict",
+            "Fatigue or injury",
+            "Personal emergency",
+            "Transportation issue"
         ])
-        btn_cancel_sub = st.form_submit_button("إلغاء المقعد وإتاحته للبديل", use_container_width=True)
+        btn_cancel_sub = st.form_submit_button("Release Spot", use_container_width=True)
 
         if btn_cancel_sub:
             clean_cp = clean_and_validate_sa_phone(can_phone_raw)
             if not clean_cp:
-                st.error("فضلاً أدخل رقم جوال صحيح.")
+                st.error("Please enter a valid mobile number.")
             else:
                 with get_db() as conn:
                     conn.execute("BEGIN IMMEDIATE")
@@ -410,31 +414,31 @@ with tab_cancel:
                                 cur.execute("UPDATE bookings SET status='confirmed', court=1 WHERE id=?", (wait_player[0],))
                         
                         conn.commit()
-                        st.success(f"تم قبول اعتذارك يا كابتن {target[1]}. نراك في التمرين القادم.")
+                        st.success(f"Spot released for Captain {target[1]}. See you next time!")
                         if "last_booking" in st.session_state:
                             del st.session_state["last_booking"]
                         st.rerun()
                     else:
-                        st.error("لا يوجد حجز مؤكد مرتبط بهذا الرقم.")
+                        st.error("No active booking found for this number.")
 
 # ==========================================
-# 5. تشكيلة الملعب على الجوال
+# 5. Court Roster
 # ==========================================
 st.markdown("---")
 
 def get_level_badge(lvl):
-    if lvl == "متقدم":
-        return "🔥 متقدم"
-    elif lvl == "مبتدئ":
-        return "⚪ مبتدئ"
-    return "🟢 متوسط"
+    if lvl in ["Advanced", "متقدم"]:
+        return "🔥 Adv"
+    elif lvl in ["Beginner", "مبتدئ"]:
+        return "⚪ Beg"
+    return "🟢 Inter"
 
 slots_html = ""
 for i in range(COURT_CAPACITY):
     if i < len(c1):
         p = c1[i]
         points = (get_loyalty_score(p[2]) % 7)
-        pts_badge = f"⭐ {points}/6" if points < 6 else "🎁 مجاني!"
+        pts_badge = f"⭐ {points}/6" if points < 6 else "🎁 Free!"
         pay_icon = "✅" if p[3] == "paid" else "⏳"
         lvl_badge = get_level_badge(p[4])
         slots_html += f'''<div class="slot-box">
@@ -446,18 +450,25 @@ for i in range(COURT_CAPACITY):
             </div>
         </div>'''
     else:
-        slots_html += '<div class="slot-box"><div class="slot-empty">مقعد شاغر ✨</div></div>'
+        slots_html += '<div class="slot-box"><div class="slot-empty">Empty Slot ✨</div></div>'
 
-st.markdown(f'<div class="padel-court"><div class="court-title">🏟️ كورت 1 ({len(c1)}/{COURT_CAPACITY})</div><div class="court-grid">{slots_html}</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="padel-court"><div class="court-title">🏟️ Court 1 ({len(c1)}/{COURT_CAPACITY})</div><div class="court-grid">{slots_html}</div></div>', unsafe_allow_html=True)
 
 if waitlist:
-    st.caption("📋 **أولوية الاحتياط:** " + " • ".join([f"{idx+1}. {w[1]}" for idx, w in enumerate(waitlist)]))
+    st.caption("📋 **Waitlist Priority:** " + " • ".join([f"#{idx+1} {w[1]}" for idx, w in enumerate(waitlist)]))
 
 # ==========================================
-# 6. لوحة الإدارة وتصدير البيانات
+# 6. Direct Support Button (0566261868)
 # ==========================================
-with st.expander("⚙️ لوحة الإدارة", expanded=False):
-    pin_input = st.text_input("رمز الإدارة المشفر:", type="password")
+support_msg = "Hello Captain Fares, I have an inquiry/issue regarding Padel 99 booking."
+support_url = f"https://wa.me/966566261868?text={urllib.parse.quote(support_msg)}"
+st.markdown(f'<a href="{support_url}" target="_blank" class="support-btn">💬 Need Help? Contact Support on WhatsApp</a>', unsafe_allow_html=True)
+
+# ==========================================
+# 7. Admin Dashboard
+# ==========================================
+with st.expander("⚙️ Admin Panel", expanded=False):
+    pin_input = st.text_input("Encrypted Passcode:", type="password")
     
     if pin_input:
         ar_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
@@ -471,26 +482,26 @@ with st.expander("⚙️ لوحة الإدارة", expanded=False):
         is_valid = hmac.compare_digest(p, str(master_secret).strip()) if master_secret else hmac.compare_digest(p, "Padel99#Master@2026")
         
         if is_valid:
-            st.success("تم تأكيد الهوية والصلاحيات 👑")
+            st.success("Access Granted 👑")
             with get_db() as conn:
                 cur = conn.cursor()
-                cur.execute("SELECT session_day, name, phone, COALESCE(level, 'متوسط'), COALESCE(payment_status, 'pending'), created_at FROM bookings ORDER BY id DESC")
+                cur.execute("SELECT session_day, name, phone, COALESCE(level, 'Intermediate'), COALESCE(payment_status, 'pending'), created_at FROM bookings ORDER BY id DESC")
                 raw_data = cur.fetchall()
 
             if raw_data:
                 csv_buf = io.StringIO()
                 csv_buf.write('\ufeff')
                 writer = csv.writer(csv_buf)
-                writer.writerow(["تاريخ التمرين", "اسم اللاعب", "رقم الجوال", "المستوى", "حالة الدفع", "وقت التسجيل"])
+                writer.writerow(["Session Day", "Player Name", "Phone", "Level", "Payment Status", "Registered At"])
                 for row in raw_data:
                     writer.writerow(row)
                     
                 st.download_button(
-                    "📥 تصدير السجل (CSV)",
+                    "📥 Export Timesheet (CSV)",
                     csv_buf.getvalue().encode('utf-8-sig'),
                     f"padel_data_{datetime.now().strftime('%Y%m%d')}.csv",
                     "text/csv",
                     use_container_width=True
                 )
         else:
-            st.error("رمز الدخول غير صحيح.")
+            st.error("Invalid Passcode.")
