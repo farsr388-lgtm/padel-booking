@@ -133,7 +133,7 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) { disp
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. مؤقت التحديث الخفيف في الخلفية
+# 2. مؤقت التحديث الخفيف
 # ==========================================
 components.html(
     """
@@ -148,7 +148,7 @@ components.html(
 )
 
 # ==========================================
-# 3. محرك قاعدة البيانات
+# 3. محرك وقاعدة البيانات
 # ==========================================
 DB_FILE = "group99_padel.db"
 
@@ -203,7 +203,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# 4. دوال الفحص والتوحيد
+# 4. الدوال المساعدة وحساب موعد التمرين
 # ==========================================
 def clean_and_validate_sa_phone(raw_phone):
     if not raw_phone:
@@ -408,14 +408,14 @@ with tab_book:
             wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
             st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل وتثبيت المقعد</a>', unsafe_allow_html=True)
         else:
-            st.info(f"اكتملت المقاعد. أنت في صدارة الاحتياط رقم ({lb.get('wait_pos', 1)}). سيتم إشعارك وتصعيدك فور اعتذار أي لاعب.")
+            st.info(f"اكتملت المقاعد الأساسية. أنت في صدارة الاحتياط رقم ({lb.get('wait_pos', 1)}). سيتم إشعارك وتصعيدك تلقائياً فور توفر مقعد.")
 
 with tab_rules:
     st.markdown("""
     <div style="background:#18181b; border:1px solid #27272a; border-radius:10px; padding:10px; margin:8px 0; font-size:0.82em; color:#e2e8f0; line-height:1.4;">
         <div style="margin-bottom:8px;">⏱️ <b>قبل 4 ساعات:</b> استرجاع كامل أو ترحيل فوري لتمرينك القادم.</div>
         <div style="margin-bottom:8px;">⚠️ <b>أقل من 4 ساعات:</b> يُسترجع المبلغ فور تأكيد لاعب بديل من قائمة الانتظار.</div>
-        <div>⚡ <b>تأكيد فوري:</b> أرسل إشعار التحويل خلال 15 دقيقة لضمان مقعدك.</div>
+        <div>⚡ <b>تأكيد فوري:</b> أرسل إشعار التحويل خلال 15 دقيقة لضمان تثبيت مقعدك.</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -474,7 +474,7 @@ with tab_cancel:
                         st.error("لا يوجد حجز نشط مرتبط بهذا الرقم لتمرين اليوم.")
 
 # ==========================================
-# 6. تشكيلة الملعب
+# 6. تشكيلة الملعب والاحتياط
 # ==========================================
 st.markdown("---")
 
@@ -517,7 +517,7 @@ support_url = f"https://wa.me/966566261868?text={urllib.parse.quote(support_msg)
 st.markdown(f'<a href="{support_url}" target="_blank" class="support-btn">💬 تواجه مشكلة؟ تواصل مباشرة عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 8. لوحة الإدارة والتحليلات وتصدير البيانات
+# 8. لوحة الإدارة، التحليلات، وخيار التصفير
 # ==========================================
 with st.expander("⚙️ لوحة الإدارة والتحليلات", expanded=False):
     pin_input = st.text_input("رمز الإدارة المشفر:", type="password")
@@ -579,5 +579,25 @@ with st.expander("⚙️ لوحة الإدارة والتحليلات", expanded
                     "text/csv",
                     use_container_width=True
                 )
+
+            st.markdown("---")
+            st.markdown("##### 🗑️ إدارة البيانات وتصفير الملعب:")
+            col_reset1, col_reset2 = st.columns(2)
+            with col_reset1:
+                if st.button("تصفير تمرين اليوم فقط 🔄", use_container_width=True):
+                    with get_db() as conn:
+                        conn.execute("DELETE FROM bookings WHERE session_day=?", (db_session_key,))
+                        conn.execute("DELETE FROM cancellations WHERE session_day=?", (db_session_key,))
+                        conn.commit()
+                    st.success("تم تصفير تمرين اليوم بنجاح!")
+                    st.rerun()
+            with col_reset2:
+                if st.button("تصفير قاعدة البيانات بالكامل ⚠️", use_container_width=True):
+                    with get_db() as conn:
+                        conn.execute("DELETE FROM bookings")
+                        conn.execute("DELETE FROM cancellations")
+                        conn.commit()
+                    st.success("تم تفريغ كافة البيانات وتصفير السجل بالكامل!")
+                    st.rerun()
         else:
             st.error("رمز الدخول غير صحيح.")
