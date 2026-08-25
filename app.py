@@ -7,7 +7,8 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة والهوية البصرية (Apple Minimalist)
+
+# 1. إعداد الصفحة والهوية البصرية (Apple Tone & UI)
 # ==========================================
 st.set_page_config(
     page_title="Padel 99 | بادل 99",
@@ -21,77 +22,85 @@ LANG = {
         "dir": "rtl",
         "align": "right",
         "brand": "Padel 99.",
-        "hero_sub": "تمرين {}. اللعب التشاركي الذكي.",
-        "contrast_banner": "⚡ حجز مؤكد في ثوانٍ • 6 لاعبين لكل ملعب • تمرينك الـ 7 مجاناً",
-        "promo_badge": "✨ برنامج الوفاء: العب 6 تمارين واحصل على السابع مجاناً.",
-        "price_tag": "35 ر.س",
-        "time_str": "⏰ ٩:٣٠ م – ١١:٠٠ م | كورت 1 & 2 (السعة: 12 لاعب)",
+        "hero_sub": "تمرين {}. متعة اللعب، بتنظيم أبسط.",
+        "contrast_banner": "⚡ حجز فوري • 6 لاعبين لكل ملعب • السابع علينا.",
+        "promo_badge": "✨ العب 6 تمارين. والسابع مجاناً.",
+        "price_tag": "65 ر.س",
+        "time_str": "⏰ ٩:٣٠ م – ١١:٠٠ م | كورت 1 & 2 (12 مقعداً)",
         "court1": "🏟️ كورت 1",
         "court2": "🏟️ كورت 2",
         "tab_book": "⚡ حجز مقعد",
-        "tab_cancel": "❌ اعتذار / تعديل",
-        "name_lbl": "الاسم الكامل",
+        "tab_rules": "📜 القواعد",
+        "tab_cancel": "❌ اعتذار",
+        "name_lbl": "الاسم",
         "phone_lbl": "رقم الجوال (05xxxxxxxx)",
         "level_lbl": "مستوى اللعب",
-        "levels": ["متوسط", "متقدم", "مبتدئ"],
-        "btn_book": "تأكيد الانضمام 🚀",
-        "err_fields": "يرجى كتابة الاسم ورقم جوال سعودي صحيح يبدأ بـ 05.",
-        "err_duplicate": "هذا الرقم مسجل بالفعل في تمرين اليوم!",
-        "err_spam": "تم رفض الطلب للاشتباه في نشاط غير معتاد.",
-        "succ_book": "أهلاً بك يا كابتن {}! تم تثبيت مقعدك في {}.",
-        "succ_wait": "اكتملت المقاعد الأساسية (12 لاعب). تم إدراجك في صدارة قائمة الاحتياط برقم ({}).",
-        "cancel_phone": "رقم الجوال المسجل:",
-        "cancel_reason": "سبب الاعتذار:",
-        "reasons": [
-            "تعارض في الجدول / ارتباط مفاجئ",
-            "إجهاد بدني / إصابة",
-            "صعوبة في المواصلات",
-            "انضممت لمجموعة أخرى",
-            "ظرف شخصي طارئ"
+        "levels": [
+            "🟢 متوسط • تبادل مستمر وثبات",
+            "🔥 متقدم • سرعة وتكتيك",
+            "⚪ مبتدئ • انطلاقة وتعلّم"
         ],
-        "btn_cancel": "تأكيد الاعتذار وإتاحة المقعد للبديل",
-        "succ_cancel": "تم قبول اعتذارك يا كابتن {}. نتطلع لرؤيتك في التمارين القادمة.",
-        "err_cancel": "لم يتم العثور على حجز مؤكد مرتبط بهذا الرقم في تمرين اليوم.",
-        "admin_pin": "رمز الدخول السري:",
-        "export_btn": "📥 تصدير السجل وقاعدة البيانات (Excel/CSV)"
+        "btn_book": "تأكيد الانضمام 🚀",
+        "err_fields": "فضلاً أدخل الاسم ورقم جوال يبدأ بـ 05.",
+        "err_duplicate": "أنت مسجل بالفعل في تمرين اليوم.",
+        "err_spam": "تم رفض الطلب للاشتباه في نشاط آلي.",
+        "succ_book": "أهلاً كابتن {}. مقعدك مؤكد في {}.",
+        "succ_wait": "اكتملت المقاعد. أنت في صدارة الاحتياط (#{}).",
+        "cancel_phone": "رقم الجوال:",
+        "cancel_reason": "السبب:",
+        "reasons": [
+            "تعارض في المواعيد",
+            "إجهاد بدني أو إصابة",
+            "ظرف طارئ",
+            "صعوبة في المواصلات"
+        ],
+        "btn_cancel": "إلغاء المقعد وإتاحته للبديل",
+        "succ_cancel": "تم قبول اعتذارك يا كابتن {}. نراك في التمرين القادم.",
+        "err_cancel": "لا يوجد حجز مؤكد مرتبط بهذا الرقم.",
+        "admin_pin": "رمز الدخول:",
+        "export_btn": "📥 تصدير السجل (Excel/CSV)"
     },
     "en": {
         "dir": "ltr",
         "align": "left",
         "brand": "Padel 99.",
-        "hero_sub": "{} Session. Shared community padel.",
-        "contrast_banner": "⚡ Instant Booking • 6 Players/Court • 7th Session Free",
-        "promo_badge": "✨ Loyalty Pass: Play 6 sessions, get the 7th free.",
-        "price_tag": "35 SAR",
-        "time_str": "⏰ 9:30 PM – 11:00 PM | Courts 1 & 2 (12 Max Slots)",
+        "hero_sub": "{} Session. Pure play, zero hassle.",
+        "contrast_banner": "⚡ Instant Booking • 6/Court • 7th on Us.",
+        "promo_badge": "✨ Play 6 sessions. The 7th is free.",
+        "price_tag": "65 SAR",
+        "time_str": "⏰ 9:30 PM – 11:00 PM | Courts 1 & 2 (12 Slots)",
         "court1": "🏟️ Court 1",
         "court2": "🏟️ Court 2",
-        "tab_book": "⚡ Reserve Slot",
-        "tab_cancel": "❌ Cancel / Manage",
-        "name_lbl": "Full Name",
+        "tab_book": "⚡ Reserve",
+        "tab_rules": "📜 Rules",
+        "tab_cancel": "❌ Cancel",
+        "name_lbl": "Name",
         "phone_lbl": "Mobile (05xxxxxxxx)",
         "level_lbl": "Skill Level",
-        "levels": ["Intermediate", "Advanced", "Beginner"],
-        "btn_book": "Join Roster 🚀",
-        "err_fields": "Please provide a valid name and Saudi mobile number (05xxxxxxxx).",
-        "err_duplicate": "This phone number is already registered for today's session!",
-        "err_spam": "Submission rejected due to suspected automated activity.",
-        "succ_book": "Welcome Captain {}! Spot secured in {}.",
-        "succ_wait": "Main roster full (12 players). You are #{} on the waitlist.",
-        "cancel_phone": "Registered Mobile:",
-        "cancel_reason": "Cancellation Reason:",
+        "levels": [
+            "🟢 Intermediate • Steady rallies",
+            "🔥 Advanced • Fast & tactical",
+            "⚪ Beginner • Starting out"
+        ],
+        "btn_book": "Confirm Spot 🚀",
+        "err_fields": "Enter a valid name and Saudi mobile (05xxxxxxxx).",
+        "err_duplicate": "Already registered for today's session.",
+        "err_spam": "Request rejected due to automated activity.",
+        "succ_book": "Welcome Captain {}. Spot secured in {}.",
+        "succ_wait": "Roster full. You are #{} on the waitlist.",
+        "cancel_phone": "Mobile Number:",
+        "cancel_reason": "Reason:",
         "reasons": [
             "Schedule conflict",
-            "Physical fatigue / Injury",
-            "Transportation issue",
-            "Joined another match",
-            "Personal emergency"
+            "Fatigue or injury",
+            "Personal emergency",
+            "Transportation issue"
         ],
-        "btn_cancel": "Release Spot to Next Player",
-        "succ_cancel": "Spot cancelled for Captain {}. See you next time.",
-        "err_cancel": "No active booking found for this number today.",
-        "admin_pin": "Admin Passcode:",
-        "export_btn": "📥 Export Timesheet Data (Excel/CSV)"
+        "btn_cancel": "Release Spot",
+        "succ_cancel": "Cancelled for Captain {}. See you next time.",
+        "err_cancel": "No active booking found for this number.",
+        "admin_pin": "Passcode:",
+        "export_btn": "📥 Export Timesheet (Excel/CSV)"
     }
 }
 
@@ -102,92 +111,79 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 2. الهيكل البصري وبطاقة الدفع الفاخرة (CSS)
+# 2. الواجهة البصرية المستوحاة من Apple
 # ==========================================
-st.markdown(f"""<style>
+st.markdown(f"""
+<style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
 * {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Cairo', sans-serif; direction: {t['dir']}; text-align: {t['align']}; }}
 .block-container {{ padding: 0.8rem 0.5rem 1rem 0.5rem !important; max-width: 580px !important; }}
 .stAppHeader {{ display: none; }}
 
-.hero-header {{ font-size: 1.6em; font-weight: 900; letter-spacing: -0.5px; color: #f4f4f5; margin: 0; }}
-.hero-sub {{ font-size: 0.9em; color: #a1a1aa; margin-bottom: 6px; }}
+.hero-header {{ font-size: 1.65em; font-weight: 900; letter-spacing: -0.5px; color: #f4f4f5; margin: 0; }}
+.hero-sub {{ font-size: 0.88em; color: #a1a1aa; margin-bottom: 6px; }}
 .contrast-pill {{ background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 8px; font-size: 0.75em; color: #cbd5e1; font-weight: 600; margin-bottom: 4px; }}
 .promo-badge {{ background: rgba(30, 58, 138, 0.35); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; padding: 4px 8px; text-align: center; color: #bfdbfe; font-weight: 700; font-size: 0.75em; margin-bottom: 4px; }}
 
-.wallet-card {{
-    background: linear-gradient(135deg, #18181b 0%, #09090b 100%);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    border-radius: 16px;
+/* بطاقة القواعد (Minimal Rules) */
+.rules-card {{
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 14px;
+    padding: 14px;
+    margin: 8px 0;
+}}
+.rule-item {{
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 0.82em;
+    color: #e2e8f0;
+    line-height: 1.4;
+}}
+.rule-item:last-child {{ margin-bottom: 0; }}
+.rule-icon {{ font-size: 1.1em; }}
+
+/* بطاقة الدفع (Apple Wallet Style) */
+.alrajhi-card {{
+    background: #111418;
+    border: 1.5px solid #2d3748;
+    border-radius: 18px;
     padding: 16px;
     margin: 12px 0;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.1);
-    position: relative;
-    overflow: hidden;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+    color: #ffffff;
 }}
-.wallet-header {{
+.card-top {{
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding-bottom: 10px;
+    padding-bottom: 8px;
     margin-bottom: 12px;
 }}
-.wallet-bank {{
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: #f4f4f5;
-    font-weight: 800;
-    font-size: 0.95em;
-}}
-.wallet-price {{
-    background: #10b981;
-    color: #022c22;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-weight: 900;
-    font-size: 0.85em;
-}}
-.wallet-body {{ text-align: center; margin: 10px 0; }}
-.iban-display-box {{
-    background: #0f172a;
-    border: 1.5px solid #0284c7;
-    border-radius: 10px;
-    padding: 12px 8px;
-    margin: 8px 0;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}}
-.iban-display-box:active {{ transform: scale(0.98); border-color: #38bdf8; }}
-.iban-number {{
-    font-family: 'Courier New', Courier, monospace;
+.bank-title {{ font-size: 0.95em; font-weight: 800; color: #f8fafc; }}
+.price-pill {{ background: #10b981; color: #022c22; padding: 3px 10px; border-radius: 20px; font-weight: 900; font-size: 0.85em; }}
+.qr-container {{ background: #ffffff; padding: 10px; border-radius: 12px; display: inline-block; margin: 4px auto 10px auto; }}
+.qr-container img {{ display: block; width: 135px; height: 135px; }}
+.card-owner {{ font-size: 1.15em; font-weight: 800; color: #f8fafc; margin-bottom: 10px; text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.12); padding-bottom: 8px; }}
+.copy-badge {{
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-family: monospace;
+    font-size: 0.92em;
     color: #38bdf8;
-    font-weight: 800;
-    font-size: 1.05em;
-    letter-spacing: 1px;
-    user-select: all;
-    -webkit-user-select: all;
-}}
-.wallet-meta {{
+    font-weight: 700;
     display: flex;
     justify-content: space-between;
-    color: #a1a1aa;
-    font-size: 0.75em;
-    margin-top: 8px;
-    padding: 0 4px;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 8px;
 }}
-.wallet-steps {{
-    display: flex;
-    justify-content: space-around;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
-    padding: 8px 4px;
-    margin-top: 12px;
-    font-size: 0.72em;
-    color: #cbd5e1;
-    font-weight: 600;
-}}
+.copy-badge:active {{ background: #0f172a; border-color: #38bdf8; }}
 
 .wa-apple-btn {{
     display: block;
@@ -214,10 +210,11 @@ st.markdown(f"""<style>
 .badge-loyalty {{ background-color: #1e3a8a; color: #93c5fd; padding: 1px 3px; border-radius: 3px; font-size: 0.72em; font-weight: 700; }}
 
 div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) {{ display: none !important; }}
-</style>""", unsafe_allow_html=True)
+</style>
+""", unsafe_allow_html=True)
 
 # ==========================================
-# 3. محرك البيانات والترقية التلقائية (Auto-Migration)
+# 3. محرك البيانات والترقية التلقائية
 # ==========================================
 DB_FILE = "group99_padel.db"
 
@@ -231,8 +228,6 @@ def get_db():
 def init_db():
     with get_db() as conn:
         cur = conn.cursor()
-        
-        # 1. إنشاء جدول الحجوزات الأساسي
         cur.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -248,25 +243,18 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-
-        # 2. فحص وتحديث الأعمدة الناقصة تلقائياً لقواعد البيانات الحالية على السيرفر
+        
         cur.execute("PRAGMA table_info(bookings)")
         existing_cols = [row[1] for row in cur.fetchall()]
-        
         if "payment_status" not in existing_cols:
             cur.execute("ALTER TABLE bookings ADD COLUMN payment_status TEXT DEFAULT 'pending';")
         if "attendance" not in existing_cols:
             cur.execute("ALTER TABLE bookings ADD COLUMN attendance TEXT DEFAULT 'unknown';")
         if "level" not in existing_cols:
             cur.execute("ALTER TABLE bookings ADD COLUMN level TEXT DEFAULT 'متوسط';")
-        if "ip_address" not in existing_cols:
-            cur.execute("ALTER TABLE bookings ADD COLUMN ip_address TEXT;")
 
-        # 3. إنشاء الفهارس
         cur.execute("CREATE INDEX IF NOT EXISTS idx_sess_court ON bookings(session_day, court, status);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_phone ON bookings(phone);")
-
-        # 4. إنشاء جدول الإلغاءات
         cur.execute('''
             CREATE TABLE IF NOT EXISTS cancellations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -377,7 +365,7 @@ st.markdown(f"<div class='contrast-pill'>{t['contrast_banner']}</div>", unsafe_a
 st.markdown(f'<div class="promo-badge">{t["promo_badge"]}</div>', unsafe_allow_html=True)
 st.caption(f"{t['time_str']} • <b>المؤكدين: {total_booked}/12</b>", unsafe_allow_html=True)
 
-tab_book, tab_cancel = st.tabs([t["tab_book"], t["tab_cancel"]])
+tab_book, tab_rules, tab_cancel = st.tabs([t["tab_book"], t["tab_rules"], t["tab_cancel"]])
 
 with tab_book:
     with st.form("booking_form", clear_on_submit=False):
@@ -387,9 +375,10 @@ with tab_book:
         with c_in2:
             f_phone = st.text_input(t["phone_lbl"], placeholder="05xxxxxxxx")
         
-        f_level = st.selectbox(t["level_lbl"], t["levels"])
-        honeypot_val = st.text_input("hp_security_field", key="hp_val", label_visibility="collapsed")
+        f_level_raw = st.selectbox(t["level_lbl"], t["levels"])
+        f_level = "متوسط" if "متوسط" in f_level_raw else ("متقدم" if "متقدم" in f_level_raw else "مبتدئ")
         
+        honeypot_val = st.text_input("hp_security_field", key="hp_val", label_visibility="collapsed")
         btn_submit = st.form_submit_button(t["btn_book"])
 
         if btn_submit:
@@ -400,7 +389,7 @@ with tab_book:
             clean_name = f_name.strip()
             clean_phone = clean_and_validate_sa_phone(f_phone)
 
-            if len(clean_name) < 3 or not clean_phone:
+            if len(clean_name) < 2 or not clean_phone:
                 st.error(t["err_fields"])
             elif check_active_booking(clean_phone, db_session_key):
                 st.warning(t["err_duplicate"])
@@ -455,46 +444,64 @@ with tab_book:
             st.success(t["succ_book"].format(lb["name"], lb["court"]))
             
             iban_raw = "SA9380000222608016013114"
-            iban_formatted = "SA93 8000 0222 6080 1601 3114"
-            
-            st.markdown(f"""
-            <div class="wallet-card">
-                <div class="wallet-header">
-                    <div class="wallet-bank">
-                        <span>🏛️</span>
-                        <span>مصرف الراجحي</span>
-                    </div>
-                    <div class="wallet-price">{t['price_tag']}</div>
-                </div>
-                
-                <div class="wallet-body">
-                    <div style="color: #a1a1aa; font-size: 0.78em; margin-bottom: 4px;">اضغط على الآيبان لنسخه فوراً:</div>
-                    <div class="iban-display-box" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('تم نسخ رقم الآيبان بنجاح! 📋');">
-                        <div class="iban-number">{iban_formatted}</div>
-                    </div>
-                </div>
+            iban_display = "SA93 8000 0222 6080 1601 3114"
+            acc_raw = "222000010006086013114"
+            qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={iban_raw}&color=000000&bgcolor=ffffff"
 
-                <div class="wallet-meta">
-                    <span>👤 المستفيد: <b>Padel 99 Community</b></span>
-                    <span>⚡ تحويل فوري</span>
-                </div>
-
-                <div class="wallet-steps">
-                    <span>1️⃣ انسخ الآيبان 📋</span>
-                    <span>➔</span>
-                    <span>2️⃣ حوّل من بنكك 💳</span>
-                    <span>➔</span>
-                    <span>3️⃣ أرسل الإشعار 📲</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            card_html = f"""
+<div class="alrajhi-card">
+    <div class="card-top">
+        <div class="bank-title">🏛️ مصرف الراجحي</div>
+        <div class="price-pill">65 ر.س</div>
+    </div>
+    <div style="text-align:center;">
+        <div class="qr-container">
+            <img src="{qr_url}" alt="Al Rajhi QR" />
+        </div>
+    </div>
+    <div class="card-owner">فارس ربيع بن عواض العصيمي</div>
+    <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الحساب (اضغط للنسخ):</div>
+    <div class="copy-badge" onclick="navigator.clipboard.writeText('{acc_raw}'); alert('تم نسخ الحساب بنجاح.');">
+        <span>{acc_raw}</span>
+        <span>📋</span>
+    </div>
+    <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الآيبان (اضغط للنسخ):</div>
+    <div class="copy-badge" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('تم نسخ الآيبان بنجاح.');">
+        <span>{iban_display}</span>
+        <span>📋</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:0.72em; color:#64748b; margin-top:8px;">
+        <span>سويفت: <b>RJHISARI</b></span>
+        <span>⚡ تحويل فوري</span>
+    </div>
+</div>
+"""
+            st.markdown(card_html, unsafe_allow_html=True)
             
-            wa_msg = f"🎾 تأكيد حجز مقعد - بادل 99\n\n👤 الكابتن: {lb['name']}\n📅 التمرين: {lb['session']}\n🏟️ الملعب: {lb['court']}\n💵 المبلغ: 35 ر.س\n\n⚡ مرفق صورة إشعار التحويل البنكي لإتمام التثبيت."
+            wa_msg = f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {lb['name']}\nالتمرين: {lb['session']} ({lb['court']})\nالمبلغ: 65 ر.س\n\nمرفق إشعار التحويل البنكي لحساب كابتن فارس العصيمي. نلتقي في الملعب."
             wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
-            
             st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-apple-btn">📲 إرسال إشعار التحويل عبر WhatsApp وتثبيت المقعد</a>', unsafe_allow_html=True)
         else:
             st.info(t["succ_wait"].format(lb.get("wait_pos", 1)))
+
+with tab_rules:
+    # القواعد بأسلوب Apple (ثقة، وضوح، بدون حشو)
+    st.markdown("""
+<div class="rules-card">
+    <div class="rule-item">
+        <span class="rule-icon">⏱️</span>
+        <div><b>قبل 4 ساعات.</b> استرجاع كامل أو ترحيل فوري لتمرينك القادم.</div>
+    </div>
+    <div class="rule-item">
+        <span class="rule-icon">⚠️</span>
+        <div><b>أقل من 4 ساعات.</b> يُسترجع المبلغ فور تأكيد لاعب بديل من الاحتياط.</div>
+    </div>
+    <div class="rule-item">
+        <span class="rule-icon">⚡</span>
+        <div><b>تأكيد فوري.</b> أرسل إشعار التحويل خلال 15 دقيقة لضمان مقعدك.</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 with tab_cancel:
     with st.form("cancel_form"):
@@ -551,7 +558,7 @@ def render_court_roster(title, players):
             pay_icon = "✅" if p[3] == "paid" else "⏳"
             slots_html += f'<div class="slot-box"><div class="slot-occupied">🎾 {p[1]}</div><div class="slot-meta"><span class="badge-loyalty">{pts_badge}</span> {pay_icon}</div></div>'
         else:
-            slots_html += f'<div class="slot-box"><div class="slot-empty">مقعد {i+1} شاغر ✨</div></div>'
+            slots_html += f'<div class="slot-box"><div class="slot-empty">مقعد شاغر ✨</div></div>'
     return f'<div class="padel-court"><div class="court-title">{title} ({len(players)}/{COURT_CAPACITY})</div><div class="court-grid">{slots_html}</div></div>'
 
 with col_c1:
@@ -563,7 +570,7 @@ if waitlist:
     st.caption("📋 **أولوية الاحتياط:** " + " • ".join([f"{idx+1}. {w[1]}" for idx, w in enumerate(waitlist)]))
 
 # ==========================================
-# 8. لوحة الإدارة وتصدير البيانات (Safe Schema Execution)
+# 8. لوحة الإدارة وتصدير البيانات
 # ==========================================
 with st.expander("⚙️ لوحة الإدارة والبيانات", expanded=False):
     pin = st.text_input(t["admin_pin"], type="password")
@@ -576,7 +583,7 @@ with st.expander("⚙️ لوحة الإدارة والبيانات", expanded=F
             reasons_data = cur.fetchall()
         
         if reasons_data:
-            st.markdown("#### 📊 تحليل أسباب الاعتذار:")
+            st.markdown("#### 📊 أسباب الاعتذار:")
             for r, cnt in reasons_data:
                 st.caption(f"• **{r}:** {cnt} لاعبين")
 
