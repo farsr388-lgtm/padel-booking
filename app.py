@@ -25,7 +25,6 @@ LANG = {
         "contrast_banner": "⚡ حجز مؤكد في ثوانٍ • 6 لاعبين لكل ملعب • تمرينك الـ 7 مجاناً",
         "promo_badge": "✨ برنامج الوفاء: العب 6 تمارين واحصل على السابع مجاناً.",
         "price_tag": "35 ر.س",
-        "price_desc": "رسوم المشاركة لتمرين اليوم",
         "time_str": "⏰ ٩:٣٠ م – ١١:٠٠ م | كورت 1 & 2 (السعة: 12 لاعب)",
         "court1": "🏟️ كورت 1",
         "court2": "🏟️ كورت 2",
@@ -64,7 +63,6 @@ LANG = {
         "contrast_banner": "⚡ Instant Booking • 6 Players/Court • 7th Session Free",
         "promo_badge": "✨ Loyalty Pass: Play 6 sessions, get the 7th free.",
         "price_tag": "35 SAR",
-        "price_desc": "Session fee for today",
         "time_str": "⏰ 9:30 PM – 11:00 PM | Courts 1 & 2 (12 Max Slots)",
         "court1": "🏟️ Court 1",
         "court2": "🏟️ Court 2",
@@ -104,7 +102,7 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 2. الهيكل البصري وبطاقة الدفع الفاخرة (CSS & Animations)
+# 2. الهيكل البصري وبطاقة الدفع الفاخرة (CSS)
 # ==========================================
 st.markdown(f"""<style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
@@ -112,13 +110,11 @@ st.markdown(f"""<style>
 .block-container {{ padding: 0.8rem 0.5rem 1rem 0.5rem !important; max-width: 580px !important; }}
 .stAppHeader {{ display: none; }}
 
-/* عناصر الهوية */
 .hero-header {{ font-size: 1.6em; font-weight: 900; letter-spacing: -0.5px; color: #f4f4f5; margin: 0; }}
 .hero-sub {{ font-size: 0.9em; color: #a1a1aa; margin-bottom: 6px; }}
 .contrast-pill {{ background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 8px; font-size: 0.75em; color: #cbd5e1; font-weight: 600; margin-bottom: 4px; }}
 .promo-badge {{ background: rgba(30, 58, 138, 0.35); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; padding: 4px 8px; text-align: center; color: #bfdbfe; font-weight: 700; font-size: 0.75em; margin-bottom: 4px; }}
 
-/* بطاقة الدفع الرقمية الفاخرة (Fintech Luxury Card) */
 .wallet-card {{
     background: linear-gradient(135deg, #18181b 0%, #09090b 100%);
     border: 1px solid rgba(56, 189, 248, 0.3);
@@ -128,16 +124,6 @@ st.markdown(f"""<style>
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.1);
     position: relative;
     overflow: hidden;
-}}
-.wallet-card::before {{
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(56, 189, 248, 0.05) 0%, transparent 70%);
-    pointer-events: none;
 }}
 .wallet-header {{
     display: flex;
@@ -162,12 +148,8 @@ st.markdown(f"""<style>
     border-radius: 20px;
     font-weight: 900;
     font-size: 0.85em;
-    letter-spacing: 0.5px;
 }}
-.wallet-body {{
-    text-align: center;
-    margin: 10px 0;
-}}
+.wallet-body {{ text-align: center; margin: 10px 0; }}
 .iban-display-box {{
     background: #0f172a;
     border: 1.5px solid #0284c7;
@@ -177,10 +159,7 @@ st.markdown(f"""<style>
     cursor: pointer;
     transition: all 0.2s ease;
 }}
-.iban-display-box:active {{
-    transform: scale(0.98);
-    border-color: #38bdf8;
-}}
+.iban-display-box:active {{ transform: scale(0.98); border-color: #38bdf8; }}
 .iban-number {{
     font-family: 'Courier New', Courier, monospace;
     color: #38bdf8;
@@ -210,7 +189,6 @@ st.markdown(f"""<style>
     font-weight: 600;
 }}
 
-/* أزرار الإجراء السريع */
 .wa-apple-btn {{
     display: block;
     width: 100%;
@@ -224,11 +202,8 @@ st.markdown(f"""<style>
     margin-top: 8px;
     font-size: 0.95em;
     box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
-    transition: transform 0.15s ease;
 }}
-.wa-apple-btn:hover {{ transform: translateY(-1px); }}
 
-/* الملاعب */
 .padel-court {{ background: radial-gradient(circle, #064e3b 0%, #022c22 100%); border: 1.5px solid rgba(16, 185, 129, 0.6); border-radius: 10px; padding: 8px; margin-bottom: 6px; }}
 .court-title {{ text-align: center; color: #a7f3d0; font-weight: 800; font-size: 0.85em; margin-bottom: 6px; border-bottom: 1px dashed rgba(16, 185, 129, 0.4); padding-bottom: 4px; }}
 .court-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }}
@@ -238,12 +213,11 @@ st.markdown(f"""<style>
 .slot-empty {{ color: #52525b; font-size: 0.72em; }}
 .badge-loyalty {{ background-color: #1e3a8a; color: #93c5fd; padding: 1px 3px; border-radius: 3px; font-size: 0.72em; font-weight: 700; }}
 
-/* إخفاء مصيدة البوت */
 div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) {{ display: none !important; }}
 </style>""", unsafe_allow_html=True)
 
 # ==========================================
-# 3. محرك البيانات المتقدم (WAL + Indexes)
+# 3. محرك البيانات والترقية التلقائية (Auto-Migration)
 # ==========================================
 DB_FILE = "group99_padel.db"
 
@@ -257,6 +231,8 @@ def get_db():
 def init_db():
     with get_db() as conn:
         cur = conn.cursor()
+        
+        # 1. إنشاء جدول الحجوزات الأساسي
         cur.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -272,8 +248,25 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+
+        # 2. فحص وتحديث الأعمدة الناقصة تلقائياً لقواعد البيانات الحالية على السيرفر
+        cur.execute("PRAGMA table_info(bookings)")
+        existing_cols = [row[1] for row in cur.fetchall()]
+        
+        if "payment_status" not in existing_cols:
+            cur.execute("ALTER TABLE bookings ADD COLUMN payment_status TEXT DEFAULT 'pending';")
+        if "attendance" not in existing_cols:
+            cur.execute("ALTER TABLE bookings ADD COLUMN attendance TEXT DEFAULT 'unknown';")
+        if "level" not in existing_cols:
+            cur.execute("ALTER TABLE bookings ADD COLUMN level TEXT DEFAULT 'متوسط';")
+        if "ip_address" not in existing_cols:
+            cur.execute("ALTER TABLE bookings ADD COLUMN ip_address TEXT;")
+
+        # 3. إنشاء الفهارس
         cur.execute("CREATE INDEX IF NOT EXISTS idx_sess_court ON bookings(session_day, court, status);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_phone ON bookings(phone);")
+
+        # 4. إنشاء جدول الإلغاءات
         cur.execute('''
             CREATE TABLE IF NOT EXISTS cancellations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -456,13 +449,11 @@ with tab_book:
                 }
                 st.rerun()
 
-    # بطاقة تأكيد الحجز والدفع الفاخرة
     if "last_booking" in st.session_state:
         lb = st.session_state["last_booking"]
         if lb["status"] == "confirmed":
             st.success(t["succ_book"].format(lb["name"], lb["court"]))
             
-            # بطاقة Apple Wallet التفاعلية للتحويل
             iban_raw = "SA9380000222608016013114"
             iban_formatted = "SA93 8000 0222 6080 1601 3114"
             
@@ -498,7 +489,6 @@ with tab_book:
             </div>
             """, unsafe_allow_html=True)
             
-            # رسالة الواتساب الجاهزة
             wa_msg = f"🎾 تأكيد حجز مقعد - بادل 99\n\n👤 الكابتن: {lb['name']}\n📅 التمرين: {lb['session']}\n🏟️ الملعب: {lb['court']}\n💵 المبلغ: 35 ر.س\n\n⚡ مرفق صورة إشعار التحويل البنكي لإتمام التثبيت."
             wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
             
@@ -531,7 +521,6 @@ with tab_cancel:
                             VALUES (?, ?, ?, ?, ?)
                         """, (target[1], clean_cp, db_session_key, target[3], can_reason))
 
-                        # تصعيد قائمة الانتظار
                         if target[2] == 'confirmed':
                             cur.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC LIMIT 1", (db_session_key,))
                             wait_player = cur.fetchone()
@@ -574,7 +563,7 @@ if waitlist:
     st.caption("📋 **أولوية الاحتياط:** " + " • ".join([f"{idx+1}. {w[1]}" for idx, w in enumerate(waitlist)]))
 
 # ==========================================
-# 8. لوحة الإدارة وتصدير البيانات
+# 8. لوحة الإدارة وتصدير البيانات (Safe Schema Execution)
 # ==========================================
 with st.expander("⚙️ لوحة الإدارة والبيانات", expanded=False):
     pin = st.text_input(t["admin_pin"], type="password")
@@ -594,7 +583,11 @@ with st.expander("⚙️ لوحة الإدارة والبيانات", expanded=F
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute("""
-                SELECT session_day, court, name, phone, level, payment_status, attendance, created_at
+                SELECT session_day, court, name, phone, 
+                       COALESCE(level, 'متوسط'), 
+                       COALESCE(payment_status, 'pending'), 
+                       COALESCE(attendance, 'unknown'), 
+                       created_at
                 FROM bookings
                 ORDER BY session_day DESC, court ASC, id ASC
             """)
