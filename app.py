@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import sqlite3
 import io
 import csv
@@ -9,7 +8,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة وتهيئة الجوال
+# 1. إعداد الصفحة وتهيئة التصميم
 # ==========================================
 st.set_page_config(
     page_title="بادل 99 | Padel 99",
@@ -133,24 +132,10 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) { disp
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. مؤقت التحديث الخفيف
-# ==========================================
-components.html(
-    """
-    <script>
-    setTimeout(function(){
-        window.parent.document.querySelector('button[kind="header"]')?.click();
-    }, 7000);
-    </script>
-    """,
-    height=0,
-    width=0
-)
-
-# ==========================================
-# 3. محرك وقاعدة البيانات
+# 2. إعداد وقاعدة البيانات (Database Layer)
 # ==========================================
 DB_FILE = "group99_padel.db"
+COURT_CAPACITY = 6
 
 def get_db():
     conn = sqlite3.connect(DB_FILE, timeout=30.0, check_same_thread=False)
@@ -203,7 +188,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# 4. الدوال المساعدة وحساب موعد التمرين
+# 3. دوال المنطق والتحقق (Business Logic)
 # ==========================================
 def clean_and_validate_sa_phone(raw_phone):
     if not raw_phone:
@@ -225,60 +210,61 @@ def check_active_booking(phone, session_key):
         cur.execute("SELECT id FROM bookings WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')", (phone, session_key))
         return cur.fetchone() is not None
 
-def get_loyalty_score(norm_phone):
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(DISTINCT session_day) FROM bookings WHERE phone=? AND status='confirmed'", (norm_phone,))
-        res = cur.fetchone()
-        return res[0] if res else 0
-
 def get_next_session():
     ksa_tz = timezone(timedelta(hours=3))
     now = datetime.now(ksa_tz)
     weekday = now.weekday()
 
-    if weekday == 6:     # الأحد
-        days_to_add = 0
-        d_ar = "الأحد"
-    elif weekday == 0:   # الإثنين
-        days_to_add = 1
-        d_ar = "الثلاثاء"
-    elif weekday == 1:   # الثلاثاء
-        days_to_add = 0
-        d_ar = "الثلاثاء"
-    elif weekday == 2:   # الأربعاء
-        days_to_add = 1
-        d_ar = "الخميس"
-    elif weekday == 3:   # الخميس
-        days_to_add = 0
-        d_ar = "الخميس"
-    elif weekday == 4:   # الجمعة
-        days_to_add = 2
-        d_ar = "الأحد"
-    else:                # السبت
-        days_to_add = 1
-        d_ar = "الأحد"
-
+    schedule = {
+        6: (0, "الأحد"),
+        0: (1, "الثلاثاء"),
+        1: (0, "الثلاثاء"),
+        2: (1, "الخميس"),
+        3: (0, "الخميس"),
+        4: (2, "الأحد"),
+        5: (1, "الأحد")
+    }
+    
+    days_to_add, d_ar = schedule.get(weekday, (0, "الأحد"))
     target_date = now + timedelta(days=days_to_add)
     label_ar = f"{d_ar} ({target_date.strftime('%d/%m')})"
     db_key = f"{d_ar} {target_date.strftime('%Y-%m-%d')}"
     return label_ar, db_key
 
+def get_session_data(db_session_key):
+    """جلب بيانات اللاعبين المؤكدين مع نقاط الولاء في استعلام واحد سريع"""
+    with get_db() as conn:
+        c = conn.cursor()
+        query = """
+            SELECT b.id, b.name, b.phone, b.payment_status, b.level,
+                   (SELECT COUNT(DISTINCT session_day) FROM bookings WHERE phone = b.phone AND status = 'confirmed') as loyalty_score
+            FROM bookings b
+            WHERE b.session_day = ? AND b.court = 1 AND b.status = 'confirmed'
+            ORDER BY b.id ASC
+            LIMIT 6
+        """
+        c.execute(query, (db_session_key,))
+        c1 = c.fetchall()
+        
+        c.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC", (db_session_key,))
+        waitlist = c.fetchall()
+        
+        return c1, waitlist
+
+def get_level_badge(lvl):
+    if lvl in ["Advanced", "متقدم"]:
+        return "🔥 متقدم"
+    elif lvl in ["Beginner", "مبتدئ"]:
+        return "⚪ مبتدئ"
+    return "🟢 متوسط"
+
+# ==========================================
+# 4. معالجة البيانات وبناء الصفحة
+# ==========================================
 display_session, db_session_key = get_next_session()
-COURT_CAPACITY = 6
-
-with get_db() as conn:
-    c = conn.cursor()
-    c.execute("SELECT id, name, phone, payment_status, level FROM bookings WHERE session_day=? AND court=1 AND status='confirmed' ORDER BY id ASC LIMIT 6", (db_session_key,))
-    c1 = c.fetchall()
-    c.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC", (db_session_key,))
-    waitlist = c.fetchall()
-
+c1, waitlist = get_session_data(db_session_key)
 total_booked = len(c1)
 
-# ==========================================
-# 5. الواجهة الأساسية وحجز المقاعد
-# ==========================================
 st.markdown("<div class='hero-header'>بادل 99.</div>", unsafe_allow_html=True)
 st.markdown(f"<div class='hero-sub'>تمرين {display_session}. متعة اللعب، بتنظيم أبسط.</div>", unsafe_allow_html=True)
 st.markdown("<div class='contrast-pill'>⚡ حجز فوري • 6 لاعبين للملعب • السابع علينا.</div>", unsafe_allow_html=True)
@@ -287,6 +273,7 @@ st.caption(f"⏰ 9:30 م إلى 11:00 م | كورت 1 • <b>المؤكدين: {
 
 tab_book, tab_rules, tab_cancel = st.tabs(["⚡ حجز مقعد", "📜 القواعد", "❌ اعتذار"])
 
+# --- تبويب الحجز ---
 with tab_book:
     with st.form("booking_form", clear_on_submit=False):
         f_name = st.text_input("الاسم الثلاثي")
@@ -319,7 +306,6 @@ with tab_book:
                 st.warning("أنت مسجل بالفعل في تمرين اليوم.")
             else:
                 with get_db() as conn:
-                    conn.execute("BEGIN IMMEDIATE")
                     cur = conn.cursor()
                     cur.execute("SELECT COUNT(*) FROM bookings WHERE session_day=? AND court=1 AND status='confirmed'", (db_session_key,))
                     cur_c1 = cur.fetchone()[0]
@@ -368,40 +354,40 @@ with tab_book:
             qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={iban_raw}&color=000000&bgcolor=ffffff"
 
             card_html = f"""
-<div class="alrajhi-card">
-    <div class="card-top">
-        <div class="bank-title">🏛️ مصرف الراجحي</div>
-        <div class="price-pill">65 ر.س</div>
-    </div>
-    <div style="text-align:center;">
-        <div class="qr-container">
-            <img src="{qr_url}" alt="QR" />
-        </div>
-    </div>
-    <div class="card-owner">فارس ربيع بن عواض العصيمي</div>
-    <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الحساب (اضغط للنسخ):</div>
-    <div class="copy-badge" onclick="navigator.clipboard.writeText('{acc_raw}'); alert('تم نسخ رقم الحساب! 📋');">
-        <span>{acc_raw}</span>
-        <span>📋</span>
-    </div>
-    <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الآيبان (اضغط للنسخ):</div>
-    <div class="copy-badge" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('تم نسخ الآيبان بنجاح! 📋');">
-        <span>{iban_display}</span>
-        <span>📋</span>
-    </div>
-    <div style="margin-top: 6px; padding: 6px 8px; background: rgba(56, 189, 248, 0.08); border-radius: 6px; border: 1px dashed rgba(56, 189, 248, 0.3); display: flex; justify-content: space-between; align-items: center;">
-        <div style="font-size: 0.75em; color: #cbd5e1;">💡 <b>اسم المستفيد:</b></div>
-        <div class="copy-badge" style="margin-bottom:0; padding:2px 6px; font-size:0.8em;" onclick="navigator.clipboard.writeText('بادل 99'); alert('تم نسخ اسم المستفيد: بادل 99 📋');">
-            <span>بادل 99</span>
-            <span>📋</span>
-        </div>
-    </div>
-    <div style="display:flex; justify-content:space-between; font-size:0.72em; color:#64748b; margin-top:6px;">
-        <span>سويفت: <b>RJHISARI</b></span>
-        <span>⚡ تحويل فوري</span>
-    </div>
-</div>
-"""
+            <div class="alrajhi-card">
+                <div class="card-top">
+                    <div class="bank-title">🏛️ مصرف الراجحي</div>
+                    <div class="price-pill">65 ر.س</div>
+                </div>
+                <div style="text-align:center;">
+                    <div class="qr-container">
+                        <img src="{qr_url}" alt="QR" />
+                    </div>
+                </div>
+                <div class="card-owner">فارس ربيع بن عواض العصيمي</div>
+                <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الحساب (اضغط للنسخ):</div>
+                <div class="copy-badge" onclick="navigator.clipboard.writeText('{acc_raw}'); alert('تم نسخ رقم الحساب! 📋');">
+                    <span>{acc_raw}</span>
+                    <span>📋</span>
+                </div>
+                <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الآيبان (اضغط للنسخ):</div>
+                <div class="copy-badge" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('تم نسخ الآيبان بنجاح! 📋');">
+                    <span>{iban_display}</span>
+                    <span>📋</span>
+                </div>
+                <div style="margin-top: 6px; padding: 6px 8px; background: rgba(56, 189, 248, 0.08); border-radius: 6px; border: 1px dashed rgba(56, 189, 248, 0.3); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 0.75em; color: #cbd5e1;">💡 <b>اسم المستفيد:</b></div>
+                    <div class="copy-badge" style="margin-bottom:0; padding:2px 6px; font-size:0.8em;" onclick="navigator.clipboard.writeText('بادل 99'); alert('تم نسخ اسم المستفيد: بادل 99 📋');">
+                        <span>بادل 99</span>
+                        <span>📋</span>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.72em; color:#64748b; margin-top:6px;">
+                    <span>سويفت: <b>RJHISARI</b></span>
+                    <span>⚡ تحويل فوري</span>
+                </div>
+            </div>
+            """
             st.markdown(card_html, unsafe_allow_html=True)
             
             wa_msg = f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {lb['name']}\nالتمرين: {lb['session']} (كورت 1)\nالمبلغ: 65 ر.س\n\nمرفق إشعار التحويل البنكي لحساب كابتن فارس العصيمي. نلتقي في الملعب."
@@ -410,6 +396,7 @@ with tab_book:
         else:
             st.info(f"اكتملت المقاعد الأساسية. أنت في صدارة الاحتياط رقم ({lb.get('wait_pos', 1)}). سيتم إشعارك وتصعيدك تلقائياً فور توفر مقعد.")
 
+# --- تبويب القواعد ---
 with tab_rules:
     st.markdown("""
     <div style="background:#18181b; border:1px solid #27272a; border-radius:10px; padding:10px; margin:8px 0; font-size:0.82em; color:#e2e8f0; line-height:1.4;">
@@ -419,6 +406,7 @@ with tab_rules:
     </div>
     """, unsafe_allow_html=True)
 
+# --- تبويب الاعتذار والإلغاء ---
 with tab_cancel:
     with st.form("cancel_form"):
         can_phone_raw = st.text_input("رقم الجوال المسجل")
@@ -436,7 +424,6 @@ with tab_cancel:
                 st.error("فضلاً أدخل رقم جوال صحيح.")
             else:
                 with get_db() as conn:
-                    conn.execute("BEGIN IMMEDIATE")
                     cur = conn.cursor()
                     cur.execute("SELECT id, name, status FROM bookings WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')", (clean_cp, db_session_key))
                     target = cur.fetchone()
@@ -474,22 +461,16 @@ with tab_cancel:
                         st.error("لا يوجد حجز نشط مرتبط بهذا الرقم لتمرين اليوم.")
 
 # ==========================================
-# 6. تشكيلة الملعب والاحتياط
+# 5. تشكيلة الملعب والاحتياط (Court Slots)
 # ==========================================
 st.markdown("---")
-
-def get_level_badge(lvl):
-    if lvl in ["Advanced", "متقدم"]:
-        return "🔥 متقدم"
-    elif lvl in ["Beginner", "مبتدئ"]:
-        return "⚪ مبتدئ"
-    return "🟢 متوسط"
 
 slots_html = ""
 for i in range(COURT_CAPACITY):
     if i < len(c1):
         p = c1[i]
-        points = (get_loyalty_score(p[2]) % 7)
+        loyalty_val = p[5] if len(p) > 5 and p[5] is not None else 0
+        points = (loyalty_val % 7)
         pts_badge = f"⭐ {points}/6" if points < 6 else "🎁 مجاني!"
         pay_icon = "✅" if p[3] == "paid" else "⏳"
         lvl_badge = get_level_badge(p[4])
@@ -510,14 +491,14 @@ if waitlist:
     st.caption("📋 **قائمة الانتظار النشطة (تصعيد فوري):** " + " • ".join([f"#{idx+1} {w[1]}" for idx, w in enumerate(waitlist)]))
 
 # ==========================================
-# 7. زر الدعم المباشر
+# 6. الدعم المباشر
 # ==========================================
 support_msg = "مرحباً كابتن فارس، عندي استفسار بخصوص حجز بادل 99."
 support_url = f"https://wa.me/966566261868?text={urllib.parse.quote(support_msg)}"
 st.markdown(f'<a href="{support_url}" target="_blank" class="support-btn">💬 تواجه مشكلة؟ تواصل مباشرة عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 8. لوحة الإدارة، التحليلات، وخيار التصفير
+# 7. لوحة الإدارة والتحليلات
 # ==========================================
 with st.expander("⚙️ لوحة الإدارة والتحليلات", expanded=False):
     pin_input = st.text_input("رمز الإدارة المشفر:", type="password")
@@ -571,7 +552,7 @@ with st.expander("⚙️ لوحة الإدارة والتحليلات", expanded
                 for row in raw_data:
                     clean_phone = clean_and_validate_sa_phone(row[2]) or row[2]
                     writer.writerow([row[0], row[1], f"'{clean_phone}", row[3], row[4], row[5], row[6], row[7]])
-                    
+                
                 st.download_button(
                     "📥 تصدير السجل النظيف (Excel/CSV)",
                     csv_buf.getvalue().encode('utf-8-sig'),
