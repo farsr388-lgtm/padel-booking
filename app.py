@@ -5,43 +5,159 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة والواجهة (UX/UI)
+# 1. إعداد الصفحة وتجربة الاستخدام الخفيفة
 # ==========================================
-st.set_page_config(page_title="بادل 99", page_icon="🎾", layout="centered")
+st.set_page_config(
+    page_title="بادل 99",
+    page_icon="🎾",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
 st.markdown("""
 <style>
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
-.block-container { padding-top: 1.2rem !important; padding-bottom: 2rem !important; max-width: 440px !important; margin: 0 auto; }
-html, body, [class*="css"] { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Tahoma, sans-serif; direction: rtl; text-align: right; background-color: #0b0f19; }
+.block-container { 
+    padding-top: 1rem !important; 
+    padding-bottom: 2rem !important; 
+    max-width: 430px !important; 
+    margin: 0 auto; 
+}
+html, body, [class*="css"] { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif; 
+    direction: rtl; 
+    text-align: right; 
+    background-color: #0b0f19;
+}
 
-.hero-card { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border: 1px solid #334155; border-radius: 16px; padding: 16px 14px; text-align: center; margin-bottom: 10px; }
-.hero-title { font-size: 1.6em; font-weight: 900; color: #f8fafc; margin: 0; }
-.hero-sub { color: #38bdf8; font-size: 0.9em; font-weight: 600; margin-top: 4px; }
+/* بطاقة الهيدر التفاعلية */
+.hero-card {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 14px;
+    text-align: center;
+    margin-bottom: 8px;
+}
+.hero-title { font-size: 1.55em; font-weight: 900; color: #f8fafc; margin: 0; }
+.hero-sub { color: #38bdf8; font-size: 0.88em; font-weight: 600; margin-top: 3px; }
 
-.loyalty-banner { background: linear-gradient(90deg, rgba(30, 58, 138, 0.4) 0%, rgba(16, 185, 129, 0.2) 100%); border: 1.5px solid #10b981; border-radius: 12px; padding: 10px 12px; text-align: center; color: #a7f3d0; font-size: 0.88em; font-weight: 800; margin-bottom: 12px; }
+/* شريط عرض الولاء */
+.loyalty-banner {
+    background: linear-gradient(90deg, rgba(30, 58, 138, 0.4) 0%, rgba(16, 185, 129, 0.2) 100%);
+    border: 1.2px solid #10b981;
+    border-radius: 10px;
+    padding: 8px 10px;
+    text-align: center;
+    color: #a7f3d0;
+    font-size: 0.85em;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
 
-.seats-tracker { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 10px 0 6px 0; }
-.seat-dot { width: 14px; height: 14px; border-radius: 50%; }
+/* نقاط المقاعد الحية */
+.seats-tracker {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    margin: 8px 0 4px 0;
+}
+.seat-dot { width: 13px; height: 13px; border-radius: 50%; }
 .dot-booked { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
 .dot-free { background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.6); }
-.roster-box { background: rgba(15, 23, 42, 0.6); border: 1px dashed #334155; border-radius: 10px; padding: 8px 12px; margin-bottom: 14px; font-size: 0.82em; color: #cbd5e1; }
 
-div[data-testid="stFormSubmitButton"] > button { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important; color: #ffffff !important; font-size: 1.15em !important; font-weight: 800 !important; height: 52px !important; border-radius: 12px !important; border: none !important; box-shadow: 0 4px 18px rgba(34, 197, 94, 0.35) !important; margin-top: 8px !important; }
+/* قائمة المسجلين */
+.roster-box {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px dashed #334155;
+    border-radius: 10px;
+    padding: 7px 10px;
+    margin-bottom: 12px;
+    font-size: 0.8em;
+    color: #cbd5e1;
+}
 
-.legal-trust-badge { text-align: center; font-size: 0.72em; color: #64748b; margin-top: -6px; margin-bottom: 10px; }
+/* زر الحجز السريع */
+div[data-testid="stFormSubmitButton"] > button {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+    color: #ffffff !important;
+    font-size: 1.15em !important;
+    font-weight: 800 !important;
+    height: 50px !important;
+    border-radius: 12px !important;
+    border: none !important;
+    box-shadow: 0 4px 18px rgba(34, 197, 94, 0.35) !important;
+    margin-top: 6px !important;
+}
 
-.pay-box { background: #0f172a; border: 1.5px solid #38bdf8; border-radius: 16px; padding: 16px; text-align: center; margin-top: 10px; }
-.loyalty-tag { background: #1e293b; border: 1px solid #3b82f6; color: #93c5fd; padding: 6px 10px; border-radius: 8px; font-size: 0.85em; font-weight: 700; margin: 8px 0; display: inline-block; }
-.copy-btn-iban { background: #1e293b; border: 1px dashed #38bdf8; color: #38bdf8; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 0.95em; font-weight: bold; cursor: pointer; margin: 8px 0; }
-.wa-btn { display: block; background: #25D366; color: #ffffff !important; text-align: center; padding: 14px; border-radius: 12px; font-weight: 800; font-size: 1.05em; text-decoration: none; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.35); margin-top: 10px; }
+/* بطاقة الدفع */
+.pay-box {
+    background: #0f172a;
+    border: 1.5px solid #38bdf8;
+    border-radius: 16px;
+    padding: 16px 12px;
+    text-align: center;
+    margin-top: 8px;
+}
+.loyalty-tag {
+    background: #1e293b;
+    border: 1px solid #3b82f6;
+    color: #93c5fd;
+    padding: 5px 8px;
+    border-radius: 8px;
+    font-size: 0.82em;
+    font-weight: 700;
+    margin: 6px 0;
+    display: inline-block;
+}
+
+/* زر وبطاقة النسخ المباشرة */
+.iban-copy-card {
+    background: #1e293b;
+    border: 1.5px dashed #38bdf8;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 8px 0;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.iban-copy-card:active {
+    background-color: #0c4a6e;
+    border-color: #34d399;
+}
+.iban-number {
+    font-family: monospace;
+    font-size: 0.98em;
+    color: #ffffff;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    direction: ltr;
+    display: inline-block;
+}
+
+/* زر الواتساب */
+.wa-btn {
+    display: block;
+    background: #25D366;
+    color: #ffffff !important;
+    text-align: center;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 1em;
+    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
+    margin-top: 8px;
+}
 
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]) { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. هندسة البيانات والأسعار (Business Logic)
+# 2. ربط قاعدة البيانات
 # ==========================================
 COURT_CAPACITY = 6
 BASE_PRICE = 89
@@ -54,7 +170,7 @@ def init_supabase() -> Client:
 try:
     supabase = init_supabase()
 except Exception:
-    st.error("تعذر الاتصال بالسيرفر المركزي.")
+    st.error("تعذر الاتصال بالخادم، جاري إعادة المحاولة...")
     st.stop()
 
 def get_player_history(phone):
@@ -84,14 +200,14 @@ dots_html = "".join(['<div class="seat-dot dot-booked" title="محجوز"></div>
 dots_html += "".join(['<div class="seat-dot dot-free" title="متاح"></div>' for _ in range(seats_left)])
 
 # ==========================================
-# 4. واجهة العميل (التفاعل والاستقطاب)
+# 4. واجهة المستخدم والتفاعل
 # ==========================================
 st.markdown(f"""
 <div class="hero-card">
     <div class="hero-title">🎾 بادل 99</div>
     <div class="hero-sub">تمرين {display_session} • 9:30 م إلى 11:00 م</div>
     <div class="seats-tracker">{dots_html}</div>
-    <div style="font-size:0.82em; color:#38bdf8; font-weight:700; margin-top:6px;">
+    <div style="font-size:0.82em; color:#38bdf8; font-weight:700; margin-top:5px;">
         {'⚡ متبقي ' + str(seats_left) + ' مقاعد فقط' if seats_left > 0 else '⚠️ المقاعد ممتلئة (قائمة الانتظار مفتوحة)'}
     </div>
 </div>
@@ -100,8 +216,9 @@ st.markdown(f"""
 
 if confirmed_players:
     names_str = " • ".join([f"<b>{p['name'].split()[0]}</b> ({p.get('level', 'متوسط')})" for p in confirmed_players])
-    st.markdown(f'<div class="roster-box">👥 <b>في الملعب الآن:</b> {names_str}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="roster-box">👥 <b>في الملعب:</b> {names_str}</div>', unsafe_allow_html=True)
 
+# شاشة ما بعد الحجز
 if "booked" in st.session_state:
     b = st.session_state["booked"]
     if b.get("is_new", False):
@@ -109,43 +226,61 @@ if "booked" in st.session_state:
         b["is_new"] = False
     
     if b["status"] == "confirmed":
-        iban_raw = "SA9380000222608016013114"
+        iban_clean = "SA9380000222608016013114"
         iban_display = "SA93 8000 0222 6080 1601 3114"
         seats_desc = "مقعدك ومقعد خويك" if b["seats"] == 2 else "مقعدك"
         
         if b["is_free"]:
-            loyalty_text = "🎉 مبروك! هذا تمرينك الـ 7 ومقعدك مجاني بالكامل 🎁"
-            price_box = "<span style='color:#22c55e; font-size:1.2em;'>0 ر.س (مجاناً 🎁)</span>"
+            loyalty_text = "🎉 تمرينك الـ 7 المجاني بالكامل 🎁"
+            price_box = "<span style='color:#22c55e; font-size:1.15em;'>0 ر.س (مجاناً 🎁)</span>"
         else:
             remaining = 6 - (b["past_sessions"] % 6)
             loyalty_text = f"⭐️ تمرينك رقم <b>({(b['past_sessions'] % 6) + 1}/6)</b> • باقي لك <b>{remaining - 1 if remaining > 1 else 0}</b> وتلعب مجاناً!"
-            price_box = f"<b style='color:#38bdf8; font-size:1.2em;'>{b['total_price']} ر.س</b>"
+            price_box = f"<b style='color:#38bdf8; font-size:1.15em;'>{b['total_price']} ر.س</b>"
+
+        copy_component = f"""
+        <div class="iban-copy-card" onclick="
+            navigator.clipboard.writeText('{iban_clean}');
+            var badge = document.getElementById('copy-status');
+            badge.innerHTML = '✅ تم نسخ الآيبان بنجاح!';
+            badge.style.color = '#34d399';
+            setTimeout(function(){{
+                badge.innerHTML = '📋 اضغط لنسخ رقم الآيبان';
+                badge.style.color = '#38bdf8';
+            }}, 2000);
+        ">
+            <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">مصرف الراجحي | فارس ربيع العصيمي</div>
+            <div class="iban-number">{iban_display}</div>
+            <div id="copy-status" style="font-size:0.78em; color:#38bdf8; font-weight:700; margin-top:4px;">📋 اضغط لنسخ رقم الآيبان</div>
+        </div>
+        """ if not b["is_free"] else ""
 
         st.markdown(f"""
         <div class="pay-box">
-            <h3 style="color:#22c55e; margin:0 0 4px 0;">✅ تم حجز {seats_desc}!</h3>
+            <h3 style="color:#22c55e; margin:0 0 2px 0;">✅ تم حجز {seats_desc}!</h3>
             <div class="loyalty-tag">{loyalty_text}</div>
-            <div style="font-size:0.95em; color:#e2e8f0; margin:6px 0;">المبلغ المطلوب: {price_box}</div>
-            <div style="font-size:0.7em; color:#ef4444; margin-bottom:8px;">(يرجى تأكيد التحويل خلال 15 دقيقة لضمان عدم سحب المقعد)</div>
-            
-            {"" if b["is_free"] else f'''
-            <div style="font-size:0.75em; color:#94a3b8; margin-top:8px;">اضغط على الآيبان لنسخه:</div>
-            <div class="copy-btn-iban" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('تم النسخ!');">
-                📋 {iban_display}
-            </div>
-            <div style="font-size:0.75em; color:#64748b;">مصرف الراجحي | فارس ربيع العصيمي</div>
-            '''}
+            <div style="font-size:0.92em; color:#e2e8f0; margin:4px 0;">المبلغ المطلوب: {price_box}</div>
+            <div style="font-size:0.68em; color:#ef4444; margin-bottom:6px;">(يرجى تأكيد التحويل خلال 15 دقيقة لضمان تثبيت المقعد)</div>
+            {copy_component}
         </div>
         """, unsafe_allow_html=True)
         
-        wa_msg = f"🎾 تأكيد حجز مجاني | بادل 99\n\nالكابتن: {b['name']}\nالتمرين: {display_session}\nالحالة: تمرين سابع مجاني 🎁" if b["is_free"] else f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {b['name']}\nالمقاعد: {b['seats']}\nالتمرين: {display_session}\nالمبلغ: {b['total_price']} ر.س\n\n(مرفق إشعار التحويل البنكي)"
+        # --- رسالة الواتساب الودية والجديدة ---
+        if b["is_free"]:
+            wa_msg = f"هلا كابتن فارس 🎾\nأكدت حضوري لتمرين بادل 99 🤩\n\n👤 الكابتن: {b['name']}\n📅 تمرين: {display_session}\n🎁 الحالة: تمريني السابع (مجاني بالكامل!)\n\nمتحمس للعب معكم! 🔥"
+            btn_wa_text = "📲 تأكيد الحضور المجاني عبر واتساب"
+        else:
+            coupon_info = f" (وتم استخدام كود: {b['coupon']})" if b.get("coupon") else ""
+            wa_msg = f"هلا كابتن فارس 🎾\nأكدت حجزي معكم في تمرين بادل 99 🤩\n\n👤 الكابتن: {b['name']}\n📅 تمرين: {display_session}\n🎟️ عدد المقاعد: {b['seats']}\n💵 المبلغ المحول: {b['total_price']} ر.س{coupon_info}\n\nمرفق إيصال التحويل، ونشوفكم في الملعب! 🔥"
+            btn_wa_text = "📲 إرسال الإيصال وتثبيت المقعد"
+            
         wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
-        st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">{"📲 تأكيد الحضور" if b["is_free"] else "📲 إرسال الإيصال وتثبيت المقعد"}</a>', unsafe_allow_html=True)
+        st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">{btn_wa_text}</a>', unsafe_allow_html=True)
     else:
-        st.warning(f"⚠️ المقاعد الأساسية اكتملت. تم تسجيلك في قائمة الانتظار برقم ({b.get('pos', 1)}). سنتواصل معك فور توفر مقعد.")
+        st.warning(f"⚠️ المقاعد اكتملت. أنت بقائمة الانتظار رقم ({b.get('pos', 1)}). سنتواصل معك فور توفر مقعد.")
 
 else:
-    with st.form("smart_booking_form", clear_on_submit=True):
+    with st.form("fast_booking_form", clear_on_submit=True):
         f_name = st.text_input("الاسم الكريم", placeholder="اكتب اسمك")
         f_phone = st.text_input("رقم الجوال", placeholder="05xxxxxxxx")
         
@@ -160,7 +295,7 @@ else:
         hp = st.text_input("hp", label_visibility="collapsed")
         
         btn_submit = st.form_submit_button("تأكيد الحجز الآن ⚡", use_container_width=True)
-        st.markdown('<div class="legal-trust-badge">🛡️ بالنقر على حجز أنت توافق على سياسة الاسترجاع المرنة (إلغاء مجاني قبل 4 ساعات).</div>', unsafe_allow_html=True)
+        st.markdown("<div style='text-align:center; font-size:0.7em; color:#64748b; margin-top:-6px;'>🛡️ إلغاء مجاني متاح حتى قبل 4 ساعات من التمرين.</div>", unsafe_allow_html=True)
 
         if btn_submit and not hp:
             clean_name = f_name.strip()
@@ -222,12 +357,11 @@ else:
                     st.rerun()
 
 # ==========================================
-# 5. إدارة الموارد والاسترجاع (Operations)
+# 5. إدارة الاعتذار
 # ==========================================
-st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
 with st.expander("❌ إدارة حجزي (اعتذار / إلغاء)"):
-    st.markdown("<div style='font-size:0.8em; color:#94a3b8; margin-bottom:8px;'>الاعتذار متاح باسترجاع كامل المبلغ إذا كان قبل التمرين بـ 4 ساعات. في حال التأخر، يتم الاسترجاع فقط عند توفر بديل من قائمة الانتظار.</div>", unsafe_allow_html=True)
-    can_phone = st.text_input("أدخل رقم الجوال المسجل:", key="c_p")
+    can_phone = st.text_input("رقم الجوال المسجل:", key="c_p")
     if st.button("تأكيد الاعتذار", use_container_width=True):
         clean_cp = re.sub(r'[\s\-\+]', '', can_phone.strip().translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")))
         if clean_cp.startswith("966"): clean_cp = "0" + clean_cp[3:]
@@ -242,9 +376,9 @@ with st.expander("❌ إدارة حجزي (اعتذار / إلغاء)"):
             for wp in w_players:
                 supabase.table("bookings").update({"status": "confirmed"}).eq("id", wp["id"]).execute()
                 
-            st.success("تم تأكيد اعتذارك. شكراً لتعاونك وإتاحة الفرصة لغيرك.")
+            st.success("تم تأكيد الاعتذار وتصعيد البديل.")
             if "booked" in st.session_state:
                 del st.session_state["booked"]
             st.rerun()
         else:
-            st.error("لا يوجد حجز نشط بهذا الرقم لتمرين اليوم.")
+            st.error("لا يوجد حجز نشط بهذا الرقم.")
