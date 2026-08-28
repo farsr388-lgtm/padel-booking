@@ -1,14 +1,13 @@
 import streamlit as st
-import sqlite3
-import io
-import csv
+from streamlit_gsheets import GSheetsConnection
+import pandas as pd
 import re
 import hmac
 import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة وتهيئة التصميم
+# 1. إعداد الصفحة والتصميم
 # ==========================================
 st.set_page_config(
     page_title="بادل 99 | Padel 99",
@@ -36,10 +35,6 @@ html, body, p, div, span, label, input, select, button, .stMarkdown {
     direction: rtl;
     text-align: right;
     box-sizing: border-box;
-}
-
-[data-testid="stIconMaterial"], [data-testid="stExpanderToggleIcon"] {
-    font-family: "Material Symbols Rounded", "Source Sans Pro", sans-serif !important;
 }
 
 .hero-header { font-size: 1.55em; font-weight: 800; color: #f8fafc; margin: 0; line-height: 1.2; }
@@ -132,63 +127,29 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) { disp
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. إعداد وقاعدة البيانات (Database Layer)
+# 2. إعداد قاعدة البيانات السحابية (Google Sheets)
 # ==========================================
-DB_FILE = "group99_padel.db"
 COURT_CAPACITY = 6
+SHEET_COLUMNS = ["id", "name", "phone", "session_day", "court", "level", "status", "payment_status", "hear_about", "player_note", "created_at"]
+GSHEET_URL = "https://docs.google.com/spreadsheets/d/1j7NcXOzoKk6ldBN4FZ9_Y4ejhEdwl5O8_y3uYvledz8/edit?usp=sharing"
 
-def get_db():
-    conn = sqlite3.connect(DB_FILE, timeout=30.0, check_same_thread=False)
-    conn.execute("PRAGMA journal_mode=WAL;")
-    conn.execute("PRAGMA busy_timeout=5000;")
-    conn.execute("PRAGMA foreign_keys=ON;")
-    return conn
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-def init_db():
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS bookings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                phone TEXT NOT NULL,
-                session_day TEXT NOT NULL,
-                court INTEGER DEFAULT 1,
-                level TEXT DEFAULT 'متوسط',
-                status TEXT DEFAULT 'confirmed',
-                payment_status TEXT DEFAULT 'pending',
-                attendance TEXT DEFAULT 'unknown',
-                hear_about TEXT DEFAULT '',
-                player_note TEXT DEFAULT '',
-                ip_address TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        cur.execute("PRAGMA table_info(bookings)")
-        cols = [c[1] for c in cur.fetchall()]
-        if "hear_about" not in cols:
-            cur.execute("ALTER TABLE bookings ADD COLUMN hear_about TEXT DEFAULT '';")
-        if "player_note" not in cols:
-            cur.execute("ALTER TABLE bookings ADD COLUMN player_note TEXT DEFAULT '';")
+def get_data():
+    try:
+        df = conn.read(spreadsheet=GSHEET_URL, worksheet="bookings", ttl=0)
+        if df.empty or "phone" not in df.columns:
+            return pd.DataFrame(columns=SHEET_COLUMNS)
+        df["phone"] = df["phone"].astype(str).str.replace(r"^'", "", regex=True)
+        return df
+    except Exception:
+        return pd.DataFrame(columns=SHEET_COLUMNS)
 
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS cancellations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                player_name TEXT,
-                player_phone TEXT,
-                session_day TEXT,
-                court INTEGER,
-                reason TEXT,
-                cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        conn.commit()
-
-init_db()
+def save_data(df):
+    conn.update(spreadsheet=GSHEET_URL, worksheet="bookings", data=df)
 
 # ==========================================
-# 3. دوال المنطق والتحقق (Business Logic)
+# 3. المنطق ودوال المعالجة
 # ==========================================
 def clean_and_validate_sa_phone(raw_phone):
     if not raw_phone:
@@ -203,12 +164,6 @@ def clean_and_validate_sa_phone(raw_phone):
     if re.match(r"^05[0-9]{8}$", p):
         return p
     return None
-
-def check_active_booking(phone, session_key):
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT id FROM bookings WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')", (phone, session_key))
-        return cur.fetchone() is not None
 
 def get_next_session():
     ksa_tz = timezone(timedelta(hours=3))
@@ -231,25 +186,18 @@ def get_next_session():
     db_key = f"{d_ar} {target_date.strftime('%Y-%m-%d')}"
     return label_ar, db_key
 
-def get_session_data(db_session_key):
-    """جلب بيانات اللاعبين المؤكدين مع نقاط الولاء في استعلام واحد سريع"""
-    with get_db() as conn:
-        c = conn.cursor()
-        query = """
-            SELECT b.id, b.name, b.phone, b.payment_status, b.level,
-                   (SELECT COUNT(DISTINCT session_day) FROM bookings WHERE phone = b.phone AND status = 'confirmed') as loyalty_score
-            FROM bookings b
-            WHERE b.session_day = ? AND b.court = 1 AND b.status = 'confirmed'
-            ORDER BY b.id ASC
-            LIMIT 6
-        """
-        c.execute(query, (db_session_key,))
-        c1 = c.fetchall()
-        
-        c.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC", (db_session_key,))
-        waitlist = c.fetchall()
-        
-        return c1, waitlist
+def get_session_lists(df, db_session_key):
+    if df.empty:
+        return [], []
+    session_df = df[df["session_day"] == db_session_key]
+    confirmed = session_df[session_df["status"] == "confirmed"].head(COURT_CAPACITY).to_dict("records")
+    waitlist = session_df[session_df["status"] == "waitlist"].to_dict("records")
+    return confirmed, waitlist
+
+def calculate_loyalty(df, phone):
+    if df.empty:
+        return 0
+    return len(df[(df["phone"] == str(phone)) & (df["status"] == "confirmed")]["session_day"].unique())
 
 def get_level_badge(lvl):
     if lvl in ["Advanced", "متقدم"]:
@@ -259,10 +207,11 @@ def get_level_badge(lvl):
     return "🟢 متوسط"
 
 # ==========================================
-# 4. معالجة البيانات وبناء الصفحة
+# 4. بناء الواجهة
 # ==========================================
+df_all = get_data()
 display_session, db_session_key = get_next_session()
-c1, waitlist = get_session_data(db_session_key)
+c1, waitlist = get_session_lists(df_all, db_session_key)
 total_booked = len(c1)
 
 st.markdown("<div class='hero-header'>بادل 99.</div>", unsafe_allow_html=True)
@@ -275,7 +224,7 @@ tab_book, tab_rules, tab_cancel = st.tabs(["⚡ حجز مقعد", "📜 القو
 
 # --- تبويب الحجز ---
 with tab_book:
-    with st.form("booking_form", clear_on_submit=False):
+    with st.form("booking_form", clear_on_submit=True):
         f_name = st.text_input("الاسم الثلاثي")
         f_phone = st.text_input("رقم الجوال (05xxxxxxxx)", placeholder="05xxxxxxxx")
         f_level_raw = st.selectbox("مستوى اللعب", [
@@ -302,37 +251,46 @@ with tab_book:
 
             if len(clean_name) < 2 or not clean_phone:
                 st.error("فضلاً أدخل الاسم ورقم جوال صحيح يبدأ بـ 05.")
-            elif check_active_booking(clean_phone, db_session_key):
-                st.warning("أنت مسجل بالفعل في تمرين اليوم.")
             else:
-                with get_db() as conn:
-                    cur = conn.cursor()
-                    cur.execute("SELECT COUNT(*) FROM bookings WHERE session_day=? AND court=1 AND status='confirmed'", (db_session_key,))
-                    cur_c1 = cur.fetchone()[0]
-
-                    status_val = 'confirmed' if cur_c1 < COURT_CAPACITY else 'waitlist'
-                    cur.execute("""
-                        INSERT INTO bookings (name, phone, session_day, court, level, status, hear_about, player_note) 
-                        VALUES (?, ?, ?, 1, ?, ?, ?, ?)
-                    """, (clean_name, clean_phone, db_session_key, f_level, status_val, f_source, f_note))
+                current_df = get_data()
+                active_mask = (current_df["phone"] == clean_phone) & (current_df["session_day"] == db_session_key) & (current_df["status"].isin(["confirmed", "waitlist"]))
+                
+                if not current_df.empty and active_mask.any():
+                    st.warning("أنت مسجل بالفعل في تمرين اليوم.")
+                else:
+                    cur_confirmed = len(current_df[(current_df["session_day"] == db_session_key) & (current_df["status"] == "confirmed")]) if not current_df.empty else 0
+                    status_val = "confirmed" if cur_confirmed < COURT_CAPACITY else "waitlist"
                     
-                    wait_pos = None
-                    if status_val == 'waitlist':
-                        cur.execute("SELECT COUNT(*) FROM bookings WHERE session_day=? AND status='waitlist'", (db_session_key,))
-                        wait_pos = cur.fetchone()[0]
+                    new_id = int(current_df["id"].max() + 1) if (not current_df.empty and "id" in current_df.columns and len(current_df) > 0 and pd.notna(current_df["id"].max())) else 1
+                    
+                    new_entry = {
+                        "id": new_id,
+                        "name": clean_name,
+                        "phone": f"'{clean_phone}",
+                        "session_day": db_session_key,
+                        "court": 1,
+                        "level": f_level,
+                        "status": status_val,
+                        "payment_status": "pending",
+                        "hear_about": f_source,
+                        "player_note": f_note,
+                        "created_at": datetime.now(timezone(timedelta(hours=3))).strftime("%Y-%m-%d %H:%M")
+                    }
+                    
+                    updated_df = pd.concat([current_df, pd.DataFrame([new_entry])], ignore_index=True)
+                    save_data(updated_df)
+                    
+                    wait_pos = len(updated_df[(updated_df["session_day"] == db_session_key) & (updated_df["status"] == "waitlist")]) if status_val == "waitlist" else None
 
-                    conn.commit()
-
-                st.session_state["last_booking"] = {
-                    "name": clean_name,
-                    "phone": clean_phone,
-                    "court": "كورت 1",
-                    "status": status_val,
-                    "wait_pos": wait_pos,
-                    "session": display_session,
-                    "is_new": True
-                }
-                st.rerun()
+                    st.session_state["last_booking"] = {
+                        "name": clean_name,
+                        "phone": clean_phone,
+                        "status": status_val,
+                        "wait_pos": wait_pos,
+                        "session": display_session,
+                        "is_new": True
+                    }
+                    st.rerun()
 
     if "last_booking" in st.session_state:
         lb = st.session_state["last_booking"]
@@ -365,36 +323,23 @@ with tab_book:
                     </div>
                 </div>
                 <div class="card-owner">فارس ربيع بن عواض العصيمي</div>
-                <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الحساب (اضغط للنسخ):</div>
-                <div class="copy-badge" onclick="navigator.clipboard.writeText('{acc_raw}'); alert('تم نسخ رقم الحساب! 📋');">
+                <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الحساب:</div>
+                <div class="copy-badge">
                     <span>{acc_raw}</span>
-                    <span>📋</span>
                 </div>
-                <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الآيبان (اضغط للنسخ):</div>
-                <div class="copy-badge" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('تم نسخ الآيبان بنجاح! 📋');">
+                <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الآيبان:</div>
+                <div class="copy-badge">
                     <span>{iban_display}</span>
-                    <span>📋</span>
-                </div>
-                <div style="margin-top: 6px; padding: 6px 8px; background: rgba(56, 189, 248, 0.08); border-radius: 6px; border: 1px dashed rgba(56, 189, 248, 0.3); display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 0.75em; color: #cbd5e1;">💡 <b>اسم المستفيد:</b></div>
-                    <div class="copy-badge" style="margin-bottom:0; padding:2px 6px; font-size:0.8em;" onclick="navigator.clipboard.writeText('بادل 99'); alert('تم نسخ اسم المستفيد: بادل 99 📋');">
-                        <span>بادل 99</span>
-                        <span>📋</span>
-                    </div>
-                </div>
-                <div style="display:flex; justify-content:space-between; font-size:0.72em; color:#64748b; margin-top:6px;">
-                    <span>سويفت: <b>RJHISARI</b></span>
-                    <span>⚡ تحويل فوري</span>
                 </div>
             </div>
             """
             st.markdown(card_html, unsafe_allow_html=True)
             
-            wa_msg = f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {lb['name']}\nالتمرين: {lb['session']} (كورت 1)\nالمبلغ: 65 ر.س\n\nمرفق إشعار التحويل البنكي لحساب كابتن فارس العصيمي. نلتقي في الملعب."
+            wa_msg = f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {lb['name']}\nالتمرين: {lb['session']} (كورت 1)\nالمبلغ: 65 ر.س\n\nمرفق إشعار التحويل البنكي لحساب كابتن فارس العصيمي."
             wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
             st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل وتثبيت المقعد</a>', unsafe_allow_html=True)
         else:
-            st.info(f"اكتملت المقاعد الأساسية. أنت في صدارة الاحتياط رقم ({lb.get('wait_pos', 1)}). سيتم إشعارك وتصعيدك تلقائياً فور توفر مقعد.")
+            st.info(f"اكتملت المقاعد الأساسية. أنت في قائمة الاحتياط رقم ({lb.get('wait_pos', 1)}). سيتم إشعارك وتصعيدك تلقائياً فور توفر مقعد.")
 
 # --- تبويب القواعد ---
 with tab_rules:
@@ -408,7 +353,7 @@ with tab_rules:
 
 # --- تبويب الاعتذار والإلغاء ---
 with tab_cancel:
-    with st.form("cancel_form"):
+    with st.form("cancel_form", clear_on_submit=True):
         can_phone_raw = st.text_input("رقم الجوال المسجل")
         can_reason = st.selectbox("سبب الاعتذار", [
             "تعارض في المواعيد أو انشغال طارئ",
@@ -423,59 +368,49 @@ with tab_cancel:
             if not clean_cp:
                 st.error("فضلاً أدخل رقم جوال صحيح.")
             else:
-                with get_db() as conn:
-                    cur = conn.cursor()
-                    cur.execute("SELECT id, name, status FROM bookings WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')", (clean_cp, db_session_key))
-                    target = cur.fetchone()
-
-                    if target:
-                        cur.execute("UPDATE bookings SET status='cancelled' WHERE id=?", (target[0],))
-                        cur.execute("INSERT INTO cancellations (player_name, player_phone, session_day, court, reason) VALUES (?, ?, ?, 1, ?)",
-                                    (target[1], clean_cp, db_session_key, can_reason))
-
-                        promoted_name = None
-                        if target[2] == 'confirmed':
-                            cur.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC LIMIT 1", (db_session_key,))
-                            wait_player = cur.fetchone()
-                            if wait_player:
-                                cur.execute("UPDATE bookings SET status='confirmed', court=1 WHERE id=?", (wait_player[0],))
-                                promoted_name = wait_player[1]
-                        
-                        conn.commit()
-
-                        if "إصابة" in can_reason:
-                            msg = f"سلامتك وما تشوف شر يا كابتن {target[1]}! 🌸 تم إلغاء حجزك بنجاح، وترجع لنا أقوى في التمارين القادمة."
-                        elif "تعارض" in can_reason or "انشغال" in can_reason:
-                            msg = f"تم قبول اعتذارك يا كابتن {target[1]}، نقدّر إبلاغك المبكر لإتاحة الفرصة لغيرك. مكانك محفوظ ونشوفك في التمرين الجاي! 🎾"
-                        else:
-                            msg = f"تم إلغاء الحجز بنجاح يا كابتن {target[1]}. تيسر أمورك وبانتظارك دائماً في بادل 99! ✨"
-
-                        st.success(msg)
-                        if promoted_name:
-                            st.info(f"⚡ تم تصعيد الكابتن **{promoted_name}** من قائمة الانتظار للملعب مباشرة!")
-
-                        if "last_booking" in st.session_state:
-                            del st.session_state["last_booking"]
-                        st.rerun()
-                    else:
-                        st.error("لا يوجد حجز نشط مرتبط بهذا الرقم لتمرين اليوم.")
+                current_df = get_data()
+                mask = (current_df["phone"] == clean_cp) & (current_df["session_day"] == db_session_key) & (current_df["status"].isin(["confirmed", "waitlist"]))
+                
+                if not current_df.empty and mask.any():
+                    idx = current_df[mask].index[0]
+                    was_confirmed = current_df.loc[idx, "status"] == "confirmed"
+                    player_name = current_df.loc[idx, "name"]
+                    
+                    current_df.loc[idx, "status"] = "cancelled"
+                    
+                    promoted_name = None
+                    if was_confirmed:
+                        wait_mask = (current_df["session_day"] == db_session_key) & (current_df["status"] == "waitlist")
+                        if wait_mask.any():
+                            wait_idx = current_df[wait_mask].index[0]
+                            current_df.loc[wait_idx, "status"] = "confirmed"
+                            promoted_name = current_df.loc[wait_idx, "name"]
+                    
+                    save_data(current_df)
+                    st.success(f"تم إلغاء الحجز بنجاح يا كابتن {player_name}.")
+                    if promoted_name:
+                        st.info(f"⚡ تم تصعيد الكابتن **{promoted_name}** من قائمة الانتظار للملعب مباشرة!")
+                    if "last_booking" in st.session_state:
+                        del st.session_state["last_booking"]
+                    st.rerun()
+                else:
+                    st.error("لا يوجد حجز نشط مرتبط بهذا الرقم لتمرين اليوم.")
 
 # ==========================================
-# 5. تشكيلة الملعب والاحتياط (Court Slots)
+# 5. تشكيلة الملعب
 # ==========================================
 st.markdown("---")
-
 slots_html = ""
 for i in range(COURT_CAPACITY):
     if i < len(c1):
         p = c1[i]
-        loyalty_val = p[5] if len(p) > 5 and p[5] is not None else 0
+        loyalty_val = calculate_loyalty(df_all, p["phone"])
         points = (loyalty_val % 7)
         pts_badge = f"⭐ {points}/6" if points < 6 else "🎁 مجاني!"
-        pay_icon = "✅" if p[3] == "paid" else "⏳"
-        lvl_badge = get_level_badge(p[4])
+        pay_icon = "✅" if p.get("payment_status") == "paid" else "⏳"
+        lvl_badge = get_level_badge(p.get("level", "متوسط"))
         slots_html += f'''<div class="slot-box">
-            <div class="slot-occupied">🎾 {p[1]}</div>
+            <div class="slot-occupied">🎾 {p["name"]}</div>
             <div class="slot-meta">
                 <span class="badge-level">{lvl_badge}</span>
                 <span class="badge-loyalty">{pts_badge}</span>
@@ -488,17 +423,17 @@ for i in range(COURT_CAPACITY):
 st.markdown(f'<div class="padel-court"><div class="court-title">🏟️ كورت 1 ({len(c1)}/{COURT_CAPACITY})</div><div class="court-grid">{slots_html}</div></div>', unsafe_allow_html=True)
 
 if waitlist:
-    st.caption("📋 **قائمة الانتظار النشطة (تصعيد فوري):** " + " • ".join([f"#{idx+1} {w[1]}" for idx, w in enumerate(waitlist)]))
+    st.caption("📋 **قائمة الانتظار النشطة:** " + " • ".join([f"#{idx+1} {w['name']}" for idx, w in enumerate(waitlist)]))
 
 # ==========================================
-# 6. الدعم المباشر
+# 6. الدعم والمساعدة
 # ==========================================
 support_msg = "مرحباً كابتن فارس، عندي استفسار بخصوص حجز بادل 99."
 support_url = f"https://wa.me/966566261868?text={urllib.parse.quote(support_msg)}"
 st.markdown(f'<a href="{support_url}" target="_blank" class="support-btn">💬 تواجه مشكلة؟ تواصل مباشرة عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 7. لوحة الإدارة والتحليلات
+# 7. لوحة الإدارة السحابية
 # ==========================================
 with st.expander("⚙️ لوحة الإدارة والتحليلات", expanded=False):
     pin_input = st.text_input("رمز الإدارة المشفر:", type="password")
@@ -506,79 +441,41 @@ with st.expander("⚙️ لوحة الإدارة والتحليلات", expanded
     if pin_input:
         ar_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
         p = str(pin_input).translate(ar_digits).strip()
-        master_secret = None
-        try:
-            master_secret = st.secrets.get("ADMIN_PASSWORD", None) or st.secrets.get("ADMIN_PIN", None)
-        except Exception:
-            pass
         
-        is_valid = hmac.compare_digest(p, str(master_secret).strip()) if master_secret else hmac.compare_digest(p, "Padel99#Master@2026")
-        
-        if is_valid:
+        if hmac.compare_digest(p, "Padel99#Master@2026"):
             st.success("تم تأكيد الهوية 👑")
+            df_current = get_data()
             
-            with get_db() as conn:
-                cur = conn.cursor()
+            if not df_current.empty:
+                total_confirmed = len(df_current[df_current["status"] == "confirmed"])
+                total_paid = len(df_current[df_current["payment_status"] == "paid"])
                 
-                cur.execute("SELECT COUNT(*) FROM bookings WHERE status='confirmed'")
-                total_confirmed = cur.fetchone()[0]
-                
-                cur.execute("SELECT COUNT(*) FROM bookings WHERE payment_status='paid'")
-                total_paid = cur.fetchone()[0]
-                
-                cur.execute("SELECT level, COUNT(*) FROM bookings GROUP BY level")
-                levels_count = dict(cur.fetchall())
-                
-                c_kpi1, c_kpi2, c_kpi3 = st.columns(3)
-                c_kpi1.metric("إجمالي الحجوزات", total_confirmed)
+                c_kpi1, c_kpi2 = st.columns(2)
+                c_kpi1.metric("إجمالي الحجوزات السحابية", total_confirmed)
                 c_kpi2.metric("المؤكد دفعهم", f"{total_paid * 65} ر.س")
-                c_kpi3.metric("المتوسط / المتقدم", f"{levels_count.get('متوسط', 0)} / {levels_count.get('متقدم', 0)}")
                 
-                cur.execute("""
-                    SELECT session_day, name, phone, level, payment_status, 
-                           COALESCE(hear_about, '-'), COALESCE(player_note, '-'),
-                           strftime('%Y-%m-%d %H:%M', created_at)
-                    FROM bookings 
-                    ORDER BY id DESC
-                """)
-                raw_data = cur.fetchall()
-
-            if raw_data:
-                csv_buf = io.StringIO()
-                csv_buf.write('\ufeff')
-                writer = csv.writer(csv_buf)
-                writer.writerow(["موعد التمرين", "اسم اللاعب", "رقم الجوال", "المستوى", "حالة الدفع", "مصدر المعرفة", "الملاحظات", "وقت التسجيل"])
-                
-                for row in raw_data:
-                    clean_phone = clean_and_validate_sa_phone(row[2]) or row[2]
-                    writer.writerow([row[0], row[1], f"'{clean_phone}", row[3], row[4], row[5], row[6], row[7]])
-                
+                csv_data = df_current.to_csv(index=False).encode('utf-8-sig')
                 st.download_button(
                     "📥 تصدير السجل النظيف (Excel/CSV)",
-                    csv_buf.getvalue().encode('utf-8-sig'),
-                    f"padel_data_{datetime.now().strftime('%Y%m%d')}.csv",
+                    csv_data,
+                    f"padel_cloud_data_{datetime.now().strftime('%Y%m%d')}.csv",
                     "text/csv",
                     use_container_width=True
                 )
-
-            st.markdown("---")
-            st.markdown("##### 🗑️ إدارة البيانات وتصفير الملعب:")
-            col_reset1, col_reset2 = st.columns(2)
-            with col_reset1:
-                if st.button("تصفير تمرين اليوم فقط 🔄", use_container_width=True):
-                    with get_db() as conn:
-                        conn.execute("DELETE FROM bookings WHERE session_day=?", (db_session_key,))
-                        conn.execute("DELETE FROM cancellations WHERE session_day=?", (db_session_key,))
-                        conn.commit()
-                    st.success("تم تصفير تمرين اليوم بنجاح!")
-                    st.rerun()
-            with col_reset2:
-                if st.button("تصفير قاعدة البيانات بالكامل ⚠️", use_container_width=True):
-                    with get_db() as conn:
-                        conn.execute("DELETE FROM bookings")
-                        conn.execute("DELETE FROM cancellations")
-                        conn.commit()
-                    st.success("تم تفريغ كافة البيانات وتصفير السجل بالكامل!")
-                    st.rerun()
+                
+                st.markdown("---")
+                st.markdown("##### 🗑️ إدارة البيانات:")
+                col_reset1, col_reset2 = st.columns(2)
+                with col_reset1:
+                    if st.button("تصفير تمرين اليوم فقط 🔄", use_container_width=True):
+                        df_filtered = df_current[df_current["session_day"] != db_session_key]
+                        save_data(df_filtered)
+                        st.success("تم تصفير تمرين اليوم بنجاح!")
+                        st.rerun()
+                with col_reset2:
+                    if st.button("تصفير قاعدة البيانات بالكامل ⚠️", use_container_width=True):
+                        save_data(pd.DataFrame(columns=SHEET_COLUMNS))
+                        st.success("تم تصفير كافة البيانات سحابياً!")
+                        st.rerun()
         else:
             st.error("رمز الدخول غير صحيح.")
