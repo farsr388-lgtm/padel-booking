@@ -1,6 +1,5 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
-import pandas as pd
+from supabase import create_client, Client
 import re
 import hmac
 import urllib.parse
@@ -127,26 +126,34 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) { disp
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. إعداد قاعدة البيانات السحابية (Google Sheets)
+# 2. إعداد قاعدة البيانات السحابية (Supabase)
 # ==========================================
 COURT_CAPACITY = 6
-SHEET_COLUMNS = ["id", "name", "phone", "session_day", "court", "level", "status", "payment_status", "hear_about", "player_note", "created_at"]
-GSHEET_URL = "https://docs.google.com/spreadsheets/d/1j7NcXOzoKk6ldBN4FZ9_Y4ejhEdwl5O8_y3uYvledz8/edit?usp=sharing"
 
-conn = st.connection("gsheets", type=GSheetsConnection)
+@st.cache_resource
+def init_supabase() -> Client:
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
 
-def get_data():
+supabase = init_supabase()
+
+def get_session_bookings(db_session_key):
     try:
-        df = conn.read(spreadsheet=GSHEET_URL, worksheet="bookings", ttl=0)
-        if df.empty or "phone" not in df.columns:
-            return pd.DataFrame(columns=SHEET_COLUMNS)
-        df["phone"] = df["phone"].astype(str).str.replace(r"^'", "", regex=True)
-        return df
+        res = supabase.table("bookings").select("*").eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).order("id").execute()
+        data = res.data or []
+        confirmed = [d for d in data if d["status"] == "confirmed"][:COURT_CAPACITY]
+        waitlist = [d for d in data if d["status"] == "waitlist"]
+        return confirmed, waitlist
     except Exception:
-        return pd.DataFrame(columns=SHEET_COLUMNS)
+        return [], []
 
-def save_data(df):
-    conn.update(spreadsheet=GSHEET_URL, worksheet="bookings", data=df)
+def get_loyalty_score(phone):
+    try:
+        res = supabase.table("bookings").select("session_day").eq("phone", phone).eq("status", "confirmed").execute()
+        return len(set(d["session_day"] for d in (res.data or [])))
+    except Exception:
+        return 0
 
 # ==========================================
 # 3. المنطق ودوال المعالجة
@@ -186,19 +193,6 @@ def get_next_session():
     db_key = f"{d_ar} {target_date.strftime('%Y-%m-%d')}"
     return label_ar, db_key
 
-def get_session_lists(df, db_session_key):
-    if df.empty:
-        return [], []
-    session_df = df[df["session_day"] == db_session_key]
-    confirmed = session_df[session_df["status"] == "confirmed"].head(COURT_CAPACITY).to_dict("records")
-    waitlist = session_df[session_df["status"] == "waitlist"].to_dict("records")
-    return confirmed, waitlist
-
-def calculate_loyalty(df, phone):
-    if df.empty:
-        return 0
-    return len(df[(df["phone"] == str(phone)) & (df["status"] == "confirmed")]["session_day"].unique())
-
 def get_level_badge(lvl):
     if lvl in ["Advanced", "متقدم"]:
         return "🔥 متقدم"
@@ -209,9 +203,8 @@ def get_level_badge(lvl):
 # ==========================================
 # 4. بناء الواجهة
 # ==========================================
-df_all = get_data()
 display_session, db_session_key = get_next_session()
-c1, waitlist = get_session_lists(df_all, db_session_key)
+c1, waitlist = get_session_bookings(db_session_key)
 total_booked = len(c1)
 
 st.markdown("<div class='hero-header'>بادل 99.</div>", unsafe_allow_html=True)
@@ -252,35 +245,32 @@ with tab_book:
             if len(clean_name) < 2 or not clean_phone:
                 st.error("فضلاً أدخل الاسم ورقم جوال صحيح يبدأ بـ 05.")
             else:
-                current_df = get_data()
-                active_mask = (current_df["phone"] == clean_phone) & (current_df["session_day"] == db_session_key) & (current_df["status"].isin(["confirmed", "waitlist"]))
+                existing = supabase.table("bookings").select("id").eq("phone", clean_phone).eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).execute()
                 
-                if not current_df.empty and active_mask.any():
+                if existing.data and len(existing.data) > 0:
                     st.warning("أنت مسجل بالفعل في تمرين اليوم.")
                 else:
-                    cur_confirmed = len(current_df[(current_df["session_day"] == db_session_key) & (current_df["status"] == "confirmed")]) if not current_df.empty else 0
-                    status_val = "confirmed" if cur_confirmed < COURT_CAPACITY else "waitlist"
-                    
-                    new_id = int(current_df["id"].max() + 1) if (not current_df.empty and "id" in current_df.columns and len(current_df) > 0 and pd.notna(current_df["id"].max())) else 1
-                    
-                    new_entry = {
-                        "id": new_id,
+                    conf_res = supabase.table("bookings").select("id").eq("session_day", db_session_key).eq("status", "confirmed").execute()
+                    cur_conf_count = len(conf_res.data or [])
+                    status_val = "confirmed" if cur_conf_count < COURT_CAPACITY else "waitlist"
+
+                    insert_data = {
                         "name": clean_name,
-                        "phone": f"'{clean_phone}",
+                        "phone": clean_phone,
                         "session_day": db_session_key,
                         "court": 1,
                         "level": f_level,
                         "status": status_val,
                         "payment_status": "pending",
                         "hear_about": f_source,
-                        "player_note": f_note,
-                        "created_at": datetime.now(timezone(timedelta(hours=3))).strftime("%Y-%m-%d %H:%M")
+                        "player_note": f_note
                     }
-                    
-                    updated_df = pd.concat([current_df, pd.DataFrame([new_entry])], ignore_index=True)
-                    save_data(updated_df)
-                    
-                    wait_pos = len(updated_df[(updated_df["session_day"] == db_session_key) & (updated_df["status"] == "waitlist")]) if status_val == "waitlist" else None
+                    supabase.table("bookings").insert(insert_data).execute()
+
+                    wait_pos = None
+                    if status_val == "waitlist":
+                        w_res = supabase.table("bookings").select("id").eq("session_day", db_session_key).eq("status", "waitlist").execute()
+                        wait_pos = len(w_res.data or [])
 
                     st.session_state["last_booking"] = {
                         "name": clean_name,
@@ -339,7 +329,7 @@ with tab_book:
             wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
             st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل وتثبيت المقعد</a>', unsafe_allow_html=True)
         else:
-            st.info(f"اكتملت المقاعد الأساسية. أنت في قائمة الاحتياط رقم ({lb.get('wait_pos', 1)}). سيتم إشعارك وتصعيدك تلقائياً فور توفر مقعد.")
+            st.info(f"اكتملت المقاعد الأساسية. أنت في قائمة الاحتياط رقم ({lb.get('wait_pos', 1)}). سيتم إشعارك فور توفر مقعد.")
 
 # --- تبويب القواعد ---
 with tab_rules:
@@ -368,25 +358,23 @@ with tab_cancel:
             if not clean_cp:
                 st.error("فضلاً أدخل رقم جوال صحيح.")
             else:
-                current_df = get_data()
-                mask = (current_df["phone"] == clean_cp) & (current_df["session_day"] == db_session_key) & (current_df["status"].isin(["confirmed", "waitlist"]))
+                rec = supabase.table("bookings").select("*").eq("phone", clean_cp).eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).execute()
                 
-                if not current_df.empty and mask.any():
-                    idx = current_df[mask].index[0]
-                    was_confirmed = current_df.loc[idx, "status"] == "confirmed"
-                    player_name = current_df.loc[idx, "name"]
+                if rec.data and len(rec.data) > 0:
+                    target = rec.data[0]
+                    was_confirmed = target["status"] == "confirmed"
+                    player_name = target["name"]
                     
-                    current_df.loc[idx, "status"] = "cancelled"
+                    supabase.table("bookings").update({"status": "cancelled"}).eq("id", target["id"]).execute()
                     
                     promoted_name = None
                     if was_confirmed:
-                        wait_mask = (current_df["session_day"] == db_session_key) & (current_df["status"] == "waitlist")
-                        if wait_mask.any():
-                            wait_idx = current_df[wait_mask].index[0]
-                            current_df.loc[wait_idx, "status"] = "confirmed"
-                            promoted_name = current_df.loc[wait_idx, "name"]
+                        w_player = supabase.table("bookings").select("*").eq("session_day", db_session_key).eq("status", "waitlist").order("id").limit(1).execute()
+                        if w_player.data and len(w_player.data) > 0:
+                            p_id = w_player.data[0]["id"]
+                            promoted_name = w_player.data[0]["name"]
+                            supabase.table("bookings").update({"status": "confirmed"}).eq("id", p_id).execute()
                     
-                    save_data(current_df)
                     st.success(f"تم إلغاء الحجز بنجاح يا كابتن {player_name}.")
                     if promoted_name:
                         st.info(f"⚡ تم تصعيد الكابتن **{promoted_name}** من قائمة الانتظار للملعب مباشرة!")
@@ -404,7 +392,7 @@ slots_html = ""
 for i in range(COURT_CAPACITY):
     if i < len(c1):
         p = c1[i]
-        loyalty_val = calculate_loyalty(df_all, p["phone"])
+        loyalty_val = get_loyalty_score(p["phone"])
         points = (loyalty_val % 7)
         pts_badge = f"⭐ {points}/6" if points < 6 else "🎁 مجاني!"
         pay_icon = "✅" if p.get("payment_status") == "paid" else "⏳"
@@ -444,38 +432,29 @@ with st.expander("⚙️ لوحة الإدارة والتحليلات", expanded
         
         if hmac.compare_digest(p, "Padel99#Master@2026"):
             st.success("تم تأكيد الهوية 👑")
-            df_current = get_data()
+            all_res = supabase.table("bookings").select("*").order("id", desc=True).execute()
+            records = all_res.data or []
             
-            if not df_current.empty:
-                total_confirmed = len(df_current[df_current["status"] == "confirmed"])
-                total_paid = len(df_current[df_current["payment_status"] == "paid"])
+            if records:
+                conf_count = len([r for r in records if r["status"] == "confirmed"])
+                paid_count = len([r for r in records if r["payment_status"] == "paid"])
                 
                 c_kpi1, c_kpi2 = st.columns(2)
-                c_kpi1.metric("إجمالي الحجوزات السحابية", total_confirmed)
-                c_kpi2.metric("المؤكد دفعهم", f"{total_paid * 65} ر.س")
-                
-                csv_data = df_current.to_csv(index=False).encode('utf-8-sig')
-                st.download_button(
-                    "📥 تصدير السجل النظيف (Excel/CSV)",
-                    csv_data,
-                    f"padel_cloud_data_{datetime.now().strftime('%Y%m%d')}.csv",
-                    "text/csv",
-                    use_container_width=True
-                )
+                c_kpi1.metric("إجمالي الحجوزات السحابية", conf_count)
+                c_kpi2.metric("المؤكد دفعهم", f"{paid_count * 65} ر.س")
                 
                 st.markdown("---")
                 st.markdown("##### 🗑️ إدارة البيانات:")
                 col_reset1, col_reset2 = st.columns(2)
                 with col_reset1:
                     if st.button("تصفير تمرين اليوم فقط 🔄", use_container_width=True):
-                        df_filtered = df_current[df_current["session_day"] != db_session_key]
-                        save_data(df_filtered)
+                        supabase.table("bookings").delete().eq("session_day", db_session_key).execute()
                         st.success("تم تصفير تمرين اليوم بنجاح!")
                         st.rerun()
                 with col_reset2:
                     if st.button("تصفير قاعدة البيانات بالكامل ⚠️", use_container_width=True):
-                        save_data(pd.DataFrame(columns=SHEET_COLUMNS))
-                        st.success("تم تصفير كافة البيانات سحابياً!")
+                        supabase.table("bookings").delete().neq("id", 0).execute()
+                        st.success("تم تفريغ السجل السحابي بالكامل!")
                         st.rerun()
         else:
             st.error("رمز الدخول غير صحيح.")
