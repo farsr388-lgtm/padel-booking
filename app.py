@@ -126,17 +126,21 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) { disp
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. إعداد قاعدة البيانات السحابية (Supabase)
+# 2. ربط قاعدة البيانات السحابية (Supabase)
 # ==========================================
 COURT_CAPACITY = 6
 
 @st.cache_resource
 def init_supabase() -> Client:
-    url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_KEY"]
+    url = st.secrets["SUPABASE_URL"].strip().rstrip('/')
+    key = st.secrets["SUPABASE_KEY"].strip()
     return create_client(url, key)
 
-supabase = init_supabase()
+try:
+    supabase = init_supabase()
+except Exception as e:
+    st.error(f"خطأ في الاتصال بقاعدة البيانات: {e}")
+    st.stop()
 
 def get_session_bookings(db_session_key):
     try:
@@ -245,42 +249,45 @@ with tab_book:
             if len(clean_name) < 2 or not clean_phone:
                 st.error("فضلاً أدخل الاسم ورقم جوال صحيح يبدأ بـ 05.")
             else:
-                existing = supabase.table("bookings").select("id").eq("phone", clean_phone).eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).execute()
-                
-                if existing.data and len(existing.data) > 0:
-                    st.warning("أنت مسجل بالفعل في تمرين اليوم.")
-                else:
-                    conf_res = supabase.table("bookings").select("id").eq("session_day", db_session_key).eq("status", "confirmed").execute()
-                    cur_conf_count = len(conf_res.data or [])
-                    status_val = "confirmed" if cur_conf_count < COURT_CAPACITY else "waitlist"
+                try:
+                    existing = supabase.table("bookings").select("id").eq("phone", clean_phone).eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).execute()
+                    
+                    if existing.data and len(existing.data) > 0:
+                        st.warning("أنت مسجل بالفعل في تمرين اليوم.")
+                    else:
+                        conf_res = supabase.table("bookings").select("id").eq("session_day", db_session_key).eq("status", "confirmed").execute()
+                        cur_conf_count = len(conf_res.data or [])
+                        status_val = "confirmed" if cur_conf_count < COURT_CAPACITY else "waitlist"
 
-                    insert_data = {
-                        "name": clean_name,
-                        "phone": clean_phone,
-                        "session_day": db_session_key,
-                        "court": 1,
-                        "level": f_level,
-                        "status": status_val,
-                        "payment_status": "pending",
-                        "hear_about": f_source,
-                        "player_note": f_note
-                    }
-                    supabase.table("bookings").insert(insert_data).execute()
+                        insert_data = {
+                            "name": clean_name,
+                            "phone": clean_phone,
+                            "session_day": db_session_key,
+                            "court": 1,
+                            "level": f_level,
+                            "status": status_val,
+                            "payment_status": "pending",
+                            "hear_about": f_source,
+                            "player_note": f_note
+                        }
+                        supabase.table("bookings").insert(insert_data).execute()
 
-                    wait_pos = None
-                    if status_val == "waitlist":
-                        w_res = supabase.table("bookings").select("id").eq("session_day", db_session_key).eq("status", "waitlist").execute()
-                        wait_pos = len(w_res.data or [])
+                        wait_pos = None
+                        if status_val == "waitlist":
+                            w_res = supabase.table("bookings").select("id").eq("session_day", db_session_key).eq("status", "waitlist").execute()
+                            wait_pos = len(w_res.data or [])
 
-                    st.session_state["last_booking"] = {
-                        "name": clean_name,
-                        "phone": clean_phone,
-                        "status": status_val,
-                        "wait_pos": wait_pos,
-                        "session": display_session,
-                        "is_new": True
-                    }
-                    st.rerun()
+                        st.session_state["last_booking"] = {
+                            "name": clean_name,
+                            "phone": clean_phone,
+                            "status": status_val,
+                            "wait_pos": wait_pos,
+                            "session": display_session,
+                            "is_new": True
+                        }
+                        st.rerun()
+                except Exception as err:
+                    st.error(f"حدث خطأ أثناء إتمام الحجز: {err}")
 
     if "last_booking" in st.session_state:
         lb = st.session_state["last_booking"]
@@ -358,31 +365,34 @@ with tab_cancel:
             if not clean_cp:
                 st.error("فضلاً أدخل رقم جوال صحيح.")
             else:
-                rec = supabase.table("bookings").select("*").eq("phone", clean_cp).eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).execute()
-                
-                if rec.data and len(rec.data) > 0:
-                    target = rec.data[0]
-                    was_confirmed = target["status"] == "confirmed"
-                    player_name = target["name"]
+                try:
+                    rec = supabase.table("bookings").select("*").eq("phone", clean_cp).eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).execute()
                     
-                    supabase.table("bookings").update({"status": "cancelled"}).eq("id", target["id"]).execute()
-                    
-                    promoted_name = None
-                    if was_confirmed:
-                        w_player = supabase.table("bookings").select("*").eq("session_day", db_session_key).eq("status", "waitlist").order("id").limit(1).execute()
-                        if w_player.data and len(w_player.data) > 0:
-                            p_id = w_player.data[0]["id"]
-                            promoted_name = w_player.data[0]["name"]
-                            supabase.table("bookings").update({"status": "confirmed"}).eq("id", p_id).execute()
-                    
-                    st.success(f"تم إلغاء الحجز بنجاح يا كابتن {player_name}.")
-                    if promoted_name:
-                        st.info(f"⚡ تم تصعيد الكابتن **{promoted_name}** من قائمة الانتظار للملعب مباشرة!")
-                    if "last_booking" in st.session_state:
-                        del st.session_state["last_booking"]
-                    st.rerun()
-                else:
-                    st.error("لا يوجد حجز نشط مرتبط بهذا الرقم لتمرين اليوم.")
+                    if rec.data and len(rec.data) > 0:
+                        target = rec.data[0]
+                        was_confirmed = target["status"] == "confirmed"
+                        player_name = target["name"]
+                        
+                        supabase.table("bookings").update({"status": "cancelled"}).eq("id", target["id"]).execute()
+                        
+                        promoted_name = None
+                        if was_confirmed:
+                            w_player = supabase.table("bookings").select("*").eq("session_day", db_session_key).eq("status", "waitlist").order("id").limit(1).execute()
+                            if w_player.data and len(w_player.data) > 0:
+                                p_id = w_player.data[0]["id"]
+                                promoted_name = w_player.data[0]["name"]
+                                supabase.table("bookings").update({"status": "confirmed"}).eq("id", p_id).execute()
+                        
+                        st.success(f"تم إلغاء الحجز بنجاح يا كابتن {player_name}.")
+                        if promoted_name:
+                            st.info(f"⚡ تم تصعيد الكابتن **{promoted_name}** من قائمة الانتظار للملعب مباشرة!")
+                        if "last_booking" in st.session_state:
+                            del st.session_state["last_booking"]
+                        st.rerun()
+                    else:
+                        st.error("لا يوجد حجز نشط مرتبط بهذا الرقم لتمرين اليوم.")
+                except Exception as err:
+                    st.error(f"حدث خطأ أثناء الإلغاء: {err}")
 
 # ==========================================
 # 5. تشكيلة الملعب
@@ -432,29 +442,32 @@ with st.expander("⚙️ لوحة الإدارة والتحليلات", expanded
         
         if hmac.compare_digest(p, "Padel99#Master@2026"):
             st.success("تم تأكيد الهوية 👑")
-            all_res = supabase.table("bookings").select("*").order("id", desc=True).execute()
-            records = all_res.data or []
-            
-            if records:
-                conf_count = len([r for r in records if r["status"] == "confirmed"])
-                paid_count = len([r for r in records if r["payment_status"] == "paid"])
+            try:
+                all_res = supabase.table("bookings").select("*").order("id", desc=True).execute()
+                records = all_res.data or []
                 
-                c_kpi1, c_kpi2 = st.columns(2)
-                c_kpi1.metric("إجمالي الحجوزات السحابية", conf_count)
-                c_kpi2.metric("المؤكد دفعهم", f"{paid_count * 65} ر.س")
-                
-                st.markdown("---")
-                st.markdown("##### 🗑️ إدارة البيانات:")
-                col_reset1, col_reset2 = st.columns(2)
-                with col_reset1:
-                    if st.button("تصفير تمرين اليوم فقط 🔄", use_container_width=True):
-                        supabase.table("bookings").delete().eq("session_day", db_session_key).execute()
-                        st.success("تم تصفير تمرين اليوم بنجاح!")
-                        st.rerun()
-                with col_reset2:
-                    if st.button("تصفير قاعدة البيانات بالكامل ⚠️", use_container_width=True):
-                        supabase.table("bookings").delete().neq("id", 0).execute()
-                        st.success("تم تفريغ السجل السحابي بالكامل!")
-                        st.rerun()
+                if records:
+                    conf_count = len([r for r in records if r["status"] == "confirmed"])
+                    paid_count = len([r for r in records if r["payment_status"] == "paid"])
+                    
+                    c_kpi1, c_kpi2 = st.columns(2)
+                    c_kpi1.metric("إجمالي الحجوزات السحابية", conf_count)
+                    c_kpi2.metric("المؤكد دفعهم", f"{paid_count * 65} ر.س")
+                    
+                    st.markdown("---")
+                    st.markdown("##### 🗑️ إدارة البيانات:")
+                    col_reset1, col_reset2 = st.columns(2)
+                    with col_reset1:
+                        if st.button("تصفير تمرين اليوم فقط 🔄", use_container_width=True):
+                            supabase.table("bookings").delete().eq("session_day", db_session_key).execute()
+                            st.success("تم تصفير تمرين اليوم بنجاح!")
+                            st.rerun()
+                    with col_reset2:
+                        if st.button("تصفير قاعدة البيانات بالكامل ⚠️", use_container_width=True):
+                            supabase.table("bookings").delete().neq("id", 0).execute()
+                            st.success("تم تفريغ السجل السحابي بالكامل!")
+                            st.rerun()
+            except Exception as err:
+                st.error(f"خطأ في لوحة التحكم: {err}")
         else:
             st.error("رمز الدخول غير صحيح.")
