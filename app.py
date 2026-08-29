@@ -6,7 +6,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة والتصميم المبسط
+# 1. إعداد الصفحة والتصميم المبسط والتفاعل السريع
 # ==========================================
 st.set_page_config(
     page_title="بادل 99 | Padel 99",
@@ -36,6 +36,27 @@ html, body, p, div, span, label, input, select, button, .stMarkdown {
 .hero-header { font-size: 1.6em; font-weight: 800; color: #f8fafc; margin: 0; }
 .hero-sub { font-size: 0.9em; color: #94a3b8; margin-bottom: 6px; }
 .promo-badge { background: rgba(30, 58, 138, 0.35); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; padding: 4px 8px; text-align: center; color: #bfdbfe; font-weight: 700; font-size: 0.78em; margin-bottom: 6px; }
+
+/* تأثير تفاعل كورة البادل الخفيف والسريع 🎾 */
+@keyframes padelBounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-14px) scale(1.1); }
+}
+
+.padel-success-anim {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.8em;
+    margin: 6px 0;
+}
+.padel-ball {
+    display: inline-block;
+    animation: padelBounce 0.6s ease infinite;
+}
+.padel-ball:nth-child(2) { animation-delay: 0.15s; }
+.padel-ball:nth-child(3) { animation-delay: 0.3s; }
 
 .thankyou-box {
     background: rgba(16, 185, 129, 0.15);
@@ -131,6 +152,7 @@ def get_session_bookings(db_session_key):
 
 def get_loyalty_score(phone):
     try:
+        # احتساب الحجوزات المؤكدة فقط لضمان عدم احتساب أي حجز تم إلغاؤه
         res = supabase.table("bookings").select("session_day").eq("phone", phone).eq("status", "confirmed").execute()
         return len(set(d["session_day"] for d in (res.data or [])))
     except Exception:
@@ -275,8 +297,7 @@ with tab_book:
                             "status": p1_status,
                             "friend_name": clean_fname if add_friend else None,
                             "friend_status": p2_status,
-                            "session": display_session,
-                            "is_new": True
+                            "session": display_session
                         }
                         st.rerun()
                 except Exception as err:
@@ -288,11 +309,16 @@ with tab_book:
         total_price = 130 if (has_friend and lb["status"] == "confirmed" and lb["friend_status"] == "confirmed") else 65
 
         if lb["status"] == "confirmed":
-            if lb.get("is_new", False):
-                st.balloons()
-                lb["is_new"] = False
-
             conf_text = f"تم تأكيد حجزك وحجز خويك ({lb['friend_name']}) بنجاح!" if has_friend and lb["friend_status"] == "confirmed" else "تم تأكيد حجزك بنجاح!"
+
+            # حركة كرات البادل الخفيفة والتفاعلية 🎾
+            st.markdown("""
+            <div class="padel-success-anim">
+                <span class="padel-ball">🎾</span>
+                <span class="padel-ball">🏆</span>
+                <span class="padel-ball">🎾</span>
+            </div>
+            """, unsafe_allow_html=True)
 
             st.markdown(f"""
             <div class="thankyou-box">
