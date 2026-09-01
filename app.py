@@ -200,10 +200,15 @@ with tab_book:
         add_friend = st.checkbox("🎾 احجز مقعد إضافي لخويك معك")
         f_friend_name = ""
         f_friend_phone = ""
+        f_friend_level = "متوسط"
         
         if add_friend:
             st.info("💡 **سجّل جوال خويك عشان ما تضيع عليه نقاط الولاء!** كل تمرين يسجله باسمه يقرّبه من تمرين الـ 7 المجاني 🎁")
-            f_friend_name = st.text_input("اسم خويك")
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                f_friend_name = st.text_input("اسم خويك")
+            with col_f2:
+                f_friend_level = st.selectbox("مستوى خويك", ["متوسط", "متقدم", "مبتدئ"], key="friend_level")
             f_friend_phone = st.text_input("رقم جوال خويك (05xxxxxxxx)", placeholder="05xxxxxxxx")
 
         honeypot_val = st.text_input("hp_security_field", key="hp_val", label_visibility="collapsed")
@@ -234,6 +239,7 @@ with tab_book:
                 st.error("فضلاً أدخل اسم خويك ورقم جواله بشكل صحيح.")
             else:
                 try:
+                    # التحقق من وجود حجز مسبق للاعب الأساسي
                     existing = supabase.table("bookings").select("id").eq("phone", clean_phone).eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).execute()
                     
                     if existing.data and len(existing.data) > 0:
@@ -242,7 +248,7 @@ with tab_book:
                         conf_res = supabase.table("bookings").select("id").eq("session_day", db_session_key).eq("status", "confirmed").execute()
                         cur_conf_count = len(conf_res.data or [])
                         
-                        # تسجيل اللاعب الأساسي
+                        # تحديد حالة اللاعب الأساسي
                         p1_status = "confirmed" if cur_conf_count < COURT_CAPACITY else "waitlist"
                         supabase.table("bookings").insert({
                             "name": clean_name,
@@ -254,17 +260,19 @@ with tab_book:
                             "payment_status": "pending"
                         }).execute()
 
-                        # تسجيل المرافق إن وجد
+                        # تحديد حالة المرافق
                         p2_status = None
                         if add_friend:
-                            new_count = cur_conf_count + 1
-                            p2_status = "confirmed" if new_count < COURT_CAPACITY else "waitlist"
+                            # إذا حجز الأساسي مقعد مؤكد يرتفع العدد بواحد
+                            slots_after_p1 = cur_conf_count + (1 if p1_status == "confirmed" else 0)
+                            p2_status = "confirmed" if slots_after_p1 < COURT_CAPACITY else "waitlist"
+                            
                             supabase.table("bookings").insert({
                                 "name": clean_fname,
                                 "phone": clean_fphone,
                                 "session_day": db_session_key,
                                 "court": 1,
-                                "level": f_level,
+                                "level": f_friend_level,
                                 "status": p2_status,
                                 "payment_status": "pending"
                             }).execute()
@@ -285,15 +293,28 @@ with tab_book:
     if "last_booking" in st.session_state:
         lb = st.session_state["last_booking"]
         has_friend = lb.get("friend_name") is not None
-        total_price = 130 if (has_friend and lb["status"] == "confirmed" and lb["friend_status"] == "confirmed") else 65
-
+        
+        # حساب السعر الإجمالي فقط للمقاعد المؤكدة
+        confirmed_seats = 0
         if lb["status"] == "confirmed":
-            # إطلاق البالونات لمرة واحدة فقط عند تأكيد الحجز 🎈
+            confirmed_seats += 1
+        if has_friend and lb["friend_status"] == "confirmed":
+            confirmed_seats += 1
+            
+        total_price = confirmed_seats * BASE_PRICE
+
+        if confirmed_seats > 0:
             if lb.get("is_new", False):
                 st.balloons()
                 lb["is_new"] = False
 
-            conf_text = f"تم تأكيد حجزك وحجز خويك ({lb['friend_name']}) بنجاح!" if has_friend and lb["friend_status"] == "confirmed" else "تم تأكيد حجزك بنجاح!"
+            if has_friend:
+                if lb["status"] == "confirmed" and lb["friend_status"] == "confirmed":
+                    conf_text = f"تم تأكيد حجزك وحجز خويك ({lb['friend_name']}) بنجاح!"
+                else:
+                    conf_text = f"تم تأكيد حجزك، بينما تم إدراج خويك ({lb['friend_name']}) في قائمة الانتظار لاكتمال المقاعد."
+            else:
+                conf_text = "تم تأكيد حجزك بنجاح!"
 
             st.markdown(f"""
             <div class="thankyou-box">
@@ -311,7 +332,7 @@ with tab_book:
             <div class="alrajhi-card">
                 <div class="card-top">
                     <div class="bank-title">🏛️ مصرف الراجحي</div>
-                    <div class="price-pill">{total_price} ر.س</div>
+                    <div class="price-pill">{total_price} ر.س ({confirmed_seats} مقعد)</div>
                 </div>
                 <div style="text-align:center;">
                     <div class="qr-container">
@@ -327,12 +348,12 @@ with tab_book:
             """
             st.markdown(card_html, unsafe_allow_html=True)
             
-            extra_msg = f" وخويي: {lb['friend_name']}" if has_friend else ""
-            wa_msg = f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {lb['name']}{extra_msg}\nالتمرين: {lb['session']} (كورت 1)\nالمبلغ الإجمالي: {total_price} ر.س\n\nمرفق إشعار التحويل البنكي لحساب كابتن فارس العصيمي."
+            extra_msg = f" وخويي: {lb['friend_name']}" if (has_friend and lb['friend_status'] == 'confirmed') else ""
+            wa_msg = f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {lb['name']}{extra_msg}\nالتمرين: {lb['session']} (كورت 1)\nالمقاعد المؤكدة: {confirmed_seats}\nالمبلغ الإجمالي: {total_price} ر.س\n\nمرفق إشعار التحويل البنكي لحساب كابتن فارس العصيمي."
             wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
             st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل وتثبيت المقاعد</a>', unsafe_allow_html=True)
         else:
-            st.info("اكتملت المقاعد الأساسية للتمرين. تم تسجيلك في قائمة الاحتياط وسيتواصل معك المنظم فور توفر مقعد.")
+            st.info("اكتملت المقاعد الأساسية للتمرين بالكامل. تم تسجيلك (أنت وخويك) في قائمة الاحتياط وسيتم التواصل معكم فور توفر مقعد.")
 
 # --- تبويب القواعد ---
 with tab_rules:
