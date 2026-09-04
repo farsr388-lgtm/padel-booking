@@ -6,7 +6,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعداد الصفحة والتصميم المبسط والخفيف
+# 1. إعداد الصفحة والتصميم المبسط
 # ==========================================
 st.set_page_config(
     page_title="بادل 99 | Padel 99",
@@ -102,10 +102,11 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) { disp
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. ربط قاعدة البيانات السحابية (Supabase)
+# 2. الثوابت وقاعدة البيانات
 # ==========================================
 COURT_CAPACITY = 6
 BASE_PRICE = 65
+WHATSAPP_GROUP_LINK = "https://chat.whatsapp.com/JWihlgJeVIU40RhrzfEwnj?mode=gi_t"
 
 @st.cache_resource
 def init_supabase() -> Client:
@@ -118,6 +119,48 @@ try:
 except Exception as e:
     st.error(f"خطأ في الاتصال بقاعدة البيانات: {e}")
     st.stop()
+
+# ==========================================
+# 3. الدوال المساعدة
+# ==========================================
+def clean_sa_phone(raw_phone):
+    if not raw_phone:
+        return None
+    ar_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+    p = str(raw_phone).translate(ar_digits).strip()
+    p = re.sub(r'[\s\-\(\)\+]', '', p)
+    if p.startswith("966"):
+        p = "0" + p[3:]
+    elif p.startswith("5"):
+        p = "0" + p
+    if re.match(r"^05[0-9]{8}$", p):
+        return p
+    return None
+
+def to_wa_format(phone_05):
+    if phone_05 and phone_05.startswith("05"):
+        return "966" + phone_05[1:]
+    return phone_05
+
+def get_next_session():
+    ksa_tz = timezone(timedelta(hours=3))
+    now = datetime.now(ksa_tz)
+    weekday = now.weekday()
+
+    schedule = {
+        6: (0, "الأحد"),
+        0: (1, "الثلاثاء"),
+        1: (0, "الثلاثاء"),
+        2: (1, "الخميس"),
+        3: (0, "الخميس"),
+        4: (2, "الأحد"),
+        5: (1, "الأحد")
+    }
+    days_to_add, d_ar = schedule.get(weekday, (0, "الأحد"))
+    target_date = now + timedelta(days=days_to_add)
+    label_ar = f"{d_ar} ({target_date.strftime('%d/%m')})"
+    db_key = f"{d_ar} {target_date.strftime('%Y-%m-%d')}"
+    return label_ar, db_key
 
 def get_session_bookings(db_session_key):
     try:
@@ -137,66 +180,26 @@ def get_loyalty_score(phone):
         return 0
 
 # ==========================================
-# 3. المنطق ودوال المعالجة
-# ==========================================
-def clean_and_validate_sa_phone(raw_phone):
-    if not raw_phone:
-        return None
-    ar_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
-    p = str(raw_phone).translate(ar_digits).strip()
-    p = re.sub(r'[\s\-\(\)\+]', '', p)
-    if p.startswith("966"):
-        p = "0" + p[3:]
-    elif p.startswith("5"):
-        p = "0" + p
-    if re.match(r"^05[0-9]{8}$", p):
-        return p
-    return None
-
-def get_next_session():
-    ksa_tz = timezone(timedelta(hours=3))
-    now = datetime.now(ksa_tz)
-    weekday = now.weekday()
-
-    schedule = {
-        6: (0, "الأحد"),
-        0: (1, "الثلاثاء"),
-        1: (0, "الثلاثاء"),
-        2: (1, "الخميس"),
-        3: (0, "الخميس"),
-        4: (2, "الأحد"),
-        5: (1, "الأحد")
-    }
-    
-    days_to_add, d_ar = schedule.get(weekday, (0, "الأحد"))
-    target_date = now + timedelta(days=days_to_add)
-    label_ar = f"{d_ar} ({target_date.strftime('%d/%m')})"
-    db_key = f"{d_ar} {target_date.strftime('%Y-%m-%d')}"
-    return label_ar, db_key
-
-# ==========================================
-# 4. بناء الواجهة
+# 4. واجهة التطبيق
 # ==========================================
 display_session, db_session_key = get_next_session()
-c1, waitlist = get_session_bookings(db_session_key)
-total_booked = len(c1)
+confirmed_players, waitlist_players = get_session_bookings(db_session_key)
+total_booked = len(confirmed_players)
 
 st.markdown("<div class='hero-header'>بادل 99.</div>", unsafe_allow_html=True)
 st.markdown(f"<div class='hero-sub'>تمرين {display_session} • 6 لاعبين للملعب</div>", unsafe_allow_html=True)
 st.markdown("<div class='promo-badge'>✨ العب 6 تمارين واحصل على السابع مجاناً</div>", unsafe_allow_html=True)
 st.caption(f"⏰ 9:30 م إلى 11:00 م | <b>المؤكدين: {total_booked}/6</b>", unsafe_allow_html=True)
 
-tab_book, tab_rules, tab_cancel = st.tabs(["⚡ حجز مقعد", "📜 القواعد", "❌ اعتذار"])
+tab_book, tab_rate, tab_cancel = st.tabs(["⚡ حجز مقعد", "⭐ تقييم التمرين", "❌ اعتذار"])
 
-# --- تبويب الحجز ---
+# --- 1. تبويب الحجز والدعوة ---
 with tab_book:
-    # عدم مسح البيانات عند الضغط حتى لا تضيع البيانات عند وجود خطأ
     with st.form("booking_form", clear_on_submit=False):
         f_name = st.text_input("الاسم الثلاثي", key="input_name")
         f_phone = st.text_input("رقم الجوال (05xxxxxxxx)", placeholder="05xxxxxxxx", key="input_phone")
         f_level = st.selectbox("مستوى اللعب", ["متوسط", "متقدم", "مبتدئ"], key="input_level")
         
-        # خيار إضافة الصديق
         st.markdown("---")
         add_friend = st.checkbox("🎾 احجز مقعد إضافي لخويك معك", key="input_add_friend")
         f_friend_name = ""
@@ -204,7 +207,7 @@ with tab_book:
         f_friend_level = "متوسط"
         
         if add_friend:
-            st.info("💡 **سجّل جوال خويك عشان ما تضيع عليه نقاط الولاء!** كل تمرين يسجله باسمه يقرّبه من تمرين الـ 7 المجاني 🎁")
+            st.info("💡 **سجّل جوال خويك لحفظ نقاطه!**")
             col_f1, col_f2 = st.columns(2)
             with col_f1:
                 f_friend_name = st.text_input("اسم خويك", key="input_fname")
@@ -217,36 +220,32 @@ with tab_book:
 
         if btn_submit:
             if honeypot_val:
-                st.error("تم رفض الطلب للاشتباه في نشاط آلي.")
+                st.error("طلب آلي مرفوض.")
                 st.stop()
                 
             clean_name = f_name.strip()
-            clean_phone = clean_and_validate_sa_phone(f_phone)
-
-            friend_valid = True
+            clean_phone = clean_sa_phone(f_phone)
             clean_fname = f_friend_name.strip()
-            clean_fphone = clean_and_validate_sa_phone(f_friend_phone)
+            clean_fphone = clean_sa_phone(f_friend_phone)
 
-            # معالجة الأخطاء برسائل لطيفة
             if not clean_name or len(clean_name) < 2:
-                st.warning("يا كابتن، لا هنت تأكد من كتابة اسمك بشكل صحيح 🎾")
+                st.warning("يا كابتن، فضلاً اكتب اسمك بشكل صحيح 🎾")
             elif not clean_phone:
-                st.warning("رقم جوالك يحتاج مراجعة (تأكد إنه يبدأ بـ 05 ومكون من 10 أرقام) 📱")
+                st.warning("تأكد من رقم جوالك (يبدأ بـ 05 ومكون من 10 أرقام) 📱")
             elif add_friend and (len(clean_fname) < 2 or not clean_fphone):
-                st.warning("بياناتك ممتازة! باقي فقط اسم خويك ورقم جواله الصحيح (05xxxxxxxx) عشان نسجله معك ✨")
+                st.warning("فضلاً اكتب اسم ورقم جوال خويك الصحيح ✨")
             elif add_friend and clean_fphone == clean_phone:
-                st.warning("ودّنا نكرم خويك بنقاط الولاء، فضلاً سجّل رقم جواله الخاص مو نفس رقمك 🎁")
+                st.warning("سجّل رقم جوال خويك الخاص مو نفس رقمك لحفظ نقاطه 🎁")
             else:
                 try:
                     existing = supabase.table("bookings").select("id").eq("phone", clean_phone).eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).execute()
                     
                     if existing.data and len(existing.data) > 0:
-                        st.info("أنت منورنا ومسجل مسبقاً في تمرين اليوم يا كابتن! 🌟")
+                        st.info("أنت مسجل مسبقاً في تمرين اليوم يا كابتن! 🌟")
                     else:
                         conf_res = supabase.table("bookings").select("id").eq("session_day", db_session_key).eq("status", "confirmed").execute()
                         cur_conf_count = len(conf_res.data or [])
                         
-                        # تسجيل اللاعب الأساسي
                         p1_status = "confirmed" if cur_conf_count < COURT_CAPACITY else "waitlist"
                         supabase.table("bookings").insert({
                             "name": clean_name,
@@ -258,7 +257,6 @@ with tab_book:
                             "payment_status": "pending"
                         }).execute()
 
-                        # تسجيل المرافق إن وجد
                         p2_status = None
                         if add_friend:
                             slots_after_p1 = cur_conf_count + (1 if p1_status == "confirmed" else 0)
@@ -278,19 +276,19 @@ with tab_book:
                             "phone": clean_phone,
                             "status": p1_status,
                             "friend_name": clean_fname if add_friend else None,
+                            "friend_phone": clean_fphone if add_friend else None,
                             "friend_status": p2_status,
                             "session": display_session,
                             "is_new": True
                         }
                         st.rerun()
                 except Exception as err:
-                    st.error(f"حصل خطأ بسيط أثناء حفظ الحجز: {err}")
+                    st.error(f"حصل خطأ أثناء الحفظ: {err}")
 
     if "last_booking" in st.session_state:
         lb = st.session_state["last_booking"]
         has_friend = lb.get("friend_name") is not None
         
-        # حساب المقاعد المؤكدة بدقة
         confirmed_seats = 0
         if lb["status"] == "confirmed":
             confirmed_seats += 1
@@ -304,84 +302,92 @@ with tab_book:
                 st.balloons()
                 lb["is_new"] = False
 
-            if has_friend:
-                if lb["status"] == "confirmed" and lb["friend_status"] == "confirmed":
-                    conf_text = f"تم تأكيد حجزك وحجز خويك ({lb['friend_name']}) بنجاح!"
-                else:
-                    conf_text = f"تم تأكيد حجزك، بينما تم إدراج خويك ({lb['friend_name']}) في قائمة الانتظار لاكتمال الملعب."
-            else:
-                conf_text = "تم تأكيد حجزك بنجاح!"
+            conf_msg = f"تم تأكيد حجزك وحجز خويك ({lb['friend_name']})!" if (has_friend and lb['friend_status'] == 'confirmed') else "تم تأكيد حجزك بنجاح!"
 
             st.markdown(f"""
             <div class="thankyou-box">
-                <div class="thankyou-title">✅ {conf_text} يا كابتن {lb['name']}</div>
-                <div class="thankyou-sub">تم حجز المقاعد في <b>{lb['session']}</b>. نلتقي في الملعب!</div>
+                <div class="thankyou-title">✅ {conf_msg} يا كابتن {lb['name']}</div>
+                <div class="thankyou-sub">الموعد في <b>{lb['session']}</b>. نلتقي بالملعب!</div>
             </div>
             """, unsafe_allow_html=True)
             
-            iban_raw = "SA9380000222608016013114"
             iban_display = "SA93 8000 0222 6080 1601 3114"
             acc_raw = "222000010006086013114"
-            qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={iban_raw}&color=000000&bgcolor=ffffff"
+            qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=SA9380000222608016013114&color=000000&bgcolor=ffffff"
 
-            card_html = f"""
+            st.markdown(f"""
             <div class="alrajhi-card">
                 <div class="card-top">
                     <div class="bank-title">🏛️ مصرف الراجحي</div>
                     <div class="price-pill">{total_price} ر.س ({confirmed_seats} مقعد)</div>
                 </div>
-                <div style="text-align:center;">
-                    <div class="qr-container">
-                        <img src="{qr_url}" alt="QR" />
-                    </div>
-                </div>
+                <div style="text-align:center;"><div class="qr-container"><img src="{qr_url}" alt="QR" /></div></div>
                 <div class="card-owner">فارس ربيع بن عواض العصيمي</div>
-                <div style="font-size:0.75em; color:#94a3b8; margin-bottom:2px; text-align:center;">رقم الحساب:</div>
+                <div style="font-size:0.75em; color:#94a3b8; text-align:center;">رقم الحساب:</div>
                 <div class="copy-badge">{acc_raw}</div>
-                <div style="font-size:0.75em; color:#94a3b8; margin-bottom:2px; text-align:center;">رقم الآيبان:</div>
+                <div style="font-size:0.75em; color:#94a3b8; text-align:center;">رقم الآيبان:</div>
                 <div class="copy-badge">{iban_display}</div>
             </div>
-            """
-            st.markdown(card_html, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
             
-            extra_msg = f"\nالمرافق: الكابتن {lb['friend_name']}" if (has_friend and lb['friend_status'] == 'confirmed') else ""
-            wa_msg = (
+            # زر إشعار التحويل المالي للإدارة
+            admin_msg = urllib.parse.quote(
                 f"🎾 *تأكيد حجز تمرين بادل 99*\n\n"
-                f"👤 *الكابتن الأساسي:* {lb['name']}{extra_msg}\n"
-                f"📅 *التمرين:* {lb['session']} (كورت 1)\n"
-                f"🎟️ *المقاعد المؤكدة:* {confirmed_seats}\n"
-                f"💰 *المبلغ المحول:* {total_price} ر.س\n\n"
-                f"📎 مرفق إشعار التحويل لتثبيت المقاعد."
+                f"👤 *الكابتن:* {lb['name']}\n"
+                f"🎟️ *المقاعد:* {confirmed_seats}\n"
+                f"💰 *المبلغ:* {total_price} ر.س\n"
+                f"📎 مرفق إشعار التحويل."
             )
-            wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
-            st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل وتثبيت المقاعد</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="https://wa.me/966566261868?text={admin_msg}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل للإدارة</a>', unsafe_allow_html=True)
+
+            # زر إرسال الرابط وحفظ النقاط إلى الخوي
+            if has_friend and lb.get("friend_phone"):
+                wa_friend_phone = to_wa_format(lb["friend_phone"])
+                friend_invite_text = urllib.parse.quote(
+                    "هلا يا كابتن! 🎾\n\n"
+                    "شكراً لك، تم تسجيلك معنا وسجلت رقمك عشان ما تضيع عليك نقاط التمرين.\n"
+                    "هذا رابط قروب الواتساب الخاص بالتمارين، ادخل منه عشان تحفظ نقاطك ونلعب سوا:\n"
+                    f"{WHATSAPP_GROUP_LINK}\n\n"
+                    "الله يحييك وتنورنا في بادل 99 🔥"
+                )
+                friend_wa_url = f"https://wa.me/{wa_friend_phone}?text={friend_invite_text}"
+                st.markdown(f'<a href="{friend_wa_url}" target="_blank" class="wa-btn" style="background:#0284c7; margin-top:8px;">🎁 إرسال رابط القروب وتثبيت النقاط لخويك</a>', unsafe_allow_html=True)
+
         else:
-            st.info("اكتملت مقاعد الملعب الأساسية للتمرين! تم تسجيلكم في قائمة الانتظار، وأول ما يتوفر مقعد بنبلغكم مباشرة 🎾")
+            st.info("الملعب مكتمل! تم تسجيلكم في قائمة الانتظار، وعند توفر مقعد سنبلغكم فوراً 🎾")
 
-# --- تبويب القواعد ---
-with tab_rules:
-    st.markdown("""
-    <div style="background:#18181b; border:1px solid #27272a; border-radius:10px; padding:10px; margin:8px 0; font-size:0.85em; color:#e2e8f0; line-height:1.5;">
-        <div style="margin-bottom:8px;">⏱️ <b>قبل 4 ساعات:</b> استرجاع كامل أو ترحيل فوري لتمرينك القادم.</div>
-        <div style="margin-bottom:8px;">⚠️ <b>أقل من 4 ساعات:</b> يُسترجع المبلغ فور تأكيد لاعب بديل من قائمة الانتظار.</div>
-        <div>⚡ <b>تأكيد فوري:</b> أرسل إشعار التحويل خلال 15 دقيقة لضمان تثبيت مقعدك.</div>
-    </div>
-    """, unsafe_allow_html=True)
+# --- 2. تبويب التقييم الصريح (5 نجوم فقط) ---
+with tab_rate:
+    st.markdown("### كيف كان تمرين اليوم؟ 🎾")
+    stars_rating = st.feedback("stars")
 
-# --- تبويب الاعتذار والإلغاء ---
+    if st.button("إرسال التقييم ⭐", use_container_width=True):
+        if stars_rating is None:
+            st.warning("فضلاً حدد التقييم بالنجوم أولاً يا كابتن")
+        else:
+            try:
+                score = stars_rating + 1
+                supabase.table("session_feedback").insert({
+                    "rating_stars": score,
+                    "session_day": db_session_key
+                }).execute()
+                st.success(f"وصل تقييمك ({score}/5)، يعطيك العافية ونشوفك التمرين الجاي! 🤍")
+            except Exception as err:
+                st.error(f"حدث خطأ أثناء حفظ التقييم: {err}")
+
+# --- 3. تبويب الاعتذار والإلغاء ---
 with tab_cancel:
     with st.form("cancel_form", clear_on_submit=True):
         can_phone_raw = st.text_input("رقم الجوال المسجل")
         btn_cancel_sub = st.form_submit_button("إلغاء المقعد وإتاحته للبديل", use_container_width=True)
 
         if btn_cancel_sub:
-            clean_cp = clean_and_validate_sa_phone(can_phone_raw)
+            clean_cp = clean_sa_phone(can_phone_raw)
             if not clean_cp:
                 st.error("فضلاً أدخل رقم جوال صحيح.")
             else:
                 try:
                     rec = supabase.table("bookings").select("*").eq("phone", clean_cp).eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).execute()
-                    
                     if rec.data and len(rec.data) > 0:
                         target = rec.data[0]
                         was_confirmed = target["status"] == "confirmed"
@@ -397,9 +403,9 @@ with tab_cancel:
                                 promoted_name = w_player.data[0]["name"]
                                 supabase.table("bookings").update({"status": "confirmed"}).eq("id", p_id).execute()
                         
-                        st.success(f"خيرها بغيرها يا كابتن {player_name}! 🤍 مقعدك صار متاح لخويك في الانتظار، وننتظرك بالتمرين الجاي تنورنا.")
+                        st.success(f"خيرها بغيرها يا كابتن {player_name}! 🤍 مقعدك صار متاح للبديل.")
                         if promoted_name:
-                            st.info(f"🔥 فرصة ما تتفوت! الكابتن **{promoted_name}** جاك الدور رسمي وتأكد مقعدك بالملعب، جهّز مضربك!")
+                            st.info(f"🔥 الكابتن **{promoted_name}** تأكد مقعدك بالملعب تلقائياً!")
                         
                         if "last_booking" in st.session_state:
                             del st.session_state["last_booking"]
@@ -415,8 +421,8 @@ with tab_cancel:
 st.markdown("---")
 slots_html = ""
 for i in range(COURT_CAPACITY):
-    if i < len(c1):
-        p = c1[i]
+    if i < len(confirmed_players):
+        p = confirmed_players[i]
         loyalty_val = get_loyalty_score(p["phone"])
         points = (loyalty_val % 7)
         pts_badge = f"⭐ {points}/6" if points < 6 else "🎁 مجاني!"
@@ -431,102 +437,68 @@ for i in range(COURT_CAPACITY):
     else:
         slots_html += '<div class="slot-box"><div class="slot-empty">مقعد شاغر ✨</div></div>'
 
-st.markdown(f'<div class="padel-court"><div class="court-title">🏟️ كورت 1 ({len(c1)}/{COURT_CAPACITY})</div><div class="court-grid">{slots_html}</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="padel-court"><div class="court-title">🏟️ كورت 1 ({len(confirmed_players)}/{COURT_CAPACITY})</div><div class="court-grid">{slots_html}</div></div>', unsafe_allow_html=True)
 
-if waitlist:
-    st.caption("📋 **قائمة الانتظار النشطة:** " + " • ".join([f"#{idx+1} {w['name']}" for idx, w in enumerate(waitlist)]))
+if waitlist_players:
+    st.caption("📋 **قائمة الانتظار:** " + " • ".join([f"#{idx+1} {w['name']}" for idx, w in enumerate(waitlist_players)]))
 
 # ==========================================
-# 6. لوحة الإدارة المبسطة والمطورة مع التصدير
+# 6. لوحة الإدارة المبسطة
 # ==========================================
 with st.expander("⚙️ لوحة الإدارة والتحكم", expanded=False):
     pin_input = st.text_input("رمز الإدارة المشفر:", type="password")
     
     if pin_input:
         ar_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
-        p = str(pin_input).translate(ar_digits).strip()
+        clean_pin = str(pin_input).translate(ar_digits).strip()
+        admin_pass = st.secrets.get("ADMIN_SECRET", "Padel99#Master@2026")
         
-        if hmac.compare_digest(p, "Padel99#Master@2026"):
+        if hmac.compare_digest(clean_pin, admin_pass):
             st.success("أهلاً يا كابتن 👑")
             try:
                 res_today = supabase.table("bookings").select("*").eq("session_day", db_session_key).order("id").execute()
                 today_records = res_today.data or []
+                conf_list = [r for r in today_records if r["status"] == "confirmed"]
                 
-                conf_players = [r for r in today_records if r["status"] == "confirmed"]
-                wait_players = [r for r in today_records if r["status"] == "waitlist"]
-                paid_players = [r for r in today_records if r.get("payment_status") == "paid"]
-                
-                # ملخص الأرقام
                 kpi1, kpi2, kpi3 = st.columns(3)
-                kpi1.metric("المؤكدين بالملعب", f"{len(conf_players)}/{COURT_CAPACITY}")
-                kpi2.metric("تم سدادهم", f"{len(paid_players)}")
-                kpi3.metric("إجمالي الدخل المتوقع", f"{len(conf_players) * BASE_PRICE} ر.س")
+                kpi1.metric("المؤكدين", f"{len(conf_list)}/{COURT_CAPACITY}")
+                kpi2.metric("تم سدادهم", f"{len([r for r in today_records if r.get('payment_status') == 'paid'])}")
+                kpi3.metric("الدخل المتوقع", f"{len(conf_list) * BASE_PRICE} ر.س")
                 
+                # قائمة النسخ للقروب
                 st.markdown("---")
-                st.markdown("### 📋 قائمة القروب الجاهزة للنسخ والمشاركة")
-                
                 list_lines = [
                     f"🎾 *تشكيلة تمرين {display_session}*",
-                    "⏰ الوقت: 9:30 م إلى 11:00 م",
-                    "🏟️ الملعب: كورت 1",
-                    "━━━━━━━━━━━━━━",
-                    "*قائمة اللاعبين الأساسيين:*",
+                    "⏰ الوقت: 9:30 م إلى 11:00 م | كورت 1",
+                    "━━━━━━━━━━━━━━"
                 ]
-                
                 for idx in range(COURT_CAPACITY):
-                    if idx < len(conf_players):
-                        cp = conf_players[idx]
-                        pay_status = "✅ (تم الدفع)" if cp.get("payment_status") == "paid" else "⏳ (بانتظار التحويل)"
-                        list_lines.append(f"{idx+1}. {cp['name']} {pay_status}")
+                    if idx < len(conf_list):
+                        cp = conf_list[idx]
+                        p_mark = "✅" if cp.get("payment_status") == "paid" else "⏳"
+                        list_lines.append(f"{idx+1}. {cp['name']} {p_mark}")
                     else:
                         list_lines.append(f"{idx+1}. مقعد شاغر ✨")
                         
-                if wait_players:
-                    list_lines.append("\n*قائمة الاحتياط والانتظار:*")
-                    for widx, wp in enumerate(wait_players):
-                        list_lines.append(f"• #{widx+1} {wp['name']} ({wp['phone']})")
+                broadcast_txt = "\n".join(list_lines)
+                st.text_area("نسخ التشكيلة:", value=broadcast_txt, height=150)
+                st.markdown(f'<a href="https://api.whatsapp.com/send?text={urllib.parse.quote(broadcast_txt)}" target="_blank" class="wa-btn" style="background:#128C7E;">📤 إرسال التشكيلة للقروب</a>', unsafe_allow_html=True)
                 
-                list_lines.append("━━━━━━━━━━━━━━")
-                list_lines.append("نتمنى لكم تمرين ممتع ولعب قوي! 🔥")
-                
-                whatsapp_broadcast_text = "\n".join(list_lines)
-                st.text_area("انسخ الرسالة مباشرة:", value=whatsapp_broadcast_text, height=200)
-                
-                encoded_broadcast = urllib.parse.quote(whatsapp_broadcast_text)
-                st.markdown(f'<a href="https://api.whatsapp.com/send?text={encoded_broadcast}" target="_blank" class="wa-btn" style="background:#128C7E;">📤 إرسال التشكيلة مباشرة إلى واتساب</a>', unsafe_allow_html=True)
-                
+                # إدارة الدفع
                 st.markdown("---")
-                st.markdown("### 👥 إدارة وتأكيد مدفوعات اليوم")
-                
-                if today_records:
-                    for rec in today_records:
-                        col_info, col_status, col_act = st.columns([3, 2, 2])
-                        
-                        status_badge = "✅ أساسي" if rec["status"] == "confirmed" else "⏳ احتياط"
-                        pay_badge = "💵 مسدد" if rec.get("payment_status") == "paid" else "❌ معلق"
-                        
-                        col_info.write(f"**{rec['name']}** ({rec['phone']}) - {status_badge}")
-                        col_status.caption(f"الدفع: {pay_badge}")
-                        
-                        with col_act:
-                            if rec.get("payment_status") != "paid":
-                                if st.button("تأكيد الدفع 💳", key=f"pay_{rec['id']}", use_container_width=True):
-                                    supabase.table("bookings").update({"payment_status": "paid"}).eq("id", rec["id"]).execute()
-                                    st.success(f"تم تأكيد دفع {rec['name']}")
-                                    st.rerun()
-                            else:
-                                if st.button("إلغاء السداد ↩️", key=f"unpay_{rec['id']}", use_container_width=True):
-                                    supabase.table("bookings").update({"payment_status": "pending"}).eq("id", rec["id"]).execute()
-                                    st.rerun()
-                else:
-                    st.info("لا توجد حجوزات مسجلة لتمرين اليوم حتى الآن.")
-                
-                st.markdown("---")
-                if st.button("أرشفة تمرين اليوم وبدء تمرين جديد 🔄", use_container_width=True):
-                    supabase.table("bookings").update({"status": "archived"}).eq("session_day", db_session_key).execute()
-                    st.success("تم تدوير التمرين بنجاح مع حفظ نقاط الولاء للكباتن 🌟")
-                    st.rerun()
-                    
+                for rec in today_records:
+                    c_info, c_btn = st.columns([3, 1])
+                    c_info.write(f"**{rec['name']}** ({rec['phone']}) - {'✅ مؤكد' if rec['status'] == 'confirmed' else '⏳ احتياط'}")
+                    with c_btn:
+                        if rec.get("payment_status") != "paid":
+                            if st.button("تأكيد 💳", key=f"pay_{rec['id']}", use_container_width=True):
+                                supabase.table("bookings").update({"payment_status": "paid"}).eq("id", rec["id"]).execute()
+                                st.rerun()
+                        else:
+                            if st.button("إلغاء ↩️", key=f"unpay_{rec['id']}", use_container_width=True):
+                                supabase.table("bookings").update({"payment_status": "pending"}).eq("id", rec["id"]).execute()
+                                st.rerun()
+                                
             except Exception as err:
                 st.error(f"خطأ: {err}")
         else:
