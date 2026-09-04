@@ -103,6 +103,7 @@ html, body, p, div, span, label, input, select, button, .stMarkdown {
 COURT_CAPACITY = 6
 BASE_PRICE = 65
 WHATSAPP_GROUP_LINK = "https://chat.whatsapp.com/JWihlgJeVIU40RhrzfEwnj?mode=gi_t"
+APP_URL = "https://padel99.streamlit.app"  # استبدله برابط موقعك الفعلي إن وجد
 
 @st.cache_resource
 def init_supabase() -> Client:
@@ -117,7 +118,7 @@ except Exception as e:
     st.stop()
 
 # ==========================================
-# 3. الدوال المنطقية وتدوير التمارين
+# 3. الدوال وتدوير الحجز التلقائي
 # ==========================================
 def clean_sa_phone(raw_phone):
     if not raw_phone:
@@ -133,21 +134,15 @@ def clean_sa_phone(raw_phone):
         return p
     return None
 
-def to_wa_format(phone_05):
-    if phone_05 and phone_05.startswith("05"):
-        return "966" + phone_05[1:]
-    return phone_05
-
-# حساب الجلسة القادمة مع التدوير التلقائي بعد الساعة 11:00 ليلاً
 def get_next_session():
     ksa_tz = timezone(timedelta(hours=3))
     now = datetime.now(ksa_tz)
     
-    # جدول التمارين المعتمد: الأحد (6), الثلاثاء (1), الخميس (3)
+    # جدول التمارين: الأحد (6), الثلاثاء (1), الخميس (3)
     allowed_days = [6, 1, 3]
     
     target = now
-    # إذا تجاوزت الساعة 11:00 مساءً في يوم التمرين، يتم الانتقال لليوم التالي مباشرة
+    # تدوير مباشر للتمرين القادم بمجرد وصول الساعة 11:00 م
     if now.weekday() in allowed_days and (now.hour > 23 or (now.hour == 23 and now.minute >= 0)):
         target = now + timedelta(days=1)
         
@@ -191,46 +186,25 @@ st.caption(f"⏰ 9:30 م إلى 11:00 م | <b>المؤكدين: {total_booked}/6
 
 tab_book, tab_cancel = st.tabs(["⚡ حجز مقعد", "❌ اعتذار"])
 
-# --- تبويب الحجز والتقييم الفوري ---
+# --- تبويب الحجز الفردي والدعوة والتقييم ---
 with tab_book:
     with st.form("booking_form", clear_on_submit=False):
         f_name = st.text_input("الاسم", key="input_name")
         f_phone = st.text_input("رقم الجوال (05xxxxxxxx)", placeholder="05xxxxxxxx", key="input_phone")
         f_level = st.selectbox("مستوى اللعب", ["متوسط", "متقدم", "مبتدئ"], key="input_level")
         
-        st.markdown("---")
-        add_friend = st.checkbox("🎾 احجز مقعد إضافي لخويك معك", key="input_add_friend")
-        f_friend_name = ""
-        f_friend_phone = ""
-        f_friend_level = "متوسط"
-        
-        if add_friend:
-            col_f1, col_f2 = st.columns(2)
-            with col_f1:
-                f_friend_name = st.text_input("اسم خويك", key="input_fname")
-            with col_f2:
-                f_friend_level = st.selectbox("مستوى خويك", ["متوسط", "متقدم", "مبتدئ"], key="input_flevel")
-            f_friend_phone = st.text_input("رقم جوال خويك (05xxxxxxxx)", placeholder="05xxxxxxxx", key="input_fphone")
-
         btn_submit = st.form_submit_button("تأكيد الانضمام 🚀", use_container_width=True)
 
         if btn_submit:
             clean_name = f_name.strip()
             clean_phone = clean_sa_phone(f_phone)
-            clean_fname = f_friend_name.strip()
-            clean_fphone = clean_sa_phone(f_friend_phone)
 
             if not clean_name or len(clean_name) < 2:
                 st.warning("فضلاً اكتب الاسم بشكل صحيح 🎾")
             elif not clean_phone:
                 st.warning("رقم الجوال غير صحيح (تأكد يبدأ بـ 05) 📱")
-            elif add_friend and (len(clean_fname) < 2 or not clean_fphone):
-                st.warning("فضلاً اكتب اسم ورقم جوال خويك الصحيح ✨")
-            elif add_friend and clean_fphone == clean_phone:
-                st.warning("سجل رقم جوال مختلف لخويك لحفظ نقاطه 🎁")
             else:
                 try:
-                    # فحص الحجز في نفس الجلسة فقط
                     existing = supabase.table("bookings").select("id").eq("phone", clean_phone).eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).execute()
                     
                     if existing.data and len(existing.data) > 0:
@@ -250,27 +224,10 @@ with tab_book:
                             "payment_status": "pending"
                         }).execute()
 
-                        p2_status = None
-                        if add_friend:
-                            slots_left = cur_conf + (1 if p1_status == "confirmed" else 0)
-                            p2_status = "confirmed" if slots_left < COURT_CAPACITY else "waitlist"
-                            supabase.table("bookings").insert({
-                                "name": clean_fname,
-                                "phone": clean_fphone,
-                                "session_day": db_session_key,
-                                "court": 1,
-                                "level": f_friend_level,
-                                "status": p2_status,
-                                "payment_status": "pending"
-                            }).execute()
-
                         st.session_state["last_booking"] = {
                             "name": clean_name,
                             "phone": clean_phone,
                             "status": p1_status,
-                            "friend_name": clean_fname if add_friend else None,
-                            "friend_phone": clean_fphone if add_friend else None,
-                            "friend_status": p2_status,
                             "session": display_session,
                             "is_new": True,
                             "rated": False
@@ -279,23 +236,18 @@ with tab_book:
                 except Exception as err:
                     st.error(f"خطأ أثناء الحفظ: {err}")
 
+    # بعد إتمام الحجز
     if "last_booking" in st.session_state:
         lb = st.session_state["last_booking"]
-        has_friend = lb.get("friend_name") is not None
         
-        confirmed_seats = (1 if lb["status"] == "confirmed" else 0) + (1 if has_friend and lb["friend_status"] == "confirmed" else 0)
-        total_price = confirmed_seats * BASE_PRICE
-
-        if confirmed_seats > 0:
+        if lb["status"] == "confirmed":
             if lb.get("is_new", False):
                 st.balloons()
                 lb["is_new"] = False
 
-            conf_msg = f"تم تأكيد حجزك وحجز خويك ({lb['friend_name']})!" if (has_friend and lb['friend_status'] == 'confirmed') else "تم تأكيد مقعدك بالملعب!"
-
             st.markdown(f"""
             <div class="thankyou-box">
-                <div class="thankyou-title">✅ {conf_msg} يا كابتن {lb['name']}</div>
+                <div class="thankyou-title">✅ تم تأكيد مقعدك يا كابتن {lb['name']}</div>
                 <div class="thankyou-sub">الموعد في <b>{lb['session']}</b>. نلتقي بالملعب!</div>
             </div>
             """, unsafe_allow_html=True)
@@ -307,7 +259,7 @@ with tab_book:
             <div class="alrajhi-card">
                 <div class="card-top">
                     <div class="bank-title">🏛️ مصرف الراجحي</div>
-                    <div class="price-pill">{total_price} ر.س ({confirmed_seats} مقعد)</div>
+                    <div class="price-pill">{BASE_PRICE} ر.س (مقعد واحد)</div>
                 </div>
                 <div class="card-owner">فارس ربيع بن عواض العصيمي</div>
                 <div style="font-size:0.75em; color:#94a3b8; text-align:center;">رقم الحساب:</div>
@@ -317,15 +269,26 @@ with tab_book:
             </div>
             """, unsafe_allow_html=True)
             
-            admin_msg = urllib.parse.quote(f"🎾 تأكيد حجز تمرين بادل 99\nالكابتن: {lb['name']}\nالمقاعد: {confirmed_seats}\nالمبلغ: {total_price} ر.س\nمرفق الإشعار.")
+            admin_msg = urllib.parse.quote(f"🎾 تأكيد حجز تمرين بادل 99\nالكابتن: {lb['name']}\nالمبلغ: {BASE_PRICE} ر.س\nمرفق الإشعار.")
             st.markdown(f'<a href="https://wa.me/966566261868?text={admin_msg}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل لتثبيت المقعد</a>', unsafe_allow_html=True)
 
-            if has_friend and lb.get("friend_phone"):
-                wa_fphone = to_wa_format(lb["friend_phone"])
-                friend_text = urllib.parse.quote(f"هلا يا كابتن! 🎾\nتم حجز مقعدك معي بتمرين بادل 99.\nادخل القروب لحفظ نقاطك وتأكيد حضورك:\n{WHATSAPP_GROUP_LINK}")
-                st.markdown(f'<a href="https://wa.me/{wa_fphone}?text={friend_text}" target="_blank" class="wa-btn" style="background:#0284c7; margin-top:6px;">🎁 إرسال رابط القروب وتثبيت النقاط لخويك</a>', unsafe_allow_html=True)
+            # زر دعوة الخوي ليسجل بنفسه
+            st.markdown("---")
+            st.markdown("#### 🎾 تبي خويك يسجل مقعده بنفسه؟")
+            st.caption("أرسل له الدعوة عبر واتساب عشان يدخل ويسجل مقعده وتتحفظ نقاطه في القروب")
+            
+            invite_text = urllib.parse.quote(
+                f"هلا يا كابتن! 🎾\n\n"
+                f"أنا حجزت مقعدي في تمرين بادل 99، احجز مقعدك بنفسك من هنا:\n"
+                f"{APP_URL}\n\n"
+                f"وادخل قروب الواتساب عشان تحفظ نقاط تسجيلك:\n"
+                f"{WHATSAPP_GROUP_LINK}\n\n"
+                f"جهّز مضربك ونلتقي بالملعب! 🔥"
+            )
+            wa_share_url = f"https://api.whatsapp.com/send?text={invite_text}"
+            st.markdown(f'<a href="{wa_share_url}" target="_blank" class="wa-btn" style="background:#0284c7;">📲 إرسال رابط الحجز والقروب لخويك</a>', unsafe_allow_html=True)
 
-            # التقييم الصريح والمباشر (5 نجوم فقط)
+            # التقييم الصريح بالـ 5 نجوم فقط
             st.markdown("---")
             st.write("**⭐ تقييمك لتجربة الحجز والتنظيم:**")
             if not lb.get("rated", False):
@@ -342,10 +305,10 @@ with tab_book:
                     except Exception:
                         pass
             else:
-                st.info("تم استلام تقييمك 🌟")
+                st.info("تم استلام تقييمك بنجاح 🌟")
 
         else:
-            st.info("اكتملت المقاعد! تم تسجيلك في قائمة الانتظار، وسيتم إبلاغك فور توفر مقعد 🎾")
+            st.info("اكتملت المقاعد الأساسية! تم تسجيلك في قائمة الانتظار، وسيتم إبلاغك فور توفر مقعد 🎾")
 
 # --- تبويب الاعتذار ---
 with tab_cancel:
@@ -469,11 +432,11 @@ with st.expander("⚙️ لوحة الإدارة والتحكم", expanded=False
                                 supabase.table("bookings").update({"payment_status": "pending"}).eq("id", rec["id"]).execute()
                                 st.rerun()
                                 
-                # زر تدوير وأرشفة يدوي فوري
+                # تدوير وأرشفة يدوية
                 st.markdown("---")
                 if st.button("أرشفة تمرين اليوم فوراً وفتح تمرين جديد 🔄", use_container_width=True):
                     supabase.table("bookings").update({"status": "archived"}).eq("session_day", db_session_key).execute()
-                    st.success("تم إغلاق تمرين اليوم وتدوير الحجز للتمرين القادم بنجاح!")
+                    st.success("تم تدوير الحجز للتمرين القادم بنجاح!")
                     st.rerun()
 
             except Exception as err:
