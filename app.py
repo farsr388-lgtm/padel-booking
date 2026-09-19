@@ -56,7 +56,7 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_sec"]) { display: none !
 components.html("<script>setTimeout(function(){window.parent.document.querySelector('button[kind=\"header\"]')?.click();}, 8000);</script>", height=0, width=0)
 
 # ==========================================
-# 2. الثوابت وقاعدة البيانات
+# 2. الثوابت وقاعدة البيانات السحابية
 # ==========================================
 COURT_COST = 300       
 TICKET_PRICE = 65      
@@ -66,7 +66,6 @@ LOYALTY_LIABILITY = round(TICKET_PRICE / 7, 2)
 
 DB_URL = st.secrets["SUPABASE_DB_URL"]
 
-# دوال محسنة لإدارة الاتصال وإغلاقه فوراً لتخفيف الضغط
 def fetch_all(query, params=()):
     conn = psycopg2.connect(DB_URL)
     try:
@@ -152,7 +151,7 @@ def get_session_info():
 display_sess, db_sess_key = get_session_info()
 
 # ==========================================
-# 4. الواجهة الأساسية
+# 4. الواجهة الأساسية والاستبيان
 # ==========================================
 st.markdown("<div class='hero-header'>بادل 99 | مجتمع الرياضيين</div>", unsafe_allow_html=True)
 st.markdown("<div class='hero-sub'>تجمع أبطال البادل، تحدي، وحماس للجيل الجديد.</div>", unsafe_allow_html=True)
@@ -266,7 +265,7 @@ if waitlist: st.caption("📋 الاحتياط: " + " • ".join([f"{mask_name_f
 st.markdown('<br><a href="https://wa.me/966566261868" target="_blank" style="display:block; text-align:center; color:#94a3b8; font-size:0.8em; text-decoration:none;">💬 استفسار؟ تواصل معنا عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 6. المحرك المالي
+# 6. المحرك المالي ولوحة الإدارة
 # ==========================================
 with st.expander("⚙️ لوحة الإدارة المالية والتصدير", expanded=False):
     pin = st.text_input("رمز الأمان:", type="password")
