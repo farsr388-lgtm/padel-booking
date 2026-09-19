@@ -2,18 +2,16 @@ import streamlit as st
 import streamlit.components.v1 as components
 import psycopg2
 import pandas as pd
-import io
-import csv
 import re
 import hmac
 import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==========================================
-# 1. إعدادات النظام وتجريد الواجهة (Zero-Bloat UI)
+# 1. إعدادات النظام وتجريد الواجهة
 # ==========================================
 st.set_page_config(
-    page_title="بادل 99 | خصوصية تامة",
+    page_title="بادل 99 | مجتمع الرياضيين",
     page_icon="🎾",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -22,30 +20,19 @@ st.set_page_config(
 st.markdown("""
 <style>
 header[data-testid="stHeader"], footer, #MainMenu { display: none !important; }
-
-.block-container { 
-    padding: 0.5rem !important; 
-    max-width: 600px !important; 
-}
-
+.block-container { padding: 0.5rem !important; max-width: 600px !important; }
 p, div, span, label, input, select, button, h1, h2, h3, .stMarkdown {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    direction: rtl;
-    text-align: right;
-    box-sizing: border-box;
+    direction: rtl; text-align: right; box-sizing: border-box;
 }
-
-[data-testid="stIconMaterial"], [data-testid="stExpanderToggleIcon"] {
-    font-family: "Material Symbols Rounded" !important;
-}
+[data-testid="stIconMaterial"], [data-testid="stExpanderToggleIcon"] { font-family: "Material Symbols Rounded" !important; }
 
 .hero-header { font-size: 1.6em; font-weight: 800; color: #fdf4ff; margin: 0; line-height: 1.2; }
 .hero-sub { font-size: 0.85em; color: #cbd5e1; margin: 4px 0 8px 0; }
-.privacy-pill { background: rgba(192, 132, 252, 0.12); border: 1px solid rgba(192, 132, 252, 0.35); border-radius: 6px; padding: 4px 8px; font-size: 0.75em; color: #e9d5ff; font-weight: 600; display: inline-block; margin-bottom: 8px;}
+.hero-pill { background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px; padding: 4px 8px; font-size: 0.75em; color: #7dd3fc; font-weight: 600; display: inline-block; margin-bottom: 8px;}
 
 .thankyou-box { background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10b981; border-radius: 10px; padding: 10px; margin: 8px 0; text-align: center; }
 .waitlist-box { background: rgba(245, 158, 11, 0.15); border: 1.5px solid #f59e0b; border-radius: 10px; padding: 10px; margin: 8px 0; text-align: center; }
-
 .alrajhi-card { background: #111418; border: 1.5px solid #2d3748; border-radius: 14px; padding: 12px; margin: 8px 0; color: #ffffff; }
 .card-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 5px; margin-bottom: 8px; }
 .bank-title { font-size: 0.9em; font-weight: 700; color: #f8fafc; }
@@ -65,21 +52,11 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_sec"]) { display: none !
 </style>
 """, unsafe_allow_html=True)
 
-# ==========================================
-# 2. مؤقت التحديث اللحظي لمنع الحجوزات المزدوجة
-# ==========================================
-components.html(
-    """
-    <script>
-    setTimeout(function(){
-        window.parent.document.querySelector('button[kind="header"]')?.click();
-    }, 8000);
-    </script>
-    """, height=0, width=0
-)
+# مؤقت التحديث اللحظي
+components.html("<script>setTimeout(function(){window.parent.document.querySelector('button[kind=\"header\"]')?.click();}, 8000);</script>", height=0, width=0)
 
 # ==========================================
-# 3. الثوابت التشغيلية والاقتصادية
+# 2. الثوابت وقاعدة البيانات
 # ==========================================
 COURT_COST = 300       
 TICKET_PRICE = 65      
@@ -87,31 +64,38 @@ CAPACITY = 6
 BREAK_EVEN_POINT = 5   
 LOYALTY_LIABILITY = round(TICKET_PRICE / 7, 2) 
 
-# ==========================================
-# 4. محرك قاعدة البيانات السحابية (Supabase / Postgres)
-# ==========================================
 DB_URL = st.secrets["SUPABASE_DB_URL"]
 
+# دوال محسنة لإدارة الاتصال وإغلاقه فوراً لتخفيف الضغط
 def fetch_all(query, params=()):
-    with psycopg2.connect(DB_URL) as conn:
+    conn = psycopg2.connect(DB_URL)
+    try:
         with conn.cursor() as cur:
             cur.execute(query, params)
             return cur.fetchall()
+    finally:
+        conn.close()
 
 def fetch_one(query, params=()):
-    with psycopg2.connect(DB_URL) as conn:
+    conn = psycopg2.connect(DB_URL)
+    try:
         with conn.cursor() as cur:
             cur.execute(query, params)
             return cur.fetchone()
+    finally:
+        conn.close()
 
 def execute_query(query, params=()):
-    with psycopg2.connect(DB_URL) as conn:
+    conn = psycopg2.connect(DB_URL)
+    try:
         with conn.cursor() as cur:
             cur.execute(query, params)
+        conn.commit()
+    finally:
+        conn.close()
 
 def init_db():
     try:
-        # تمت إضافة حقول الاستبيان (hear_about, player_note) هنا
         execute_query('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id SERIAL PRIMARY KEY,
@@ -138,12 +122,12 @@ def init_db():
             )
         ''')
     except Exception as e:
-        st.error(f"حدث خطأ أثناء الاتصال بقاعدة البيانات: {e}")
+        st.error(f"خطأ في الاتصال: {e}")
 
 init_db()
 
 # ==========================================
-# 5. دوال الحماية والخصوصية والتوقيت
+# 3. دوال مساعدة
 # ==========================================
 def sanitize_phone(raw_phone):
     if not raw_phone: return None
@@ -168,28 +152,27 @@ def get_session_info():
 display_sess, db_sess_key = get_session_info()
 
 # ==========================================
-# 6. الواجهة الأساسية للمستخدم والاستبيان
+# 4. الواجهة الأساسية
 # ==========================================
-st.markdown("<div class='hero-header'>بادل 99 | النسائي</div>", unsafe_allow_html=True)
-st.markdown("<div class='hero-sub'>خصوصية تامة، حرية باللبس، وتمرين يحمس.</div>", unsafe_allow_html=True)
-st.markdown("<div class='privacy-pill'>🔒 بدون كاميرات • بدون اختلاط • صالة مغلقة تماماً</div>", unsafe_allow_html=True)
-st.caption(f"⏰ {display_sess} | 9:00 ص – 11:00 ص | السعة: {CAPACITY} لاعبات")
+st.markdown("<div class='hero-header'>بادل 99 | مجتمع الرياضيين</div>", unsafe_allow_html=True)
+st.markdown("<div class='hero-sub'>تجمع أبطال البادل، تحدي، وحماس للجيل الجديد.</div>", unsafe_allow_html=True)
+st.markdown("<div class='hero-pill'>⚡ مباريات تنافسية • تنظيم احترافي • مجتمع رياضي</div>", unsafe_allow_html=True)
+st.caption(f"⏰ {display_sess} | 9:00 م – 11:00 م | السعة: {CAPACITY} لاعبين")
 
 c1_players = fetch_all("SELECT id, name, phone, payment_status, level FROM bookings WHERE session_day=%s AND status='confirmed' ORDER BY id ASC LIMIT %s", (db_sess_key, CAPACITY))
 waitlist = fetch_all("SELECT id, name FROM bookings WHERE session_day=%s AND status='waitlist' ORDER BY id ASC", (db_sess_key,))
 
-tab_book, tab_rules, tab_cancel = st.tabs(["⚡ حجز مقعد", "📜 الخصوصية", "❌ اعتذار"])
+tab_book, tab_rules, tab_cancel = st.tabs(["⚡ حجز مقعد", "📜 قوانين التجمع", "❌ اعتذار"])
 
 with tab_book:
     with st.form("book_form", clear_on_submit=False):
-        name = st.text_input("الاسم (الأول فقط لحفظ الخصوصية)")
+        name = st.text_input("الاسم الكريم")
         phone = st.text_input("رقم الجوال (للتواصل الإداري ولا يظهر علناً)", placeholder="05xxxxxxxx")
         level = st.selectbox("مستوى اللعب", ["🟢 متوسط - تبادل", "🔥 متقدم - تكتيك", "⚪ مبتدئ - تعلم"])
         
-        # استبيان مصدر المعرفة والملاحظات
         with st.expander("💡 ملاحظات إضافية (اختياري)", expanded=False):
-            f_source = st.selectbox("كيف تعرفتِ على الجلسات؟", ["قروب واتساب نسائي", "توصية من صديقة", "منصة إكس / تيك توك", "أخرى"])
-            f_note = st.text_input("أي تفضيل يخص التمرين والراحة:", placeholder="مثلاً: تفضيل وقت محدد، كرات معينة...")
+            f_source = st.selectbox("كيف تعرفت على الجلسات؟", ["قروب واتساب رياضي", "توصية من صديق", "منصة إكس / تيك توك", "أخرى"])
+            f_note = st.text_input("أي تفضيل يخص التمرين:", placeholder="مثلاً: تفضيل وقت محدد، كرات معينة...")
 
         hp = st.text_input("hp_sec", label_visibility="collapsed") 
         
@@ -198,13 +181,12 @@ with tab_book:
             clean_p = sanitize_phone(phone)
             
             if len(name.strip()) < 2 or not clean_p:
-                st.error("بيانات غير مكتملة، تأكدي من إدخال رقم جوال سعودي صحيح.")
+                st.error("بيانات غير مكتملة، تأكد من إدخال رقم جوال سعودي صحيح.")
             else:
                 if fetch_one("SELECT id FROM bookings WHERE phone=%s AND session_day=%s AND status IN ('confirmed', 'waitlist')", (clean_p, db_sess_key)):
-                    st.warning("أنتِ مسجلة مسبقاً في هذا التمرين.")
+                    st.warning("أنت مسجل مسبقاً في هذا التمرين.")
                 else:
                     status = 'confirmed' if len(c1_players) < CAPACITY else 'waitlist'
-                    # إدخال البيانات مع الاستبيان
                     execute_query("INSERT INTO bookings (name, phone, session_day, level, status, hear_about, player_note) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
                                   (name.strip(), clean_p, db_sess_key, level, status, f_source, f_note))
                     st.session_state["last_booking"] = {"name": name.strip(), "status": status, "session": display_sess}
@@ -224,7 +206,7 @@ with tab_book:
                 <div class="card-top"><div class="bank-title">🏛️ مصرف الراجحي</div><div class="price-pill">{TICKET_PRICE} ر.س</div></div>
                 <div style="text-align:center;"><div class="qr-container"><img src="{qr_url}" alt="QR" /></div></div>
                 <div style="text-align:center; font-weight:bold; margin-bottom:8px;">فارس ربيع بن عواض العصيمي</div>
-                <div style="font-size:0.75em; color:#94a3b8; margin-bottom:2px;">رقم الحساب (اضغطي للنسخ):</div>
+                <div style="font-size:0.75em; color:#94a3b8; margin-bottom:2px;">رقم الحساب (اضغط للنسخ):</div>
                 <div class="copy-badge" onclick="navigator.clipboard.writeText('{acc_raw}'); alert('تم نسخ الحساب!');"><span>{acc_raw}</span><span>📋</span></div>
                 <div style="font-size:0.75em; color:#94a3b8; margin-bottom:2px;">الآيبان:</div>
                 <div class="copy-badge" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('تم نسخ الآيبان!');"><span>SA93 8000 0222 6080 1601 3114</span><span>📋</span></div>
@@ -236,9 +218,9 @@ with tab_book:
             """, unsafe_allow_html=True)
             
             wa_msg = f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {lb['name']}\nالتمرين: {lb['session']}\nالمبلغ: {TICKET_PRICE} ر.س\n\nمرفق إشعار التحويل."
-            st.markdown(f'<a href="https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}" target="_blank" class="wa-btn">📲 أرسلي إشعار التحويل لتثبيت المقعد</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}" target="_blank" class="wa-btn">📲 أرسل إشعار التحويل لتثبيت المقعد</a>', unsafe_allow_html=True)
         else:
-            st.markdown(f'<div class="waitlist-box"><div style="color:#f59e0b; font-weight:bold;">⚠️ اكتملت المقاعد الأساسية يا {lb["name"]}</div><div style="font-size:0.85em; color:#e2e8f0;">أنتِ الآن في صدارة قائمة الانتظار. سيصلك تنبيه فور توفر مقعد.<br><b>(الرجاء عدم تحويل أي مبلغ حالياً)</b></div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="waitlist-box"><div style="color:#f59e0b; font-weight:bold;">⚠️ اكتملت المقاعد الأساسية يا كابتن {lb["name"]}</div><div style="font-size:0.85em; color:#e2e8f0;">أنت الآن في صدارة قائمة الانتظار. سيصلك تنبيه فور توفر مقعد.<br><b>(الرجاء عدم تحويل أي مبلغ حالياً)</b></div></div>', unsafe_allow_html=True)
 
 with tab_cancel:
     with st.form("cancel_form"):
@@ -256,15 +238,15 @@ with tab_cancel:
                     wait_p = fetch_one("SELECT id, name FROM bookings WHERE session_day=%s AND status='waitlist' ORDER BY id ASC LIMIT 1", (db_sess_key,))
                     if wait_p:
                         execute_query("UPDATE bookings SET status='confirmed' WHERE id=%s", (wait_p[0],))
-                        st.info(f"⚡ تم تصعيد اللاعبة {mask_name_for_privacy(wait_p[1])} من قائمة الانتظار!")
+                        st.info(f"⚡ تم تصعيد الكابتن {mask_name_for_privacy(wait_p[1])} من قائمة الانتظار!")
                 if "last_booking" in st.session_state: del st.session_state["last_booking"]
-                st.success("تم الإلغاء بنجاح، نراكِ في التمارين القادمة!")
+                st.success("تم الإلغاء بنجاح، نراك في التمارين القادمة!")
                 st.rerun()
             else:
                 st.error("رقم الجوال غير مسجل في تمرين اليوم.")
 
 # ==========================================
-# 7. التشكيلة المباشرة (Live Roster المحمية)
+# 5. التشكيلة المباشرة
 # ==========================================
 st.markdown("---")
 html_slots = ""
@@ -281,10 +263,10 @@ for i in range(CAPACITY):
 st.markdown(f'<div class="court-grid">{html_slots}</div>', unsafe_allow_html=True)
 if waitlist: st.caption("📋 الاحتياط: " + " • ".join([f"{mask_name_for_privacy(w[1])}" for w in waitlist]))
 
-st.markdown('<br><a href="https://wa.me/966566261868" target="_blank" style="display:block; text-align:center; color:#94a3b8; font-size:0.8em; text-decoration:none;">💬 استفسار؟ تواصلي معنا عبر واتساب</a>', unsafe_allow_html=True)
+st.markdown('<br><a href="https://wa.me/966566261868" target="_blank" style="display:block; text-align:center; color:#94a3b8; font-size:0.8em; text-decoration:none;">💬 استفسار؟ تواصل معنا عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 8. المحرك المالي ولوحة الإدارة والتصدير
+# 6. المحرك المالي
 # ==========================================
 with st.expander("⚙️ لوحة الإدارة المالية والتصدير", expanded=False):
     pin = st.text_input("رمز الأمان:", type="password")
@@ -297,7 +279,6 @@ with st.expander("⚙️ لوحة الإدارة المالية والتصدير
             
             paid_count = sum(1 for p in c1_players if p[3] == 'paid')
             cash_in_hand = paid_count * TICKET_PRICE
-            pending_cash = (len(c1_players) - paid_count) * TICKET_PRICE
             operating_cash_flow = cash_in_hand - COURT_COST
             
             total_historical = fetch_one("SELECT COUNT(*) FROM bookings WHERE status='confirmed'")[0]
@@ -305,12 +286,12 @@ with st.expander("⚙️ لوحة الإدارة المالية والتصدير
 
             st.markdown("##### 💵 التدفق النقدي التشغيلي ($OCF$):")
             m1, m2 = st.columns(2)
-            m1.metric("المحصل فعلياً (كاش)", f"{cash_in_hand} ر.س", f"{paid_count} لاعبات")
+            m1.metric("المحصل فعلياً (كاش)", f"{cash_in_hand} ر.س", f"{paid_count} لاعبين")
             m2.metric("التدفق النقدي الصافي", f"{operating_cash_flow} ر.س", f"التكلفة: {COURT_COST}-", delta_color="normal" if operating_cash_flow >= 0 else "inverse")
 
             st.markdown("##### 📉 نظام وقف الخسارة التشغيلي (Stop-Loss):")
             if len(c1_players) < BREAK_EVEN_POINT:
-                st.error(f"⚠️ المؤكدات ({len(c1_players)}) أقل من نقطة التعادل ({BREAK_EVEN_POINT}). راقب الوقت لإلغاء الملعب مبكراً لمنع الخسارة.")
+                st.error(f"⚠️ المؤكدين ({len(c1_players)}) أقل من نقطة التعادل ({BREAK_EVEN_POINT}). راقب الوقت لإلغاء الملعب مبكراً لمنع الخسارة.")
             else:
                 st.success("✅ الجلسة آمنة مالياً (تم تغطية تكلفة الملعب).")
             
@@ -326,13 +307,14 @@ with st.expander("⚙️ لوحة الإدارة المالية والتصدير
                         st.rerun()
 
             st.markdown("---")
-            with psycopg2.connect(DB_URL) as conn:
-                # استدعاء بيانات الاستبيان (hear_about, player_note) للتصدير
+            conn = psycopg2.connect(DB_URL)
+            try:
                 df = pd.read_sql_query("SELECT name, phone, session_day, level, status, payment_status, hear_about, player_note, created_at FROM bookings ORDER BY id DESC", conn)
-            
-            if not df.empty:
-                csv_data = df.to_csv(index=False).encode('utf-8-sig')
-                st.download_button("📥 تصدير السجل المالي والاستبيان (Excel/CSV)", data=csv_data, file_name=f"padel_data_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", use_container_width=True)
+                if not df.empty:
+                    csv_data = df.to_csv(index=False).encode('utf-8-sig')
+                    st.download_button("📥 تصدير السجل المالي والاستبيان (Excel/CSV)", data=csv_data, file_name=f"padel_data_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", use_container_width=True)
+            finally:
+                conn.close()
 
             if st.button("تصفير الجلسة الحالية 🔄", use_container_width=True):
                 execute_query("DELETE FROM bookings WHERE session_day=%s", (db_sess_key,))
