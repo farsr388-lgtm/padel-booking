@@ -1,6 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import sqlite3
+import psycopg2
 import pandas as pd
 import io
 import csv
@@ -19,7 +19,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# هندسة CSS لحماية الأيقونات ورفع الواجهة للجوال
 st.markdown("""
 <style>
 header[data-testid="stHeader"], footer, #MainMenu { display: none !important; }
@@ -82,27 +81,40 @@ components.html(
 # ==========================================
 # 3. الثوابت التشغيلية والاقتصادية
 # ==========================================
-COURT_COST = 300       # تكلفة الملعب (ساعتان)
-TICKET_PRICE = 65      # التذكرة
-CAPACITY = 6           # السعة
-BREAK_EVEN_POINT = 5   # نقطة التعادل
-LOYALTY_LIABILITY = round(TICKET_PRICE / 7, 2) # التزام المقعد المجاني (9.29 ر.س)
+COURT_COST = 300       
+TICKET_PRICE = 65      
+CAPACITY = 6           
+BREAK_EVEN_POINT = 5   
+LOYALTY_LIABILITY = round(TICKET_PRICE / 7, 2) 
 
 # ==========================================
-# 4. محرك قاعدة البيانات
+# 4. محرك قاعدة البيانات السحابية (Supabase / Postgres)
 # ==========================================
-DB_FILE = "group99_padel.db"
+DB_URL = st.secrets["SUPABASE_DB_URL"]
 
-def get_db_connection():
-    conn = sqlite3.connect(DB_FILE, timeout=30.0, check_same_thread=False)
-    conn.execute("PRAGMA journal_mode=WAL;")
-    return conn
+def fetch_all(query, params=()):
+    with psycopg2.connect(DB_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            return cur.fetchall()
+
+def fetch_one(query, params=()):
+    with psycopg2.connect(DB_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            return cur.fetchone()
+
+def execute_query(query, params=()):
+    with psycopg2.connect(DB_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params)
 
 def init_db():
-    with get_db_connection() as conn:
-        conn.execute('''
+    try:
+        # تمت إضافة حقول الاستبيان (hear_about, player_note) هنا
+        execute_query('''
             CREATE TABLE IF NOT EXISTS bookings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
                 phone TEXT NOT NULL,
                 session_day TEXT NOT NULL,
@@ -110,12 +122,14 @@ def init_db():
                 level TEXT DEFAULT 'متوسط',
                 status TEXT DEFAULT 'confirmed',
                 payment_status TEXT DEFAULT 'pending',
+                hear_about TEXT DEFAULT '',
+                player_note TEXT DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        conn.execute('''
+        execute_query('''
             CREATE TABLE IF NOT EXISTS cancellations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 player_name TEXT,
                 player_phone TEXT,
                 session_day TEXT,
@@ -123,7 +137,8 @@ def init_db():
                 cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        conn.commit()
+    except Exception as e:
+        st.error(f"حدث خطأ أثناء الاتصال بقاعدة البيانات: {e}")
 
 init_db()
 
@@ -153,16 +168,15 @@ def get_session_info():
 display_sess, db_sess_key = get_session_info()
 
 # ==========================================
-# 6. الواجهة الأساسية للمستخدم
+# 6. الواجهة الأساسية للمستخدم والاستبيان
 # ==========================================
 st.markdown("<div class='hero-header'>بادل 99 | النسائي</div>", unsafe_allow_html=True)
 st.markdown("<div class='hero-sub'>خصوصية تامة، حرية باللبس، وتمرين يحمس.</div>", unsafe_allow_html=True)
 st.markdown("<div class='privacy-pill'>🔒 بدون كاميرات • بدون اختلاط • صالة مغلقة تماماً</div>", unsafe_allow_html=True)
 st.caption(f"⏰ {display_sess} | 9:00 ص – 11:00 ص | السعة: {CAPACITY} لاعبات")
 
-with get_db_connection() as conn:
-    c1_players = conn.execute("SELECT id, name, phone, payment_status, level FROM bookings WHERE session_day=? AND status='confirmed' ORDER BY id ASC LIMIT ?", (db_sess_key, CAPACITY)).fetchall()
-    waitlist = conn.execute("SELECT id, name FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC", (db_sess_key,)).fetchall()
+c1_players = fetch_all("SELECT id, name, phone, payment_status, level FROM bookings WHERE session_day=%s AND status='confirmed' ORDER BY id ASC LIMIT %s", (db_sess_key, CAPACITY))
+waitlist = fetch_all("SELECT id, name FROM bookings WHERE session_day=%s AND status='waitlist' ORDER BY id ASC", (db_sess_key,))
 
 tab_book, tab_rules, tab_cancel = st.tabs(["⚡ حجز مقعد", "📜 الخصوصية", "❌ اعتذار"])
 
@@ -171,6 +185,12 @@ with tab_book:
         name = st.text_input("الاسم (الأول فقط لحفظ الخصوصية)")
         phone = st.text_input("رقم الجوال (للتواصل الإداري ولا يظهر علناً)", placeholder="05xxxxxxxx")
         level = st.selectbox("مستوى اللعب", ["🟢 متوسط - تبادل", "🔥 متقدم - تكتيك", "⚪ مبتدئ - تعلم"])
+        
+        # استبيان مصدر المعرفة والملاحظات
+        with st.expander("💡 ملاحظات إضافية (اختياري)", expanded=False):
+            f_source = st.selectbox("كيف تعرفتِ على الجلسات؟", ["قروب واتساب نسائي", "توصية من صديقة", "منصة إكس / تيك توك", "أخرى"])
+            f_note = st.text_input("أي تفضيل يخص التمرين والراحة:", placeholder="مثلاً: تفضيل وقت محدد، كرات معينة...")
+
         hp = st.text_input("hp_sec", label_visibility="collapsed") 
         
         if st.form_submit_button("تأكيد المقعد 🚀", use_container_width=True):
@@ -180,17 +200,16 @@ with tab_book:
             if len(name.strip()) < 2 or not clean_p:
                 st.error("بيانات غير مكتملة، تأكدي من إدخال رقم جوال سعودي صحيح.")
             else:
-                with get_db_connection() as conn:
-                    if conn.execute("SELECT id FROM bookings WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')", (clean_p, db_sess_key)).fetchone():
-                        st.warning("أنتِ مسجلة مسبقاً في هذا التمرين.")
-                    else:
-                        status = 'confirmed' if len(c1_players) < CAPACITY else 'waitlist'
-                        conn.execute("INSERT INTO bookings (name, phone, session_day, level, status) VALUES (?, ?, ?, ?, ?)", (name.strip(), clean_p, db_sess_key, level, status))
-                        conn.commit()
-                        st.session_state["last_booking"] = {"name": name.strip(), "status": status, "session": display_sess}
-                        st.rerun()
+                if fetch_one("SELECT id FROM bookings WHERE phone=%s AND session_day=%s AND status IN ('confirmed', 'waitlist')", (clean_p, db_sess_key)):
+                    st.warning("أنتِ مسجلة مسبقاً في هذا التمرين.")
+                else:
+                    status = 'confirmed' if len(c1_players) < CAPACITY else 'waitlist'
+                    # إدخال البيانات مع الاستبيان
+                    execute_query("INSERT INTO bookings (name, phone, session_day, level, status, hear_about, player_note) VALUES (%s, %s, %s, %s, %s, %s, %s)", 
+                                  (name.strip(), clean_p, db_sess_key, level, status, f_source, f_note))
+                    st.session_state["last_booking"] = {"name": name.strip(), "status": status, "session": display_sess}
+                    st.rerun()
 
-    # معالجة رسائل ما بعد الحجز (الدفع للمؤكد والمنع للاحتياط)
     if "last_booking" in st.session_state:
         lb = st.session_state["last_booking"]
         if lb["status"] == "confirmed":
@@ -227,23 +246,22 @@ with tab_cancel:
         c_reason = st.selectbox("سبب الإلغاء", ["ظرف طارئ", "إصابة أو إجهاد", "تغيير خطة"])
         if st.form_submit_button("إلغاء المقعد", use_container_width=True):
             cp = sanitize_phone(c_phone)
-            with get_db_connection() as conn:
-                target = conn.execute("SELECT id, name, status FROM bookings WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')", (cp, db_sess_key)).fetchone() if cp else None
-                if target:
-                    conn.execute("UPDATE bookings SET status='cancelled' WHERE id=?", (target[0],))
-                    conn.execute("INSERT INTO cancellations (player_name, player_phone, session_day, reason) VALUES (?, ?, ?, ?)", (target[1], cp, db_sess_key, c_reason))
-                    
-                    if target[2] == 'confirmed':
-                        wait_p = conn.execute("SELECT id, name FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC LIMIT 1", (db_sess_key,)).fetchone()
-                        if wait_p:
-                            conn.execute("UPDATE bookings SET status='confirmed' WHERE id=?", (wait_p[0],))
-                            st.info(f"⚡ تم تصعيد اللاعبة {mask_name_for_privacy(wait_p[1])} من قائمة الانتظار!")
-                    conn.commit()
-                    if "last_booking" in st.session_state: del st.session_state["last_booking"]
-                    st.success("تم الإلغاء بنجاح، نراكِ في التمارين القادمة!")
-                    st.rerun()
-                else:
-                    st.error("رقم الجوال غير مسجل في تمرين اليوم.")
+            target = fetch_one("SELECT id, name, status FROM bookings WHERE phone=%s AND session_day=%s AND status IN ('confirmed', 'waitlist')", (cp, db_sess_key)) if cp else None
+            
+            if target:
+                execute_query("UPDATE bookings SET status='cancelled' WHERE id=%s", (target[0],))
+                execute_query("INSERT INTO cancellations (player_name, player_phone, session_day, reason) VALUES (%s, %s, %s, %s)", (target[1], cp, db_sess_key, c_reason))
+                
+                if target[2] == 'confirmed':
+                    wait_p = fetch_one("SELECT id, name FROM bookings WHERE session_day=%s AND status='waitlist' ORDER BY id ASC LIMIT 1", (db_sess_key,))
+                    if wait_p:
+                        execute_query("UPDATE bookings SET status='confirmed' WHERE id=%s", (wait_p[0],))
+                        st.info(f"⚡ تم تصعيد اللاعبة {mask_name_for_privacy(wait_p[1])} من قائمة الانتظار!")
+                if "last_booking" in st.session_state: del st.session_state["last_booking"]
+                st.success("تم الإلغاء بنجاح، نراكِ في التمارين القادمة!")
+                st.rerun()
+            else:
+                st.error("رقم الجوال غير مسجل في تمرين اليوم.")
 
 # ==========================================
 # 7. التشكيلة المباشرة (Live Roster المحمية)
@@ -266,7 +284,7 @@ if waitlist: st.caption("📋 الاحتياط: " + " • ".join([f"{mask_name_f
 st.markdown('<br><a href="https://wa.me/966566261868" target="_blank" style="display:block; text-align:center; color:#94a3b8; font-size:0.8em; text-decoration:none;">💬 استفسار؟ تواصلي معنا عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==========================================
-# 8. المحرك المالي ولوحة الإدارة (Financial Engine)
+# 8. المحرك المالي ولوحة الإدارة والتصدير
 # ==========================================
 with st.expander("⚙️ لوحة الإدارة المالية والتصدير", expanded=False):
     pin = st.text_input("رمز الأمان:", type="password")
@@ -277,14 +295,12 @@ with st.expander("⚙️ لوحة الإدارة المالية والتصدير
         if hmac.compare_digest(p_clean, sec):
             st.success("تمت المصادقة 🛡️")
             
-            # حسابات التدفق النقدي
             paid_count = sum(1 for p in c1_players if p[3] == 'paid')
             cash_in_hand = paid_count * TICKET_PRICE
             pending_cash = (len(c1_players) - paid_count) * TICKET_PRICE
             operating_cash_flow = cash_in_hand - COURT_COST
             
-            with get_db_connection() as conn:
-                total_historical = conn.execute("SELECT COUNT(*) FROM bookings WHERE status='confirmed'").fetchone()[0]
+            total_historical = fetch_one("SELECT COUNT(*) FROM bookings WHERE status='confirmed'")[0]
             deferred_liability = total_historical * LOYALTY_LIABILITY
 
             st.markdown("##### 💵 التدفق النقدي التشغيلي ($OCF$):")
@@ -292,7 +308,6 @@ with st.expander("⚙️ لوحة الإدارة المالية والتصدير
             m1.metric("المحصل فعلياً (كاش)", f"{cash_in_hand} ر.س", f"{paid_count} لاعبات")
             m2.metric("التدفق النقدي الصافي", f"{operating_cash_flow} ر.س", f"التكلفة: {COURT_COST}-", delta_color="normal" if operating_cash_flow >= 0 else "inverse")
 
-            # وقف الخسارة
             st.markdown("##### 📉 نظام وقف الخسارة التشغيلي (Stop-Loss):")
             if len(c1_players) < BREAK_EVEN_POINT:
                 st.error(f"⚠️ المؤكدات ({len(c1_players)}) أقل من نقطة التعادل ({BREAK_EVEN_POINT}). راقب الوقت لإلغاء الملعب مبكراً لمنع الخسارة.")
@@ -301,32 +316,27 @@ with st.expander("⚙️ لوحة الإدارة المالية والتصدير
             
             st.info(f"💡 التزامات المقاعد المجانية المؤجلة: **{round(deferred_liability, 1)} ر.س**")
 
-            # تسوية المدفوعات
             st.markdown("##### ⚡ تسوية الدفع:")
             for p in c1_players:
                 if p[3] == 'pending':
                     c_name, c_btn = st.columns([3, 1])
                     c_name.caption(f"🎾 {p[1]} ({p[2]})")
                     if c_btn.button("سداد ✅", key=f"pay_{p[0]}", use_container_width=True):
-                        with get_db_connection() as conn:
-                            conn.execute("UPDATE bookings SET payment_status='paid' WHERE id=?", (p[0],))
-                            conn.commit()
+                        execute_query("UPDATE bookings SET payment_status='paid' WHERE id=%s", (p[0],))
                         st.rerun()
 
-            # تصدير البيانات والتصفير
             st.markdown("---")
-            with get_db_connection() as conn:
-                df = pd.read_sql_query("SELECT name, phone, session_day, level, status, payment_status, created_at FROM bookings ORDER BY id DESC", conn)
+            with psycopg2.connect(DB_URL) as conn:
+                # استدعاء بيانات الاستبيان (hear_about, player_note) للتصدير
+                df = pd.read_sql_query("SELECT name, phone, session_day, level, status, payment_status, hear_about, player_note, created_at FROM bookings ORDER BY id DESC", conn)
             
             if not df.empty:
                 csv_data = df.to_csv(index=False).encode('utf-8-sig')
-                st.download_button("📥 تصدير السجل المالي (Excel/CSV)", data=csv_data, file_name=f"padel_data_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", use_container_width=True)
+                st.download_button("📥 تصدير السجل المالي والاستبيان (Excel/CSV)", data=csv_data, file_name=f"padel_data_{datetime.now().strftime('%Y%m%d')}.csv", mime="text/csv", use_container_width=True)
 
             if st.button("تصفير الجلسة الحالية 🔄", use_container_width=True):
-                with get_db_connection() as conn:
-                    conn.execute("DELETE FROM bookings WHERE session_day=?", (db_sess_key,))
-                    conn.execute("DELETE FROM cancellations WHERE session_day=?", (db_sess_key,))
-                    conn.commit()
+                execute_query("DELETE FROM bookings WHERE session_day=%s", (db_sess_key,))
+                execute_query("DELETE FROM cancellations WHERE session_day=%s", (db_sess_key,))
                 st.rerun()
         else:
             st.error("الرمز السري غير صحيح.")
