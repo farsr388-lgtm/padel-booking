@@ -1,5 +1,4 @@
 import streamlit as st
-import sqlite3
 import io
 import csv
 import re
@@ -8,9 +7,27 @@ import time
 import html
 import urllib.parse
 from datetime import datetime, timezone, timedelta, time as dtime
+from supabase import create_client, Client
 
 # ==========================================
-# 1. إعداد الصفحة والهوية البصرية (Apple Minimalist)
+# 1. إعداد الاتصال السحابي (Supabase Client)
+# ==========================================
+# يتم جلب المفاتيح بأمان من أسرار Streamlit Secrets أو القيم الافتراضية
+SUPABASE_URL = st.secrets.get("SUPABASE_URL", "ضع_رابط_سوبابيس_هنا")
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "ضع_مفتاح_سوبابيس_هنا")
+
+@st.cache_resource
+def init_supabase() -> Client:
+    try:
+        return create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as e:
+        st.error(f"خطأ في الاتصال بقاعدة البيانات السحابية: {e}")
+        return None
+
+supabase = init_supabase()
+
+# ==========================================
+# 2. إعداد الصفحة والهوية البصرية (Apple Minimalist)
 # ==========================================
 st.set_page_config(
     page_title="Padel 99 | بادل 99",
@@ -117,7 +134,7 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 2. الواجهة وتنسيقات CSS المتوافقة
+# 3. واجهة وتنسيقات CSS المتوافقة
 # ==========================================
 st.markdown(f"""
 <style>
@@ -243,64 +260,6 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) {{ dis
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. محرك قاعدة البيانات
-# ==========================================
-DB_FILE = "group99_padel.db"
-
-def get_db():
-    conn = sqlite3.connect(DB_FILE, timeout=30.0, check_same_thread=False)
-    conn.execute("PRAGMA journal_mode=WAL;")
-    conn.execute("PRAGMA busy_timeout=5000;")
-    conn.execute("PRAGMA foreign_keys=ON;")
-    return conn
-
-def init_db():
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS bookings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                phone TEXT NOT NULL,
-                session_day TEXT NOT NULL,
-                court INTEGER DEFAULT 1,
-                level TEXT DEFAULT 'متوسط',
-                status TEXT DEFAULT 'confirmed',
-                payment_status TEXT DEFAULT 'pending',
-                attendance TEXT DEFAULT 'unknown',
-                ip_address TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        cur.execute("PRAGMA table_info(bookings)")
-        cols = [r[1] for r in cur.fetchall()]
-        if "payment_status" not in cols:
-            cur.execute("ALTER TABLE bookings ADD COLUMN payment_status TEXT DEFAULT 'pending';")
-        if "attendance" not in cols:
-            cur.execute("ALTER TABLE bookings ADD COLUMN attendance TEXT DEFAULT 'unknown';")
-        if "level" not in cols:
-            cur.execute("ALTER TABLE bookings ADD COLUMN level TEXT DEFAULT 'متوسط';")
-
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_sess_court ON bookings(session_day, court, status);")
-        cur.execute("CREATE INDEX IF NOT EXISTS idx_phone ON bookings(phone);")
-        
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS cancellations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                player_name TEXT,
-                player_phone TEXT,
-                session_day TEXT,
-                court INTEGER,
-                reason TEXT,
-                cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        conn.commit()
-
-init_db()
-
-# ==========================================
 # 4. دوال التحقق والأمان
 # ==========================================
 def clean_and_validate_sa_phone(raw_phone):
@@ -318,13 +277,19 @@ def clean_and_validate_sa_phone(raw_phone):
     return None
 
 def check_active_booking(phone, session_key):
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT id FROM bookings 
-            WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')
-        """, (phone, session_key))
-        return cur.fetchone() is not None
+    if not supabase:
+        return False
+    res = supabase.table("bookings").select("id").eq("phone", phone).eq("session_day", session_key).in_("status", ["confirmed", "waitlist"]).execute()
+    return len(res.data) > 0
+
+def get_loyalty_score(norm_phone):
+    if not supabase:
+        return 0
+    res = supabase.table("bookings").select("session_day").eq("phone", norm_phone).eq("status", "confirmed").execute()
+    if not res.data:
+        return 0
+    unique_sessions = set(item["session_day"] for item in res.data)
+    return len(unique_sessions)
 
 def verify_admin_security(input_pin):
     now = time.time()
@@ -461,27 +426,18 @@ sess_ar, sess_en, db_session_key, session_cutoff_dt = get_next_session()
 display_session = sess_ar if l_code == "ar" else sess_en
 COURT_CAPACITY = 6
 
-# جلب بيانات الملعب والاحتياط (معالجة N+1 Query)
-with get_db() as conn:
-    c = conn.cursor()
-    c.execute("""
-        SELECT 
-            b.id, 
-            b.name, 
-            b.phone, 
-            b.payment_status, 
-            b.level,
-            (SELECT COUNT(DISTINCT b2.session_day) 
-             FROM bookings b2 
-             WHERE b2.phone = b.phone AND b2.status = 'confirmed') AS loyalty_count
-        FROM bookings b
-        WHERE b.session_day = ? AND b.court = 1 AND b.status = 'confirmed'
-        ORDER BY b.id ASC LIMIT 6
-    """, (db_session_key,))
-    c1 = c.fetchall()
-    
-    c.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC", (db_session_key,))
-    waitlist = c.fetchall()
+# جلب بيانات الملعب والاحتياط مباشرة من Supabase
+c1 = []
+waitlist = []
+if supabase:
+    try:
+        res_c1 = supabase.table("bookings").select("*").eq("session_day", db_session_key).eq("court", 1).eq("status", "confirmed").order("id").limit(6).execute()
+        c1 = res_c1.data if res_c1.data else []
+
+        res_wait = supabase.table("bookings").select("*").eq("session_day", db_session_key).eq("status", "waitlist").order("id").execute()
+        waitlist = res_wait.data if res_wait.data else []
+    except Exception as e:
+        st.warning(f"جاري مزامنة البيانات مع سوبابيس... تأكد من صحة الاتصال.")
 
 total_booked = len(c1)
 
@@ -494,7 +450,6 @@ st.markdown(f"<div class='contrast-pill'>{t['contrast_banner']}</div>", unsafe_a
 st.markdown(f'<div class="promo-badge">{t["promo_badge"]}</div>', unsafe_allow_html=True)
 st.caption(f"{t['time_str']} • <b>المؤكدين: {total_booked}/6</b>", unsafe_allow_html=True)
 
-# مؤشر العد التنازلي التفاعلي
 render_session_countdown(session_cutoff_dt, t)
 
 tab_book, tab_rules, tab_cancel = st.tabs([t["tab_book"], t["tab_rules"], t["tab_cancel"]])
@@ -526,40 +481,42 @@ with tab_book:
             elif check_active_booking(clean_phone, db_session_key):
                 st.warning(t["err_duplicate"])
             else:
-                with get_db() as conn:
-                    conn.execute("BEGIN IMMEDIATE")
-                    cur = conn.cursor()
-                    
-                    cur.execute("SELECT COUNT(*) FROM bookings WHERE session_day=? AND court=1 AND status='confirmed'", (db_session_key,))
-                    cur_c1 = cur.fetchone()[0]
+                try:
+                    # فحص عدد المؤكدين الحاليين من سوبابيس
+                    res_count = supabase.table("bookings").select("id", count="exact").eq("session_day", db_session_key).eq("court", 1).eq("status", "confirmed").execute()
+                    cur_c1 = len(res_count.data) if res_count.data else 0
 
-                    if cur_c1 < COURT_CAPACITY:
-                        status_val = 'confirmed'
-                    else:
-                        status_val = 'waitlist'
+                    status_val = 'confirmed' if cur_c1 < COURT_CAPACITY else 'waitlist'
 
-                    cur.execute("""
-                        INSERT INTO bookings (name, phone, session_day, court, level, status) 
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (clean_name, clean_phone, db_session_key, 1, f_level, status_val))
-                    
+                    # إدخال البيانات في جدول bookings في سوبابيس
+                    insert_res = supabase.table("bookings").insert({
+                        "name": clean_name,
+                        "phone": clean_phone,
+                        "session_day": db_session_key,
+                        "court": 1,
+                        "level": f_level,
+                        "status": status_val,
+                        "payment_status": "pending",
+                        "attendance": "unknown"
+                    }).execute()
+
                     wait_pos = None
                     if status_val == 'waitlist':
-                        cur.execute("SELECT COUNT(*) FROM bookings WHERE session_day=? AND status='waitlist'", (db_session_key,))
-                        wait_pos = cur.fetchone()[0]
+                        res_wait_count = supabase.table("bookings").select("id", count="exact").eq("session_day", db_session_key).eq("status", "waitlist").execute()
+                        wait_pos = len(res_wait_count.data) if res_wait_count.data else 1
 
-                    conn.commit()
-
-                st.session_state["last_booking"] = {
-                    "name": clean_name,
-                    "phone": clean_phone,
-                    "court": "كورت 1",
-                    "status": status_val,
-                    "wait_pos": wait_pos,
-                    "session": display_session,
-                    "is_new": True
-                }
-                st.rerun()
+                    st.session_state["last_booking"] = {
+                        "name": clean_name,
+                        "phone": clean_phone,
+                        "court": "كورت 1",
+                        "status": status_val,
+                        "wait_pos": wait_pos,
+                        "session": display_session,
+                        "is_new": True
+                    }
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"حدث خطأ أثناء الاتصال بقاعدة البيانات السحابية الحفظ: {e}")
 
     if "last_booking" in st.session_state:
         lb = st.session_state["last_booking"]
@@ -655,40 +612,40 @@ with tab_cancel:
             if not clean_cp:
                 st.error(t["err_fields"])
             else:
-                with get_db() as conn:
-                    conn.execute("BEGIN IMMEDIATE")
-                    cur = conn.cursor()
-                    cur.execute("""
-                        SELECT id, name, status, court FROM bookings 
-                        WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')
-                    """, (clean_cp, db_session_key))
-                    target = cur.fetchone()
+                try:
+                    res_target = supabase.table("bookings").select("*").eq("phone", clean_cp).eq("session_day", db_session_key).in_("status", ["confirmed", "waitlist"]).execute()
+                    target_rows = res_target.data if res_target.data else []
 
-                    if target:
-                        cur.execute("UPDATE bookings SET status='cancelled' WHERE id=?", (target[0],))
-                        cur.execute("""
-                            INSERT INTO cancellations (player_name, player_phone, session_day, court, reason)
-                            VALUES (?, ?, ?, ?, ?)
-                        """, (target[1], clean_cp, db_session_key, target[3], can_reason))
+                    if target_rows:
+                        target = target_rows[0]
+                        # تحديث الحالة إلى ملغي في سوبابيس
+                        supabase.table("bookings").update({"status": "cancelled"}).eq("id", target["id"]).execute()
+
+                        # تسجيل سبب الإلغاء
+                        supabase.table("cancellations").insert({
+                            "player_name": target["name"],
+                            "player_phone": clean_cp,
+                            "session_day": db_session_key,
+                            "court": target["court"],
+                            "reason": can_reason
+                        }).execute()
 
                         # تصعيد اللاعب الأول من قائمة الاحتياط تلقائياً
-                        if target[2] == 'confirmed':
-                            cur.execute("""
-                                SELECT id, name, phone FROM bookings 
-                                WHERE session_day=? AND status='waitlist' 
-                                ORDER BY id ASC LIMIT 1
-                            """, (db_session_key,))
-                            wait_player = cur.fetchone()
-                            if wait_player:
-                                cur.execute("UPDATE bookings SET status='confirmed', court=1 WHERE id=?", (wait_player[0],))
+                        if target["status"] == 'confirmed':
+                            res_wait_first = supabase.table("bookings").select("*").eq("session_day", db_session_key).eq("status", "waitlist").order("id").limit(1).execute()
+                            wait_players = res_wait_first.data if res_wait_first.data else []
+                            if wait_players:
+                                wp = wait_players[0]
+                                supabase.table("bookings").update({"status": "confirmed", "court": 1}).eq("id", wp["id"]).execute()
                         
-                        conn.commit()
-                        st.success(t["succ_cancel"].format(html.escape(target[1])))
+                        st.success(t["succ_cancel"].format(html.escape(target["name"])))
                         if "last_booking" in st.session_state:
                             del st.session_state["last_booking"]
                         st.rerun()
                     else:
                         st.error(t["err_cancel"])
+                except Exception as e:
+                    st.error(f"حدث خطأ أثناء معالجة الإلغاء: {e}")
 
 # ==========================================
 # 7. التشكيلة المباشرة في الملعب
@@ -707,13 +664,14 @@ def render_single_court_roster(title, players):
     for i in range(COURT_CAPACITY):
         if i < len(players):
             p = players[i]
-            p_name = html.escape(p[1])
-            p_level = html.escape(p[4])
-            loyalty_count = p[5]
+            p_name = html.escape(p.get("name", ""))
+            p_level = html.escape(p.get("level", "متوسط"))
+            p_phone = p.get("phone", "")
             
+            loyalty_count = get_loyalty_score(p_phone)
             points = loyalty_count % 7
             pts_badge = f"⭐ {points}/6" if points < 6 else "🎁 مجاني!"
-            pay_icon = "✅" if p[3] == "paid" else "⏳"
+            pay_icon = "✅" if p.get("payment_status") == "paid" else "⏳"
             lvl_badge = get_level_badge(p_level)
             
             slots_html += f'''<div class="slot-box">
@@ -732,7 +690,7 @@ def render_single_court_roster(title, players):
 st.markdown(render_single_court_roster(t["court1"], c1), unsafe_allow_html=True)
 
 if waitlist:
-    safe_waitlist = [f"{idx+1}. {html.escape(w[1])}" for idx, w in enumerate(waitlist)]
+    safe_waitlist = [f"{idx+1}. {html.escape(w.get('name', ''))}" for idx, w in enumerate(waitlist)]
     st.caption("📋 **أولوية الاحتياط:** " + " • ".join(safe_waitlist))
 
 # ==========================================
@@ -744,40 +702,47 @@ with st.expander("⚙️ لوحة الإدارة والبيانات", expanded=F
     if verify_admin_security(pin_input):
         st.success("تم تأكيد الهوية والصلاحيات 👑")
         
-        with get_db() as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT reason, COUNT(*) as cnt FROM cancellations GROUP BY reason ORDER BY cnt DESC")
-            reasons_data = cur.fetchall()
-        
-        if reasons_data:
-            st.markdown("#### 📊 أسباب الاعتذار:")
-            for r, cnt in reasons_data:
-                st.caption(f"• **{html.escape(r)}:** {cnt} لاعبين")
+        try:
+            res_canc = supabase.table("cancellations").select("reason").execute()
+            canc_data = res_canc.data if res_canc.data else []
+            reason_counts = {}
+            for item in canc_data:
+                r = item.get("reason", "أخرى")
+                reason_counts[r] = reason_counts.get(r, 0) + 1
+            
+            if reason_counts:
+                st.markdown("#### 📊 أسباب الاعتذار:")
+                for r, cnt in sorted(reason_counts.items(), key=lambda x: x[1], reverse=True):
+                    st.caption(f"• **{html.escape(r)}:** {cnt} لاعبين")
+        except Exception:
+            pass
 
-        with get_db() as conn:
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT session_day, court, name, phone, 
-                       COALESCE(level, 'متوسط'), 
-                       COALESCE(payment_status, 'pending'), 
-                       COALESCE(attendance, 'unknown'), 
-                       created_at
-                FROM bookings
-                ORDER BY session_day DESC, id ASC
-            """)
-            raw_data = cur.fetchall()
+        try:
+            res_all = supabase.table("bookings").select("*").order("session_day", desc=True).order("id", desc=False).execute()
+            raw_data = res_all.data if res_all.data else []
 
-        if raw_data:
-            csv_buf = io.StringIO()
-            csv_buf.write('\ufeff')
-            writer = csv.writer(csv_buf)
-            writer.writerow(["تاريخ التمرين", "الملعب", "اسم اللاعب", "رقم الجوال", "المستوى", "حالة الدفع", "الحضور الفعلي", "وقت التسجيل"])
-            for row in raw_data:
-                writer.writerow(row)
-                
-            st.download_button(
-                t["export_btn"],
-                csv_buf.getvalue().encode('utf-8-sig'),
-                f"padel_data_export_{datetime.now().strftime('%Y%m%d')}.csv",
-                "text/csv"
-            )
+            if raw_data:
+                csv_buf = io.StringIO()
+                csv_buf.write('\ufeff')
+                writer = csv.writer(csv_buf)
+                writer.writerow(["تاريخ التمرين", "الملعب", "اسم اللاعب", "رقم الجوال", "المستوى", "حالة الدفع", "الحضور الفعلي", "وقت التسجيل"])
+                for row in raw_data:
+                    writer.writerow([
+                        row.get("session_day"),
+                        row.get("court"),
+                        row.get("name"),
+                        row.get("phone"),
+                        row.get("level"),
+                        row.get("payment_status"),
+                        row.get("attendance"),
+                        row.get("created_at")
+                    ])
+                    
+                st.download_button(
+                    t["export_btn"],
+                    csv_buf.getvalue().encode('utf-8-sig'),
+                    f"padel_data_export_{datetime.now().strftime('%Y%m%d')}.csv",
+                    "text/csv"
+                )
+        except Exception as e:
+            st.error(f"خطأ في جلب بيانات لوحة الإدارة: {e}")
