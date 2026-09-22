@@ -5,8 +5,9 @@ import csv
 import re
 import hmac
 import time
+import html
 import urllib.parse
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, time as dtime
 
 # ==========================================
 # 1. إعداد الصفحة والهوية البصرية (Apple Minimalist)
@@ -41,12 +42,12 @@ LANG = {
             "⚪ مبتدئ • انطلاقة وتعلّم"
         ],
         "btn_book": "تأكيد الانضمام 🚀",
-        "err_fields": "فضلاً أدخل الاسم ورقم جوال سعودي يبدأ بـ 05.",
+        "err_fields": "فضلاً أدخل الاسم ورقم جوال سعودي صحيح يبدأ بـ 05.",
         "err_duplicate": "أنت مسجل بالفعل في تمرين اليوم.",
         "err_spam": "تم رفض الطلب للاشتباه في نشاط آلي.",
         "succ_book_title": "✅ تم تأكيد حجزك بنجاح! شكراً لك يا كابتن {}",
         "succ_book_desc": "تم حجز مقعدك في <b>{}</b>. نتطلع لرؤيتك وتقديم تمرين ممتع!",
-        "succ_wait": "اكتملت المقاعد. أنت في صدارة الاحتياط (#{}).",
+        "succ_wait": "اكتملت المقاعد الأساسية. أنت في صدارة قائمة الاحتياط (#{}).",
         "cancel_phone": "رقم الجوال:",
         "cancel_reason": "السبب:",
         "reasons": [
@@ -59,7 +60,9 @@ LANG = {
         "succ_cancel": "تم قبول اعتذارك يا كابتن {}. نراك في التمرين القادم.",
         "err_cancel": "لا يوجد حجز مؤكد مرتبط بهذا الرقم.",
         "admin_pin": "رمز الإدارة السري المشفر:",
-        "export_btn": "📥 تصدير السجل (Excel/CSV)"
+        "export_btn": "📥 تصدير السجل (Excel/CSV)",
+        "timer_prefix": "⏳ متبقي على إغلاق الحجز:",
+        "timer_closed": "🔒 أُغلق حجز هذا التمرين تلقائياً"
     },
     "en": {
         "dir": "ltr",
@@ -101,7 +104,9 @@ LANG = {
         "succ_cancel": "Cancelled for Captain {}. See you next time.",
         "err_cancel": "No active booking found for this number.",
         "admin_pin": "Encrypted Passcode:",
-        "export_btn": "📥 Export Timesheet (Excel/CSV)"
+        "export_btn": "📥 Export Timesheet (Excel/CSV)",
+        "timer_prefix": "⏳ Booking closes in:",
+        "timer_closed": "🔒 Booking closed for this session"
     }
 }
 
@@ -112,7 +117,7 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 2. الواجهة البصرية المستوحاة من Apple
+# 2. الواجهة وتنسيقات CSS المتوافقة
 # ==========================================
 st.markdown(f"""
 <style>
@@ -126,6 +131,19 @@ st.markdown(f"""
 .contrast-pill {{ background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 8px; font-size: 0.75em; color: #cbd5e1; font-weight: 600; margin-bottom: 4px; }}
 .promo-badge {{ background: rgba(30, 58, 138, 0.35); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; padding: 4px 8px; text-align: center; color: #bfdbfe; font-weight: 700; font-size: 0.75em; margin-bottom: 4px; }}
 
+.countdown-box {{
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 6px 0 10px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82em;
+    color: #fbbf24;
+}}
+
 .thankyou-box {{
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 78, 59, 0.25) 100%);
     border: 1.5px solid #10b981;
@@ -134,16 +152,8 @@ st.markdown(f"""
     margin: 10px 0;
     text-align: center;
 }}
-.thankyou-title {{
-    color: #34d399;
-    font-size: 1.05em;
-    font-weight: 800;
-    margin-bottom: 4px;
-}}
-.thankyou-sub {{
-    color: #e2e8f0;
-    font-size: 0.84em;
-}}
+.thankyou-title {{ color: #34d399; font-size: 1.05em; font-weight: 800; margin-bottom: 4px; }}
+.thankyou-sub {{ color: #e2e8f0; font-size: 0.84em; }}
 
 .rules-card {{
     background: #18181b;
@@ -222,7 +232,7 @@ st.markdown(f"""
 .court-title {{ text-align: center; color: #a7f3d0; font-weight: 800; font-size: 0.95em; margin-bottom: 10px; border-bottom: 1px dashed rgba(16, 185, 129, 0.4); padding-bottom: 6px; }}
 .court-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }}
 .slot-box {{ background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 8px 6px; text-align: center; min-height: 52px; display: flex; flex-direction: column; justify-content: center; align-items: center; }}
-.slot-occupied {{ color: #f4f4f5; font-weight: 700; font-size: 0.84em; line-height: 1.2; }}
+.slot-occupied {{ color: #f4f4f5; font-weight: 700; font-size: 0.84em; line-height: 1.2; word-break: break-word; }}
 .slot-meta {{ display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.70em; margin-top: 4px; flex-wrap: wrap; }}
 .slot-empty {{ color: #52525b; font-size: 0.78em; }}
 .badge-loyalty {{ background-color: #1e3a8a; color: #93c5fd; padding: 1px 4px; border-radius: 3px; font-size: 0.72em; font-weight: 700; }}
@@ -233,7 +243,7 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) {{ dis
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. محرك البيانات وقاعدة البيانات
+# 3. محرك قاعدة البيانات
 # ==========================================
 DB_FILE = "group99_padel.db"
 
@@ -264,16 +274,17 @@ def init_db():
         ''')
         
         cur.execute("PRAGMA table_info(bookings)")
-        existing_cols = [row[1] for row in cur.fetchall()]
-        if "payment_status" not in existing_cols:
+        cols = [r[1] for r in cur.fetchall()]
+        if "payment_status" not in cols:
             cur.execute("ALTER TABLE bookings ADD COLUMN payment_status TEXT DEFAULT 'pending';")
-        if "attendance" not in existing_cols:
+        if "attendance" not in cols:
             cur.execute("ALTER TABLE bookings ADD COLUMN attendance TEXT DEFAULT 'unknown';")
-        if "level" not in existing_cols:
+        if "level" not in cols:
             cur.execute("ALTER TABLE bookings ADD COLUMN level TEXT DEFAULT 'متوسط';")
 
         cur.execute("CREATE INDEX IF NOT EXISTS idx_sess_court ON bookings(session_day, court, status);")
         cur.execute("CREATE INDEX IF NOT EXISTS idx_phone ON bookings(phone);")
+        
         cur.execute('''
             CREATE TABLE IF NOT EXISTS cancellations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -290,7 +301,7 @@ def init_db():
 init_db()
 
 # ==========================================
-# 4. دوال التحقق والحماية العالية
+# 4. دوال التحقق والأمان
 # ==========================================
 def clean_and_validate_sa_phone(raw_phone):
     if not raw_phone:
@@ -315,13 +326,6 @@ def check_active_booking(phone, session_key):
         """, (phone, session_key))
         return cur.fetchone() is not None
 
-def get_loyalty_score(norm_phone):
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT COUNT(DISTINCT session_day) FROM bookings WHERE phone=? AND status='confirmed'", (norm_phone,))
-        res = cur.fetchone()
-        return res[0] if res else 0
-
 def verify_admin_security(input_pin):
     now = time.time()
     if "admin_attempts" not in st.session_state:
@@ -330,10 +334,8 @@ def verify_admin_security(input_pin):
         st.session_state["admin_lockout_until"] = 0
         
     if now < st.session_state["admin_lockout_until"]:
-        remaining_sec = int(st.session_state["admin_lockout_until"] - now)
-        minutes = remaining_sec // 60
-        seconds = remaining_sec % 60
-        st.error(f"🔒 تم قفل لوحة الإدارة مؤقتاً. يرجى الانتظار: {minutes}:{seconds:02d} دقيقة.")
+        rem = int(st.session_state["admin_lockout_until"] - now)
+        st.error(f"🔒 تم قفل لوحة الإدارة مؤقتاً. يرجى الانتظار: {rem // 60}:{rem % 60:02d} دقيقة.")
         return False
 
     if not input_pin:
@@ -342,18 +344,14 @@ def verify_admin_security(input_pin):
     ar_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
     p = str(input_pin).translate(ar_digits).strip()
     
-    is_valid = False
     master_secret = None
     try:
         master_secret = st.secrets.get("ADMIN_PASSWORD", None) or st.secrets.get("ADMIN_PIN", None)
     except Exception:
         pass
 
-    if master_secret:
-        clean_secret = str(master_secret).translate(ar_digits).strip()
-        is_valid = hmac.compare_digest(p, clean_secret)
-    else:
-        is_valid = hmac.compare_digest(p, "Padel99#Master@2026")
+    target_secret = str(master_secret).translate(ar_digits).strip() if master_secret else "Padel99#Master@2026"
+    is_valid = hmac.compare_digest(p, target_secret)
 
     if is_valid:
         st.session_state["admin_attempts"] = 0
@@ -369,51 +367,119 @@ def verify_admin_security(input_pin):
         return False
 
 # ==========================================
-# 5. محرك التجدد الزمني التلقائي
+# 5. محرك التوقيت والعد التنازلي التفاعلي
 # ==========================================
-def get_next_session():
+def get_next_session(cutoff_minutes_before: int = 60):
     ksa_tz = timezone(timedelta(hours=3))
     now = datetime.now(ksa_tz)
-    weekday = now.weekday()
+    
+    SESSION_DAYS = {
+        6: ("الأحد", "Sunday"),
+        1: ("الثلاثاء", "Tuesday"),
+        3: ("الخميس", "Thursday")
+    }
+    
+    start_hour, start_min = 21, 30
+    total_cutoff_min = (start_hour * 60 + start_min) - cutoff_minutes_before
+    cutoff_time = dtime(total_cutoff_min // 60, total_cutoff_min % 60)
 
-    if weekday == 6:     # الأحد
+    today_weekday = now.weekday()
+    is_session_today = today_weekday in SESSION_DAYS
+    is_before_cutoff = now.time() < cutoff_time
+
+    if is_session_today and is_before_cutoff:
         days_to_add = 0
-        d_ar, d_en = "الأحد", "Sunday"
-    elif weekday == 0:   # الإثنين
+    else:
         days_to_add = 1
-        d_ar, d_en = "الثلاثاء", "Tuesday"
-    elif weekday == 1:   # الثلاثاء
-        days_to_add = 0
-        d_ar, d_en = "الثلاثاء", "Tuesday"
-    elif weekday == 2:   # الأربعاء
-        days_to_add = 1
-        d_ar, d_en = "الخميس", "Thursday"
-    elif weekday == 3:   # الخميس
-        days_to_add = 0
-        d_ar, d_en = "الخميس", "Thursday"
-    elif weekday == 4:   # الجمعة
-        days_to_add = 2
-        d_ar, d_en = "الأحد", "Sunday"
-    else:                # السبت
-        days_to_add = 1
-        d_ar, d_en = "الأحد", "Sunday"
+        while (today_weekday + days_to_add) % 7 not in SESSION_DAYS:
+            days_to_add += 1
 
     target_date = now + timedelta(days=days_to_add)
+    target_weekday = target_date.weekday()
+    d_ar, d_en = SESSION_DAYS[target_weekday]
+    
     date_str = target_date.strftime("%d/%m")
     label_ar = f"{d_ar} ({date_str})"
     label_en = f"{d_en} ({date_str})"
     db_key = f"{d_ar} {target_date.strftime('%Y-%m-%d')}"
-    return label_ar, label_en, db_key
+    
+    cutoff_dt = target_date.replace(
+        hour=cutoff_time.hour, minute=cutoff_time.minute, second=0, microsecond=0
+    )
+    
+    return label_ar, label_en, db_key, cutoff_dt
 
-sess_ar, sess_en, db_session_key = get_next_session()
+def render_session_countdown(cutoff_dt: datetime, lang_dict: dict):
+    cutoff_iso = cutoff_dt.isoformat()
+    txt_prefix = lang_dict["timer_prefix"]
+    txt_closed = lang_dict["timer_closed"]
+    
+    countdown_html = f"""
+    <div id="countdown-card" class="countdown-box">
+        <span style="font-weight: 600;">{txt_prefix}</span>
+        <span id="timer-display" style="font-family: ui-monospace, SFMono-Regular, monospace; font-weight: 800; letter-spacing: 0.5px; color: #fef3c7;">--:--:--</span>
+    </div>
+
+    <script>
+    (function() {{
+        const targetDate = new Date("{cutoff_iso}").getTime();
+        
+        function updateTimer() {{
+            const now = new Date().getTime();
+            const diff = targetDate - now;
+            const timerElem = document.getElementById("timer-display");
+            const cardElem = document.getElementById("countdown-card");
+
+            if (!timerElem || !cardElem) return;
+
+            if (diff <= 0) {{
+                cardElem.style.background = "rgba(239, 68, 68, 0.08)";
+                cardElem.style.borderColor = "rgba(239, 68, 68, 0.25)";
+                cardElem.style.color = "#f87171";
+                cardElem.innerHTML = "<span>{txt_closed}</span>";
+                clearInterval(interval);
+                return;
+            }}
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            const pad = (n) => n < 10 ? '0' + n : n;
+            timerElem.innerText = pad(hours) + "h " + pad(minutes) + "m " + pad(seconds) + "s";
+        }}
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+    }})();
+    </script>
+    """
+    st.markdown(countdown_html, unsafe_allow_html=True)
+
+# استدعاء الحالة الزمنية
+sess_ar, sess_en, db_session_key, session_cutoff_dt = get_next_session()
 display_session = sess_ar if l_code == "ar" else sess_en
-
 COURT_CAPACITY = 6
 
+# جلب بيانات الملعب والاحتياط (معالجة N+1 Query)
 with get_db() as conn:
     c = conn.cursor()
-    c.execute("SELECT id, name, phone, payment_status, level FROM bookings WHERE session_day=? AND court=1 AND status='confirmed' ORDER BY id ASC LIMIT 6", (db_session_key,))
+    c.execute("""
+        SELECT 
+            b.id, 
+            b.name, 
+            b.phone, 
+            b.payment_status, 
+            b.level,
+            (SELECT COUNT(DISTINCT b2.session_day) 
+             FROM bookings b2 
+             WHERE b2.phone = b.phone AND b2.status = 'confirmed') AS loyalty_count
+        FROM bookings b
+        WHERE b.session_day = ? AND b.court = 1 AND b.status = 'confirmed'
+        ORDER BY b.id ASC LIMIT 6
+    """, (db_session_key,))
     c1 = c.fetchall()
+    
     c.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC", (db_session_key,))
     waitlist = c.fetchall()
 
@@ -428,6 +494,9 @@ st.markdown(f"<div class='contrast-pill'>{t['contrast_banner']}</div>", unsafe_a
 st.markdown(f'<div class="promo-badge">{t["promo_badge"]}</div>', unsafe_allow_html=True)
 st.caption(f"{t['time_str']} • <b>المؤكدين: {total_booked}/6</b>", unsafe_allow_html=True)
 
+# مؤشر العد التنازلي التفاعلي
+render_session_countdown(session_cutoff_dt, t)
+
 tab_book, tab_rules, tab_cancel = st.tabs([t["tab_book"], t["tab_rules"], t["tab_cancel"]])
 
 with tab_book:
@@ -439,7 +508,7 @@ with tab_book:
             f_phone = st.text_input(t["phone_lbl"], placeholder="05xxxxxxxx")
         
         f_level_raw = st.selectbox(t["level_lbl"], t["levels"])
-        f_level = "متوسط" if "متوسط" in f_level_raw or "Intermediate" in f_level_raw else ("متقدم" if "متقدم" in f_level_raw or "Advanced" in f_level_raw else "مبتدئ")
+        f_level = "متوسط" if ("متوسط" in f_level_raw or "Intermediate" in f_level_raw) else ("متقدم" if ("متقدم" in f_level_raw or "Advanced" in f_level_raw) else "مبتدئ")
         
         honeypot_val = st.text_input("hp_security_field", key="hp_val", label_visibility="collapsed")
         btn_submit = st.form_submit_button(t["btn_book"])
@@ -465,16 +534,14 @@ with tab_book:
                     cur_c1 = cur.fetchone()[0]
 
                     if cur_c1 < COURT_CAPACITY:
-                        target_court = 1
                         status_val = 'confirmed'
                     else:
-                        target_court = 1
                         status_val = 'waitlist'
 
                     cur.execute("""
                         INSERT INTO bookings (name, phone, session_day, court, level, status) 
                         VALUES (?, ?, ?, ?, ?, ?)
-                    """, (clean_name, clean_phone, db_session_key, target_court, f_level, status_val))
+                    """, (clean_name, clean_phone, db_session_key, 1, f_level, status_val))
                     
                     wait_pos = None
                     if status_val == 'waitlist':
@@ -496,6 +563,8 @@ with tab_book:
 
     if "last_booking" in st.session_state:
         lb = st.session_state["last_booking"]
+        escaped_user_name = html.escape(lb["name"])
+        
         if lb["status"] == "confirmed":
             if lb.get("is_new", False):
                 st.balloons()
@@ -503,7 +572,7 @@ with tab_book:
 
             thank_html = f"""
             <div class="thankyou-box">
-                <div class="thankyou-title">{t["succ_book_title"].format(lb["name"])}</div>
+                <div class="thankyou-title">{t["succ_book_title"].format(escaped_user_name)}</div>
                 <div class="thankyou-sub">{t["succ_book_desc"].format(lb["session"])}</div>
             </div>
             """
@@ -589,8 +658,10 @@ with tab_cancel:
                 with get_db() as conn:
                     conn.execute("BEGIN IMMEDIATE")
                     cur = conn.cursor()
-                    cur.execute("SELECT id, name, status, court FROM bookings WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')",
-                                (clean_cp, db_session_key))
+                    cur.execute("""
+                        SELECT id, name, status, court FROM bookings 
+                        WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')
+                    """, (clean_cp, db_session_key))
                     target = cur.fetchone()
 
                     if target:
@@ -600,14 +671,19 @@ with tab_cancel:
                             VALUES (?, ?, ?, ?, ?)
                         """, (target[1], clean_cp, db_session_key, target[3], can_reason))
 
+                        # تصعيد اللاعب الأول من قائمة الاحتياط تلقائياً
                         if target[2] == 'confirmed':
-                            cur.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC LIMIT 1", (db_session_key,))
+                            cur.execute("""
+                                SELECT id, name, phone FROM bookings 
+                                WHERE session_day=? AND status='waitlist' 
+                                ORDER BY id ASC LIMIT 1
+                            """, (db_session_key,))
                             wait_player = cur.fetchone()
                             if wait_player:
                                 cur.execute("UPDATE bookings SET status='confirmed', court=1 WHERE id=?", (wait_player[0],))
                         
                         conn.commit()
-                        st.success(t["succ_cancel"].format(target[1]))
+                        st.success(t["succ_cancel"].format(html.escape(target[1])))
                         if "last_booking" in st.session_state:
                             del st.session_state["last_booking"]
                         st.rerun()
@@ -615,7 +691,7 @@ with tab_cancel:
                         st.error(t["err_cancel"])
 
 # ==========================================
-# 7. التشكيلة المباشرة في الملعب (عرض المستوى والولاء)
+# 7. التشكيلة المباشرة في الملعب
 # ==========================================
 st.markdown("---")
 
@@ -631,12 +707,17 @@ def render_single_court_roster(title, players):
     for i in range(COURT_CAPACITY):
         if i < len(players):
             p = players[i]
-            points = (get_loyalty_score(p[2]) % 7)
+            p_name = html.escape(p[1])
+            p_level = html.escape(p[4])
+            loyalty_count = p[5]
+            
+            points = loyalty_count % 7
             pts_badge = f"⭐ {points}/6" if points < 6 else "🎁 مجاني!"
             pay_icon = "✅" if p[3] == "paid" else "⏳"
-            lvl_badge = get_level_badge(p[4])
+            lvl_badge = get_level_badge(p_level)
+            
             slots_html += f'''<div class="slot-box">
-                <div class="slot-occupied">🎾 {p[1]}</div>
+                <div class="slot-occupied">🎾 {p_name}</div>
                 <div class="slot-meta">
                     <span class="badge-level">{lvl_badge}</span>
                     <span class="badge-loyalty">{pts_badge}</span>
@@ -645,12 +726,14 @@ def render_single_court_roster(title, players):
             </div>'''
         else:
             slots_html += f'<div class="slot-box"><div class="slot-empty">مقعد شاغر ✨</div></div>'
+            
     return f'<div class="padel-court"><div class="court-title">{title} ({len(players)}/{COURT_CAPACITY})</div><div class="court-grid">{slots_html}</div></div>'
 
 st.markdown(render_single_court_roster(t["court1"], c1), unsafe_allow_html=True)
 
 if waitlist:
-    st.caption("📋 **أولوية الاحتياط:** " + " • ".join([f"{idx+1}. {w[1]}" for idx, w in enumerate(waitlist)]))
+    safe_waitlist = [f"{idx+1}. {html.escape(w[1])}" for idx, w in enumerate(waitlist)]
+    st.caption("📋 **أولوية الاحتياط:** " + " • ".join(safe_waitlist))
 
 # ==========================================
 # 8. لوحة الإدارة وتصدير البيانات
@@ -669,7 +752,7 @@ with st.expander("⚙️ لوحة الإدارة والبيانات", expanded=F
         if reasons_data:
             st.markdown("#### 📊 أسباب الاعتذار:")
             for r, cnt in reasons_data:
-                st.caption(f"• **{r}:** {cnt} لاعبين")
+                st.caption(f"• **{html.escape(r)}:** {cnt} لاعبين")
 
         with get_db() as conn:
             cur = conn.cursor()
