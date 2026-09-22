@@ -38,26 +38,24 @@ html, body, p, div, span, label, input, select, button, .stMarkdown {
     box-sizing: border-box;
 }
 
-[data-testid="stIconMaterial"], [data-testid="stExpanderToggleIcon"] {
-    font-family: "Material Symbols Rounded", "Source Sans Pro", sans-serif !important;
-}
-
 .hero-header { font-size: 1.55em; font-weight: 800; color: #f8fafc; margin: 0; line-height: 1.2; }
 .hero-sub { font-size: 0.85em; color: #94a3b8; margin: 2px 0 6px 0; }
 .contrast-pill { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; padding: 4px 8px; font-size: 0.74em; color: #cbd5e1; font-weight: 600; margin-bottom: 4px; }
 .promo-badge { background: rgba(30, 58, 138, 0.35); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; padding: 4px 8px; text-align: center; color: #bfdbfe; font-weight: 700; font-size: 0.74em; margin-bottom: 4px; }
 
-.thankyou-box {
-    background: rgba(16, 185, 129, 0.15);
-    border: 1.5px solid #10b981;
+/* صندوق المهلة */
+.hold-box {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1.5px solid #f59e0b;
     border-radius: 10px;
     padding: 10px 12px;
     margin: 8px 0;
     text-align: center;
 }
-.thankyou-title { color: #34d399; font-size: 0.95em; font-weight: 700; margin-bottom: 2px; }
-.thankyou-sub { color: #e2e8f0; font-size: 0.8em; }
+.hold-title { color: #fbbf24; font-size: 0.95em; font-weight: 700; margin-bottom: 2px; }
+.hold-sub { color: #fef3c7; font-size: 0.8em; }
 
+/* بطاقة الراجحي */
 .alrajhi-card {
     background: #111418;
     border: 1.5px solid #2d3748;
@@ -69,6 +67,7 @@ html, body, p, div, span, label, input, select, button, .stMarkdown {
 .card-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 5px; margin-bottom: 8px; }
 .bank-title { font-size: 0.9em; font-weight: 700; color: #f8fafc; }
 .price-pill { background: #10b981; color: #022c22; padding: 2px 7px; border-radius: 12px; font-weight: 700; font-size: 0.8em; }
+.price-pill-discount { background: #f59e0b; color: #451a03; padding: 2px 7px; border-radius: 12px; font-weight: 700; font-size: 0.8em; }
 .qr-container { background: #ffffff; padding: 6px; border-radius: 8px; display: inline-block; margin: 2px auto 6px auto; }
 .qr-container img { display: block; width: 115px; height: 115px; }
 .card-owner { font-size: 1em; font-weight: 700; color: #f8fafc; margin-bottom: 6px; text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.12); padding-bottom: 5px; }
@@ -102,41 +101,37 @@ html, body, p, div, span, label, input, select, button, .stMarkdown {
     font-size: 0.88em;
 }
 
-.support-btn {
-    display: block;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #cbd5e1 !important;
-    text-align: center;
-    padding: 8px;
-    border-radius: 8px;
-    font-weight: 600;
-    text-decoration: none;
-    margin-top: 10px;
-    font-size: 0.8em;
-}
-
+/* تخطيط الملعب */
 .padel-court { background: #064e3b; border: 1.5px solid rgba(16, 185, 129, 0.6); border-radius: 10px; padding: 8px; margin: 8px 0; }
 .court-title { text-align: center; color: #a7f3d0; font-weight: 700; font-size: 0.85em; margin-bottom: 6px; border-bottom: 1px dashed rgba(16, 185, 129, 0.4); padding-bottom: 3px; }
 .court-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-.slot-box { background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 5px 3px; text-align: center; min-height: 44px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-.slot-occupied { color: #f4f4f5; font-weight: 600; font-size: 0.78em; line-height: 1.2; }
-.slot-meta { display: flex; align-items: center; justify-content: center; gap: 3px; font-size: 0.65em; margin-top: 2px; flex-wrap: wrap; }
-.slot-empty { color: #64748b; font-size: 0.72em; }
-.badge-loyalty { background-color: #1e3a8a; color: #93c5fd; padding: 1px 3px; border-radius: 3px; font-size: 0.68em; font-weight: 600; }
-.badge-level { background-color: rgba(255, 255, 255, 0.1); color: #e2e8f0; padding: 1px 3px; border-radius: 3px; font-size: 0.68em; font-weight: 500; }
+.slot-box { background: rgba(15, 23, 42, 0.9); border-radius: 6px; padding: 6px 4px; text-align: center; min-height: 48px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
 
-div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) { display: none !important; }
+.slot-confirmed { border: 1.5px solid #10b981; }
+.slot-hold { border: 1.5px dashed #f59e0b; }
+.slot-empty { border: 1px dashed rgba(255, 255, 255, 0.15); }
+
+.badge-confirmed { background: #065f46; color: #6ee7b7; padding: 1px 5px; border-radius: 4px; font-size: 0.68em; font-weight: 700; }
+.badge-hold { background: #78350f; color: #fde68a; padding: 1px 5px; border-radius: 4px; font-size: 0.68em; font-weight: 700; }
+.badge-loyalty { background-color: #1e3a8a; color: #93c5fd; padding: 1px 4px; border-radius: 3px; font-size: 0.68em; font-weight: 600; }
+.badge-level { background-color: rgba(255, 255, 255, 0.1); color: #e2e8f0; padding: 1px 4px; border-radius: 3px; font-size: 0.68em; }
+
+.kpi-container { display: flex; gap: 8px; margin-bottom: 10px; }
+.kpi-card { flex: 1; background: #1e293b; border-radius: 8px; padding: 8px; text-align: center; border: 1px solid #334155; }
+.kpi-num { font-size: 1.15em; font-weight: 800; }
+.kpi-lbl { font-size: 0.72em; color: #94a3b8; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. محرك قاعدة البيانات والنظام المالي
+# 2. الثوابت وقاعدة البيانات
 # ==========================================
 DB_FILE = "group99_padel.db"
 COURT_CAPACITY = 6
-PRICE_SAR = 65.00
+HOLD_MINUTES = 15
+
+PRICE_STANDARD = 65
+PRICE_DISCOUNTED = 45  # بعد خصم 20 ريال للولاء الآمن
 
 def get_db():
     conn = sqlite3.connect(DB_FILE, timeout=30.0, check_same_thread=False)
@@ -148,8 +143,6 @@ def get_db():
 def init_db():
     with get_db() as conn:
         cur = conn.cursor()
-        
-        # 1. جدول الحجوزات التشغيلية
         cur.execute('''
             CREATE TABLE IF NOT EXISTS bookings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -158,50 +151,24 @@ def init_db():
                 session_day TEXT NOT NULL,
                 court INTEGER DEFAULT 1,
                 level TEXT DEFAULT 'متوسط',
-                status TEXT CHECK(status IN ('confirmed', 'waitlist', 'cancelled')) DEFAULT 'confirmed',
+                status TEXT CHECK(status IN ('hold', 'confirmed', 'waitlist', 'cancelled', 'expired')) DEFAULT 'hold',
+                amount_sar INTEGER NOT NULL DEFAULT 65,
+                expires_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        
-        # 2. قيد فريد قطعي يمنع تكرار الحجز المزدوج لنفس اللاعب
+        # منع تسجيل نفس اللاعب مرتين في نفس الحصة
         cur.execute('''
             CREATE UNIQUE INDEX IF NOT EXISTS idx_active_player_session 
             ON bookings (phone, session_day) 
-            WHERE status IN ('confirmed', 'waitlist');
-        ''')
-
-        # 3. دفتر الأستاذ المالي (Financial Ledger)
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS financial_ledger (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                booking_id INTEGER NOT NULL,
-                entry_type TEXT CHECK(entry_type IN ('CHARGE', 'PAYMENT_RECEIVED', 'REFUND', 'FREE_REWARD')) NOT NULL,
-                amount_sar REAL NOT NULL,
-                status TEXT CHECK(status IN ('pending', 'settled', 'voided')) DEFAULT 'pending',
-                notes TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
-            )
-        ''')
-
-        # 4. جدول الاعتذارات
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS cancellations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                booking_id INTEGER,
-                player_name TEXT,
-                player_phone TEXT,
-                session_day TEXT,
-                reason TEXT,
-                cancelled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
+            WHERE status IN ('hold', 'confirmed', 'waitlist');
         ''')
         conn.commit()
 
 init_db()
 
 # ==========================================
-# 3. الدوال المساعدة والمنطق المحاسبي
+# 3. محرك التحرير والتصعيد التلقائي للمقاعد
 # ==========================================
 def clean_and_validate_sa_phone(raw_phone):
     if not raw_phone:
@@ -223,17 +190,6 @@ def get_loyalty_score(norm_phone):
         cur.execute("SELECT COUNT(DISTINCT session_day) FROM bookings WHERE phone=? AND status='confirmed'", (norm_phone,))
         res = cur.fetchone()
         return res[0] if res else 0
-
-def get_payment_status(booking_id):
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT status FROM financial_ledger 
-            WHERE booking_id=? AND entry_type IN ('PAYMENT_RECEIVED', 'FREE_REWARD')
-            ORDER BY id DESC LIMIT 1
-        """, (booking_id,))
-        res = cur.fetchone()
-        return res[0] if res else "pending"
 
 def get_next_session():
     ksa_tz = timezone(timedelta(hours=3))
@@ -269,120 +225,124 @@ def get_next_session():
 
 display_session, db_session_key = get_next_session()
 
+def process_expirations_and_queue(session_key):
+    """إلغاء من لم يؤكد تحويله خلال 15 دقيقة وسحب أول شخص من الاحتياط فوراً"""
+    ksa_tz = timezone(timedelta(hours=3))
+    now_str = datetime.now(ksa_tz).strftime('%Y-%m-%d %H:%M:%S')
+
+    with get_db() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        cur = conn.cursor()
+        
+        # 1. رصد المقاعد المنتهية
+        cur.execute("""
+            SELECT id FROM bookings 
+            WHERE session_day=? AND status='hold' AND expires_at < ?
+        """, (session_key, now_str))
+        expired_seats = cur.fetchall()
+
+        for s in expired_seats:
+            cur.execute("UPDATE bookings SET status='expired' WHERE id=?", (s[0],))
+            
+            # تصعيد أول لاعب من قائمة الاحتياط
+            cur.execute("""
+                SELECT id FROM bookings 
+                WHERE session_day=? AND status='waitlist' 
+                ORDER BY id ASC LIMIT 1
+            """, (session_key,))
+            candidate = cur.fetchone()
+            if candidate:
+                new_exp = (datetime.now(ksa_tz) + timedelta(minutes=HOLD_MINUTES)).strftime('%Y-%m-%d %H:%M:%S')
+                cur.execute("UPDATE bookings SET status='hold', expires_at=? WHERE id=?", (new_exp, candidate[0]))
+
+        conn.commit()
+
+process_expirations_and_queue(db_session_key)
+
 # ==========================================
 # 4. الواجهة الأساسية
 # ==========================================
 st.markdown("<div class='hero-header'>بادل 99.</div>", unsafe_allow_html=True)
-st.markdown(f"<div class='hero-sub'>تمرين {display_session}. متعة اللعب، بتنظيم أبسط.</div>", unsafe_allow_html=True)
-st.markdown("<div class='contrast-pill'>⚡ حجز فوري • 6 لاعبين للملعب • السابع علينا.</div>", unsafe_allow_html=True)
-st.markdown("<div class='promo-badge'>✨ العب 6 تمارين والسابع مجاناً</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='hero-sub'>تمرين {display_session}. تنظيم آلي دقيق وحجز مؤكد.</div>", unsafe_allow_html=True)
+st.markdown("<div class='contrast-pill'>⏱️ مهلة السداد: 15 دقيقة لإرسال إشعار التحويل قبل تحرير المقعد للاحتياط</div>", unsafe_allow_html=True)
+st.markdown("<div class='promo-badge'>✨ العب 6 تمارين، وتمرينك السابع بـ 45 ر.س فقط</div>", unsafe_allow_html=True)
 
-tab_book, tab_rules, tab_cancel = st.tabs(["⚡ حجز مقعد", "📜 القواعد", "❌ اعتذار"])
+tab_book, tab_cancel = st.tabs(["⚡ حجز مقعد", "❌ اعتذار"])
 
-# --- تبويب الحجز ---
 with tab_book:
     with st.form("booking_form", clear_on_submit=False):
         f_name = st.text_input("الاسم الثلاثي")
         f_phone = st.text_input("رقم الجوال (05xxxxxxxx)", placeholder="05xxxxxxxx")
-        f_level_raw = st.selectbox("مستوى اللعب", [
-            "🟢 متوسط - تبادل وثبات",
-            "🔥 متقدم - سرعة وتكتيك",
-            "⚪ مبتدئ - انطلاقة وتعلّم"
-        ])
-        f_level = "متوسط" if "متوسط" in f_level_raw else ("متقدم" if "متقدم" in f_level_raw else "مبتدئ")
-        
-        honeypot_val = st.text_input("hp_security_field", key="hp_val", label_visibility="collapsed")
-        btn_submit = st.form_submit_button("تأكيد الانضمام 🚀", use_container_width=True)
+        f_level = st.selectbox("المستوى", ["متوسط", "متقدم", "مبتدئ"])
+        btn_submit = st.form_submit_button("حجز مقعد (مهلة 15 دقيقة) 🚀", use_container_width=True)
 
         if btn_submit:
-            if honeypot_val:
-                st.error("تم رفض الطلب للاشتباه في نشاط آلي.")
-                st.stop()
-                
             clean_name = f_name.strip()
             clean_phone = clean_and_validate_sa_phone(f_phone)
 
             if len(clean_name) < 2 or not clean_phone:
                 st.error("فضلاً أدخل الاسم ورقم جوال صحيح يبدأ بـ 05.")
             else:
+                process_expirations_and_queue(db_session_key)
+                ksa_tz = timezone(timedelta(hours=3))
+                expiry_dt = datetime.now(ksa_tz) + timedelta(minutes=HOLD_MINUTES)
+                expiry_str = expiry_dt.strftime('%Y-%m-%d %H:%M:%S')
+
+                loyalty_count = get_loyalty_score(clean_phone)
+                has_discount = (loyalty_count > 0 and loyalty_count % 6 == 0)
+                amount_to_pay = PRICE_DISCOUNTED if has_discount else PRICE_STANDARD
+
                 try:
                     with get_db() as conn:
                         conn.execute("BEGIN IMMEDIATE")
                         cur = conn.cursor()
                         
-                        # حساب عدد المقاعد المؤكدة بدقة تحت قفل المعاملة
-                        cur.execute("SELECT COUNT(*) FROM bookings WHERE session_day=? AND court=1 AND status='confirmed'", (db_session_key,))
-                        cur_c1 = cur.fetchone()[0]
-
-                        is_confirmed = cur_c1 < COURT_CAPACITY
-                        status_val = 'confirmed' if is_confirmed else 'waitlist'
-                        
+                        # حساب المقاعد المشغولة (المؤكدة + التي في مهلة الـ 15 دقيقة)
                         cur.execute("""
-                            INSERT INTO bookings (name, phone, session_day, court, level, status) 
-                            VALUES (?, ?, ?, 1, ?, ?)
-                        """, (clean_name, clean_phone, db_session_key, f_level, status_val))
-                        booking_id = cur.lastrowid
+                            SELECT COUNT(*) FROM bookings 
+                            WHERE session_day=? AND court=1 AND status IN ('confirmed', 'hold')
+                        """, (db_session_key,))
+                        active_count = cur.fetchone()[0]
 
-                        # معالجة القيد المالي المحاسبي
-                        if is_confirmed:
-                            loyalty_count = get_loyalty_score(clean_phone)
-                            is_free = (loyalty_count > 0 and loyalty_count % 6 == 0)
-                            
-                            # قيد استحقاق
-                            cur.execute("""
-                                INSERT INTO financial_ledger (booking_id, entry_type, amount_sar, status, notes)
-                                VALUES (?, 'CHARGE', ?, 'settled', 'قيمة تمرين بادل 99')
-                            """, (booking_id, PRICE_SAR))
-                            
-                            if is_free:
-                                # قيد تسوية مجانية (مكافأة ولاء)
-                                cur.execute("""
-                                    INSERT INTO financial_ledger (booking_id, entry_type, amount_sar, status, notes)
-                                    VALUES (?, 'FREE_REWARD', ?, 'settled', 'التمرين السابع المجاني')
-                                """, (booking_id, 0.0))
-                            else:
-                                # قيد انتظار السداد
-                                cur.execute("""
-                                    INSERT INTO financial_ledger (booking_id, entry_type, amount_sar, status, notes)
-                                    VALUES (?, 'PAYMENT_RECEIVED', ?, 'pending', 'في انتظار التحويل البنكي')
-                                """, (booking_id, PRICE_SAR))
+                        assigned_status = 'hold' if active_count < COURT_CAPACITY else 'waitlist'
+                        assigned_exp = expiry_str if assigned_status == 'hold' else None
 
-                        wait_pos = None
-                        if status_val == 'waitlist':
-                            cur.execute("SELECT COUNT(*) FROM bookings WHERE session_day=? AND status='waitlist'", (db_session_key,))
-                            wait_pos = cur.fetchone()[0]
-
+                        cur.execute("""
+                            INSERT INTO bookings (name, phone, session_day, court, level, status, amount_sar, expires_at)
+                            VALUES (?, ?, ?, 1, ?, ?, ?, ?)
+                        """, (clean_name, clean_phone, db_session_key, f_level, assigned_status, amount_to_pay, assigned_exp))
+                        b_id = cur.lastrowid
                         conn.commit()
 
-                    st.session_state["last_booking"] = {
-                        "id": booking_id,
+                    st.session_state["ticket"] = {
+                        "id": b_id,
                         "name": clean_name,
-                        "phone": clean_phone,
-                        "court": "كورت 1",
-                        "status": status_val,
-                        "wait_pos": wait_pos,
-                        "session": display_session,
-                        "is_new": True
+                        "status": assigned_status,
+                        "amount": amount_to_pay,
+                        "has_discount": has_discount,
+                        "expires_at": expiry_dt
                     }
                     st.rerun()
 
                 except sqlite3.IntegrityError:
-                    st.warning("أنت مسجل بالفعل في تمرين اليوم (سواء في الملعب أو الاحتياط).")
+                    st.warning("أنت مسجل بالفعل في تمرين اليوم.")
 
-    if "last_booking" in st.session_state:
-        lb = st.session_state["last_booking"]
-        if lb["status"] == "confirmed":
-            if lb.get("is_new", False):
-                st.balloons()
-                lb["is_new"] = False
+    if "ticket" in st.session_state:
+        tk = st.session_state["ticket"]
+        if tk["status"] == "hold":
+            ksa_tz = timezone(timedelta(hours=3))
+            rem_minutes = max(0, int((tk["expires_at"] - datetime.now(ksa_tz)).total_seconds() // 60))
+
+            pill_cls = "price-pill-discount" if tk.get("has_discount") else "price-pill"
+            pill_tag = " (عرض الولاء ⭐)" if tk.get("has_discount") else ""
 
             st.markdown(f"""
-            <div class="thankyou-box">
-                <div class="thankyou-title">✅ تم تأكيد حجزك بنجاح! شكراً لك يا كابتن {lb['name']}</div>
-                <div class="thankyou-sub">تم حجز مقعدك في <b>{lb['session']}</b>. نلتقي في الملعب!</div>
+            <div class="hold-box">
+                <div class="hold-title">⏳ مقعدك محجوز مؤقتاً لمدة {rem_minutes} دقيقة يا كابتن {tk['name']}</div>
+                <div class="hold-sub">يرجى تحويل المبلغ وتأكيد الحجز فورياً لتثبيت المقعد رسمياً.</div>
             </div>
             """, unsafe_allow_html=True)
-            
+
             iban_raw = "SA9380000222608016013114"
             iban_display = "SA93 8000 0222 6080 1601 3114"
             acc_raw = "222000010006086013114"
@@ -392,7 +352,7 @@ with tab_book:
 <div class="alrajhi-card">
     <div class="card-top">
         <div class="bank-title">🏛️ مصرف الراجحي</div>
-        <div class="price-pill">{PRICE_SAR:.0f} ر.س</div>
+        <div class="{pill_cls}">{tk['amount']} ر.س{pill_tag}</div>
     </div>
     <div style="text-align:center;">
         <div class="qr-container">
@@ -402,109 +362,43 @@ with tab_book:
     <div class="card-owner">فارس ربيع بن عواض العصيمي</div>
     <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الحساب (اضغط للنسخ):</div>
     <div class="copy-badge" onclick="navigator.clipboard.writeText('{acc_raw}'); alert('تم نسخ رقم الحساب! 📋');">
-        <span>{acc_raw}</span>
-        <span>📋</span>
+        <span>{acc_raw}</span><span>📋</span>
     </div>
     <div style="font-size:0.72em; color:#94a3b8; margin-bottom:2px;">رقم الآيبان (اضغط للنسخ):</div>
-    <div class="copy-badge" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('تم نسخ الآيبان بنجاح! 📋');">
-        <span>{iban_display}</span>
-        <span>📋</span>
+    <div class="copy-badge" onclick="navigator.clipboard.writeText('{iban_raw}'); alert('تم نسخ الآيبان! 📋');">
+        <span>{iban_display}</span><span>📋</span>
     </div>
     <div style="margin-top: 6px; padding: 6px 8px; background: rgba(56, 189, 248, 0.08); border-radius: 6px; border: 1px dashed rgba(56, 189, 248, 0.3); display: flex; justify-content: space-between; align-items: center;">
-        <div style="font-size: 0.75em; color: #cbd5e1;">💡 <b>لحفظ المستفيد:</b></div>
-        <div class="copy-badge" style="margin-bottom:0; padding:2px 6px; font-size:0.8em;" onclick="navigator.clipboard.writeText('بادل 99'); alert('تم نسخ اسم المستفيد: بادل 99 📋');">
-            <span>بادل 99</span>
-            <span>📋</span>
+        <div style="font-size: 0.75em; color: #cbd5e1;">💡 <b>اسم المستفيد:</b></div>
+        <div class="copy-badge" style="margin-bottom:0; padding:2px 6px; font-size:0.8em;" onclick="navigator.clipboard.writeText('بادل 99'); alert('تم النسخ! 📋');">
+            <span>بادل 99</span><span>📋</span>
         </div>
-    </div>
-    <div style="display:flex; justify-content:space-between; font-size:0.72em; color:#64748b; margin-top:6px;">
-        <span>سويفت: <b>RJHISARI</b></span>
-        <span>⚡ تحويل فوري</span>
     </div>
 </div>
 """
             st.markdown(card_html, unsafe_allow_html=True)
-            
-            wa_msg = f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {lb['name']}\nالتمرين: {lb['session']} (كورت 1)\nالمبلغ: {PRICE_SAR:.0f} ر.س\n\nمرفق إشعار التحويل البنكي لحساب كابتن فارس العصيمي. نلتقي في الملعب."
+            wa_msg = f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {tk['name']}\nالتمرين: {display_session}\nالمطلوب: {tk['amount']} ر.س\n\nمرفق إشعار التحويل لحساب كابتن فارس العصيمي لتثبيت الحجز النهائي."
             wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
             st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل وتثبيت المقعد</a>', unsafe_allow_html=True)
-        else:
-            st.info(f"اكتملت المقاعد. أنت في صدارة الاحتياط رقم ({lb.get('wait_pos', 1)}).")
+        elif tk["status"] == "waitlist":
+            st.info("اكتملت المقاعد الـ 6 حالياً. تم إدراجك في قائمة الاحتياط؛ إذا لم يحوّل أحد اللاعبين خلال 15 دقيقة سيصعد مقعدك تلقائياً.")
 
-# --- تبويب القواعد ---
-with tab_rules:
-    st.markdown("""
-    <div style="background:#18181b; border:1px solid #27272a; border-radius:10px; padding:10px; margin:8px 0; font-size:0.82em; color:#e2e8f0; line-height:1.4;">
-        <div style="margin-bottom:8px;">⏱️ <b>قبل 4 ساعات:</b> استرجاع كامل أو ترحيل فوري لتمرينك القادم.</div>
-        <div style="margin-bottom:8px;">⚠️ <b>أقل من 4 ساعات:</b> يُسترجع المبلغ فور تأكيد لاعب بديل من الاحتياط.</div>
-        <div>⚡ <b>تأكيد فوري:</b> أرسل إشعار التحويل خلال 15 دقيقة لضمان مقعدك.</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# --- تبويب الاعتذار والإلغاء المالي ---
 with tab_cancel:
     with st.form("cancel_form"):
-        can_phone_raw = st.text_input("رقم الجوال المسجل")
-        can_reason = st.selectbox("سبب الاعتذار", [
-            "تعارض في المواعيد",
-            "إجهاد بدني أو إصابة",
-            "ظرف طارئ",
-            "صعوبة في المواصلات"
-        ])
-        btn_cancel_sub = st.form_submit_button("إلغاء المقعد وإتاحته للبديل", use_container_width=True)
-
-        if btn_cancel_sub:
+        can_phone_raw = st.text_input("رقم الجوال المسجل للإلغاء")
+        if st.form_submit_button("إلغاء المقعد وإتاحته للبديل", use_container_width=True):
             clean_cp = clean_and_validate_sa_phone(can_phone_raw)
-            if not clean_cp:
-                st.error("فضلاً أدخل رقم جوال صحيح.")
-            else:
+            if clean_cp:
                 with get_db() as conn:
-                    conn.execute("BEGIN IMMEDIATE")
                     cur = conn.cursor()
-                    cur.execute("""
-                        SELECT id, name, status FROM bookings 
-                        WHERE phone=? AND session_day=? AND status IN ('confirmed', 'waitlist')
-                    """, (clean_cp, db_session_key))
-                    target = cur.fetchone()
-
-                    if target:
-                        b_id, p_name, old_status = target
-                        cur.execute("UPDATE bookings SET status='cancelled' WHERE id=?", (b_id,))
-                        cur.execute("INSERT INTO cancellations (booking_id, player_name, player_phone, session_day, reason) VALUES (?, ?, ?, ?, ?)",
-                                    (b_id, p_name, clean_cp, db_session_key, can_reason))
-
-                        # تسجيل قيد عكسي مالي (Reversal / Refund Log)
-                        cur.execute("""
-                            INSERT INTO financial_ledger (booking_id, entry_type, amount_sar, status, notes)
-                            VALUES (?, 'REFUND', ?, 'settled', 'إلغاء حجز واعتذار')
-                        """, (b_id, -PRICE_SAR))
-
-                        # تصعيد تلقائي من الاحتياط إذا كان الملغى مؤكداً
-                        if old_status == 'confirmed':
-                            cur.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC LIMIT 1", (db_session_key,))
-                            wait_player = cur.fetchone()
-                            if wait_player:
-                                wp_id = wait_player[0]
-                                cur.execute("UPDATE bookings SET status='confirmed', court=1 WHERE id=?", (wp_id,))
-                                cur.execute("""
-                                    INSERT INTO financial_ledger (booking_id, entry_type, amount_sar, status, notes)
-                                    VALUES (?, 'CHARGE', ?, 'settled', 'ترقية من قائمة الاحتياط')
-                                """, (wp_id, PRICE_SAR))
-                                cur.execute("""
-                                    INSERT INTO financial_ledger (booking_id, entry_type, amount_sar, status, notes)
-                                    VALUES (?, 'PAYMENT_RECEIVED', ?, 'pending', 'في انتظار التحويل للبديل')
-                                """, (wp_id, PRICE_SAR))
-                        
-                        conn.commit()
-                        st.success(f"تم قبول اعتذارك يا كابتن {p_name}. تم تحديث السجل المالي والملعب.")
-                        if "last_booking" in st.session_state:
-                            del st.session_state["last_booking"]
-                        st.rerun()
-                    else:
-                        st.error("لا يوجد حجز مؤكد أو في الاحتياط مرتبط بهذا الرقم.")
+                    cur.execute("UPDATE bookings SET status='cancelled' WHERE phone=? AND session_day=? AND status IN ('hold', 'confirmed')", (clean_cp, db_session_key))
+                    conn.commit()
+                process_expirations_and_queue(db_session_key)
+                st.success("تم إلغاء المقعد بنجاح وتصعيد الاحتياط.")
+                st.rerun()
 
 # ==========================================
-# 5. تشكيلة الملعب (تحديث حي عبر Fragment)
+# 5. تشكيلة الملعب (تحديث لحظي كل 8 ثوانٍ)
 # ==========================================
 st.markdown("---")
 
@@ -516,102 +410,121 @@ def get_level_badge(lvl):
     return "🟢 متوسط"
 
 @st.fragment(run_every="8s")
-def render_live_court(session_key):
+def render_court_live(session_key):
+    process_expirations_and_queue(session_key)
+    ksa_tz = timezone(timedelta(hours=3))
+    now = datetime.now(ksa_tz)
+
     with get_db() as conn:
-        c = conn.cursor()
-        c.execute("""
-            SELECT id, name, phone, level FROM bookings 
-            WHERE session_day=? AND court=1 AND status='confirmed' 
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, name, phone, level, status, expires_at 
+            FROM bookings 
+            WHERE session_day=? AND court=1 AND status IN ('confirmed', 'hold') 
             ORDER BY id ASC LIMIT 6
         """, (session_key,))
-        c1 = c.fetchall()
-        c.execute("SELECT id, name, phone FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC", (session_key,))
-        waitlist = c.fetchall()
+        players = cur.fetchall()
 
-    total_confirmed = len(c1)
-    st.caption(f"⏰ 9:30 م إلى 11:00 م | كورت 1 • <b>المؤكدين: {total_confirmed}/6</b> (تحديث حي ⚡)", unsafe_allow_html=True)
+        cur.execute("SELECT id, name FROM bookings WHERE session_day=? AND status='waitlist' ORDER BY id ASC", (session_key,))
+        waitlist = cur.fetchall()
 
     slots_html = ""
     for i in range(COURT_CAPACITY):
-        if i < len(c1):
-            p = c1[i]
-            points = (get_loyalty_score(p[2]) % 7)
-            pts_badge = f"⭐ {points}/6" if points < 6 else "🎁 مجاني!"
-            
-            p_status = get_payment_status(p[0])
-            pay_icon = "✅" if p_status == "settled" else "⏳"
-            
-            lvl_badge = get_level_badge(p[3])
-            slots_html += f'''<div class="slot-box">
-                <div class="slot-occupied">🎾 {p[1]}</div>
-                <div class="slot-meta">
-                    <span class="badge-level">{lvl_badge}</span>
-                    <span class="badge-loyalty">{pts_badge}</span>
-                    <span>{pay_icon}</span>
+        if i < len(players):
+            p_id, p_name, p_phone, p_lvl, p_status, p_exp = players[i]
+            pts = (get_loyalty_score(p_phone) % 6)
+            lvl_b = get_level_badge(p_lvl)
+
+            if p_status == 'confirmed':
+                box_c = "slot-confirmed"
+                badge = '<span class="badge-confirmed">مدفوع ومؤكد ✅</span>'
+            else:
+                rem_m = 0
+                if p_exp:
+                    exp_dt = datetime.strptime(p_exp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=ksa_tz)
+                    rem_m = max(0, int((exp_dt - now).total_seconds() // 60))
+                box_c = "slot-hold"
+                badge = f'<span class="badge-hold">مهلة تحويل: {rem_m} د ⏳</span>'
+
+            slots_html += f'''
+            <div class="slot-box {box_c}">
+                <div style="font-weight:700; font-size:0.82em; color:#fff;">🎾 {p_name}</div>
+                <div style="margin-top:3px; display:flex; gap:3px; justify-content:center;">
+                    <span class="badge-level">{lvl_b}</span>
+                    <span class="badge-loyalty">⭐ {pts}/6</span>
+                    {badge}
                 </div>
             </div>'''
         else:
-            slots_html += '<div class="slot-box"><div class="slot-empty">مقعد شاغر ✨</div></div>'
+            slots_html += '''
+            <div class="slot-box slot-empty">
+                <div style="color:#64748b; font-size:0.75em;">مقعد شاغر ✨</div>
+            </div>'''
 
-    st.markdown(f'<div class="padel-court"><div class="court-title">🏟️ كورت 1 ({total_confirmed}/{COURT_CAPACITY})</div><div class="court-grid">{slots_html}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="padel-court"><div class="court-title">🏟️ كورت 1 • حالة الملعب الآن ({len(players)}/6)</div><div class="court-grid">{slots_html}</div></div>', unsafe_allow_html=True)
 
     if waitlist:
-        st.caption("📋 **أولوية الاحتياط:** " + " • ".join([f"{idx+1}. {w[1]}" for idx, w in enumerate(waitlist)]))
+        st.caption("📋 **قائمة الاحتياط:** " + " • ".join([f"{idx+1}. {w[1]}" for idx, w in enumerate(waitlist)]))
 
-render_live_court(db_session_key)
+render_court_live(db_session_key)
 
 # ==========================================
-# 6. الدعم ولوحة الإدارة
+# 6. لوحة المنظم (فرز التحويلات والتأكيد بنقرة زر)
 # ==========================================
-support_msg = "مرحباً كابتن فارس، عندي استفسار بخصوص حجز بادل 99."
-support_url = f"https://wa.me/966566261868?text={urllib.parse.quote(support_msg)}"
-st.markdown(f'<a href="{support_url}" target="_blank" class="support-btn">💬 تواجه مشكلة؟ تواصل مباشرة عبر واتساب</a>', unsafe_allow_html=True)
-
-with st.expander("⚙️ لوحة الإدارة والتدقيق المالي", expanded=False):
-    pin_input = st.text_input("رمز الإدارة المشفر:", type="password")
+with st.expander("⚙️ لوحة الإدارة (فرز التحويلات البنكية)", expanded=False):
+    pin_input = st.text_input("رمز الدخول المشفر:", type="password")
     
     if pin_input:
-        ar_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
-        p = str(pin_input).translate(ar_digits).strip()
-        
-        # حماية مشددة: الاعتماد الحصري على secrets بدون كلمة سر افتراضية في الكود
         master_secret = st.secrets.get("ADMIN_PIN", None)
-        
-        if not master_secret:
-            st.error("⚠️ يرجى ضبط قيمة ADMIN_PIN في ملف secrets.toml لتفعيل الدخول.")
-        elif hmac.compare_digest(p, str(master_secret).strip()):
-            st.success("تم الدخول بصلاحيات الإدارة والتدقيق المالي 👑")
-            
+        ar_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+        clean_pin = str(pin_input).translate(ar_digits).strip()
+
+        if master_secret and hmac.compare_digest(clean_pin, str(master_secret).strip()):
             with get_db() as conn:
                 cur = conn.cursor()
-                # جلب سجل التسوية المالية الشامل
-                cur.execute("""
-                    SELECT 
-                        b.id, b.session_day, b.name, b.phone, b.status,
-                        COALESCE(fl.entry_type, 'NONE'),
-                        COALESCE(fl.amount_sar, 0.0),
-                        COALESCE(fl.status, 'none'),
-                        b.created_at
-                    FROM bookings b
-                    LEFT JOIN financial_ledger fl ON b.id = fl.booking_id
-                    ORDER BY b.id DESC
-                """)
-                raw_data = cur.fetchall()
+                cur.execute("SELECT id, name, phone, status, amount_sar, expires_at FROM bookings WHERE session_day=? AND court=1 AND status IN ('confirmed', 'hold')", (db_session_key,))
+                roster = cur.fetchall()
 
-            if raw_data:
-                csv_buf = io.StringIO()
-                csv_buf.write('\ufeff')
-                writer = csv.writer(csv_buf)
-                writer.writerow(["معرف الحجز", "تاريخ التمرين", "الاسم", "الجوال", "حالة الحجز", "نوع القيد المالي", "المبلغ", "حالة القيد", "وقت التسجيل"])
-                for row in raw_data:
-                    writer.writerow(row)
-                    
-                st.download_button(
-                    "📥 تصدير السجل المالي والتشغيلي (CSV)",
-                    csv_buf.getvalue().encode('utf-8-sig'),
-                    f"padel_audit_{datetime.now().strftime('%Y%m%d')}.csv",
-                    "text/csv",
-                    use_container_width=True
-                )
+            confirmed_players = [p for p in roster if p[3] == 'confirmed']
+            hold_players = [p for p in roster if p[3] == 'hold']
+
+            cash_in_bank = sum(p[4] for p in confirmed_players)
+            cash_waiting = sum(p[4] for p in hold_players)
+
+            st.markdown(f"""
+            <div class="kpi-container">
+                <div class="kpi-card">
+                    <div class="kpi-num" style="color:#10b981;">{cash_in_bank} ر.س</div>
+                    <div class="kpi-lbl">تم استلامها في الحساب ({len(confirmed_players)} لاعبين)</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-num" style="color:#f59e0b;">{cash_waiting} ر.س</div>
+                    <div class="kpi-lbl">بانتظار التحويل بالمهلة ({len(hold_players)} لاعبين)</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("##### ⏳ لاعبين بانتظار التحويل (اضغط تأكيد عند وصول الإشعار):")
+            if hold_players:
+                for hp in hold_players:
+                    c_info, c_action = st.columns([3, 1])
+                    with c_info:
+                        st.write(f"• **{hp[1]}** ({hp[2]}) — المبلغ: {hp[4]} ر.س")
+                    with c_action:
+                        if st.button("تأكيد الحوالة ✅", key=f"confirm_{hp[0]}", use_container_width=True):
+                            with get_db() as conn:
+                                cur = conn.cursor()
+                                cur.execute("UPDATE bookings SET status='confirmed', expires_at=NULL WHERE id=?", (hp[0],))
+                                conn.commit()
+                            st.rerun()
+            else:
+                st.info("لا توجد مقاعد معلقة بانتظار التحويل.")
+
+            st.markdown("##### ✅ المقاعد المؤكدة والمدفوعة:")
+            if confirmed_players:
+                for cp in confirmed_players:
+                    st.write(f"• **{cp[1]}** ({cp[2]}) — مسدد: {cp[4]} ر.س")
+            else:
+                st.caption("لم يتم تأكيد أي مقعد بعد.")
         else:
             st.error("رمز الدخول غير صحيح.")
