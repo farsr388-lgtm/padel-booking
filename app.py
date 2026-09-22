@@ -8,7 +8,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 1. إعداد الصفحة والتصميم السريع للموبايل (Mobile-First Architecture)
+# 1. إعداد الصفحة وتصميم الجوال الخفيف السريع
 # ==============================================================================
 st.set_page_config(
     page_title="بادل 99",
@@ -33,7 +33,7 @@ html, body, [class*="css"] {
     background-color: #0b0f19;
 }
 
-/* بطاقة الهيدر */
+/* بطاقة الهيدر الرئيسية */
 .hero-card {
     background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
     border: 1px solid #334155;
@@ -45,7 +45,7 @@ html, body, [class*="css"] {
 .hero-title { font-size: 1.6em; font-weight: 900; color: #f8fafc; margin: 0; }
 .hero-sub { color: #38bdf8; font-size: 0.88em; font-weight: 600; margin-top: 4px; }
 
-/* تسعير الوحدة ونقطة التعادل */
+/* إبراز سعر الوحدة وتأطير القيمة */
 .price-tag-hero {
     background: rgba(15, 23, 42, 0.85);
     border: 1px solid #3b82f6;
@@ -59,19 +59,19 @@ html, body, [class*="css"] {
 .old-price { text-decoration: line-through; color: #94a3b8; margin-left: 6px; }
 .new-price { color: #22c55e; font-weight: 800; font-size: 1.15em; }
 
-/* مؤشر تأكيد الجلسة ونصاب اللعب */
+/* مؤشر اكتمال النصاب */
 .quorum-badge {
     display: inline-block;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.76em;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 0.78em;
     font-weight: 700;
     margin-top: 6px;
 }
 .quorum-pending { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid #d97706; }
 .quorum-met { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #16a34a; }
 
-/* نقاط المقاعد الحية */
+/* مؤشر المقاعد الحية */
 .seats-tracker {
     display: flex;
     justify-content: center;
@@ -137,19 +137,30 @@ div[data-testid="stCodeBlock"] {
     border: 1px dashed #38bdf8 !important;
 }
 
+/* بطاقة لوحة المؤشرات في القائمة */
+.metrics-card {
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]) { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 2. الثوابت الاقتصادية والهندسية (Unit Economics & Config)
+# 2. الثوابت الاقتصادية والهندسية (Unit Economics Config)
 # ==============================================================================
-COURT_CAPACITY = 6          # السعة القصوى للملعب
-BREAK_EVEN_PLAYERS = 5      # نقطة التعادل لتغطية التكلفة الثابتة (300 ريال)
+COURT_CAPACITY = 6          # السعة الكاملة للملعب
+FIXED_COURT_COST = 300      # تكلفة استئجار الملعب الثابتة لساعتين (ريال)
+BREAK_EVEN_PLAYERS = 5      # نقطة التعادل (5 * 65 = 325 ريال > 300)
 UNIT_PRICE = 65             # سعر المقعد الفردي
+LOYALTY_LIABILITY = 9.29    # الالتزام المحاسبي المؤجل لكل تذكرة (65 / 7)
 IBAN_NUMBER = "SA9380000222608016013114"
 ADMIN_PHONE = "966566261868"
-ADMIN_PIN_HASH = "9900"     # رمز الدخول للوحة التحكم السريعة للمنظم
+ADMIN_PIN_HASH = "9900"     # رمز دخول قائمة الإدارة السريعة
 
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -161,17 +172,16 @@ def get_supabase_client() -> Client:
 try:
     supabase = get_supabase_client()
 except Exception:
-    st.error("تعذر الاتصال بقاعدة البيانات السحابية. يرجى مراجعة إعدادات الربط.")
+    st.error("تعذر الاتصال بقاعدة البيانات السحابية.")
     st.stop()
 
 # ==============================================================================
-# 3. محرك الجدولة الزمنية الصارم
+# 3. محرك الجدولة الزمنية التلقائية
 # ==============================================================================
 def resolve_next_session() -> tuple[str, str]:
     ksa_tz = timezone(timedelta(hours=3))
     now = datetime.now(ksa_tz)
     
-    # جدول أوقات التمارين (0: الإثنين, 1: الثلاثاء, 2: الأربعاء, 3: الخميس, 4: الجمعة, 5: السبت, 6: الأحد)
     weekday_offsets = {
         0: (1, "الثلاثاء"), 1: (0, "الثلاثاء"),
         2: (1, "الخميس"),   3: (0, "الخميس"),
@@ -199,7 +209,7 @@ def get_active_session_bookings(session_key: str) -> list:
     """
     تصفية الحجوزات:
     - المقاعد المدفوعة ثابتة.
-    - المقاعد المعلقة تسقط وتفتح تلقائياً إذا مرت 15 دقيقة دون دفع.
+    - المقاعد المعلقة التي تجاوزت 15 دقيقة تُحرر وتفتح تلقائياً.
     """
     now_utc_iso = datetime.now(timezone.utc).isoformat()
     try:
@@ -229,14 +239,14 @@ seats_left = max(0, COURT_CAPACITY - booked_count)
 dots_html = "".join(['<div class="seat-dot dot-booked" title="محجوز"></div>' for _ in range(booked_count)])
 dots_html += "".join(['<div class="seat-dot dot-free" title="متاح"></div>' for _ in range(seats_left)])
 
-# حالة نصاب إقامة التمرين (حماية من الخسارة الرأسمالية)
+# شارة نصاب إقامة التمرين
 if booked_count >= BREAK_EVEN_PLAYERS:
     quorum_html = '<div class="quorum-badge quorum-met">🔥 اكتمل النصاب! إقامة التمرين مؤكدة رسمياً</div>'
 else:
     quorum_html = f'<div class="quorum-badge quorum-pending">⚡ باقي {BREAK_EVEN_PLAYERS - booked_count} مقاعد لاكتمال نصاب إقامة التمرين</div>'
 
 # ==============================================================================
-# 5. عرض واجهة المستخدم الرئيسية
+# 5. عرض واجهة المستخدم
 # ==============================================================================
 st.markdown(f"""
 <div class="hero-card">
@@ -255,7 +265,7 @@ if confirmed_players:
     st.markdown(f'<div class="roster-box">👥 <b>المحجوز لهم بالملعب:</b> {" • ".join(sanitized_names)}</div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 6. شاشة الحجز الناجح / الدفع عبر العداد
+# 6. شاشة الحجز الناجح / الدفع مع العداد التنازلي
 # ==============================================================================
 if "booked" in st.session_state:
     b = st.session_state["booked"]
@@ -270,7 +280,6 @@ if "booked" in st.session_state:
 </div>
 """, unsafe_allow_html=True)
 
-    # تشغيل العداد داخل مكون معزول لضمان سلامة العرض
     components.html(f"""
     <!DOCTYPE html>
     <div style="direction: rtl; text-align: center; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: rgba(239, 68, 68, 0.15); border: 1.5px solid #ef4444; border-radius: 12px; padding: 10px; color: #fca5a5; font-size: 14px; font-weight: 700;">
@@ -323,20 +332,17 @@ elif seats_left == 0:
     st.markdown(f'<a href="{wa_inq_url}" target="_blank" class="wa-btn" style="background:#0284c7;">💬 الاستفسار عن شواغر عبر واتساب</a>', unsafe_allow_html=True)
 
 else:
-    # نموذج تسجيل سريع وفوري
     with st.form("quick_booking_form", clear_on_submit=True):
         f_name = st.text_input("الاسم الكريم", placeholder="اكتب اسمك")
         f_phone = st.text_input("رقم الجوال", placeholder="05xxxxxxxx")
         f_level = st.selectbox("المستوى في اللعب", ["متوسط", "متقدم", "مبتدئ"])
-        hp = st.text_input("hp", label_visibility="collapsed")  # Honeypot لحظر البوتات
+        hp = st.text_input("hp", label_visibility="collapsed")
         
         btn_submit = st.form_submit_button("تأكيد الحجز فوراً ⚡", use_container_width=True)
         st.markdown("<div style='text-align:center; font-size:0.75em; color:#64748b; margin-top:-4px;'>🛡️ الحجز مؤكد مؤقتاً، وسيتم تثبيته فور استلام الإيصال.</div>", unsafe_allow_html=True)
 
         if btn_submit and not hp:
             clean_name = f_name.strip()
-            
-            # توحيد صيغة الهاتف
             raw_phone = f_phone.strip().translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
             clean_phone = re.sub(r'[\s\-\+]', '', raw_phone)
             if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
@@ -348,7 +354,6 @@ else:
                 st.error("فضلاً أدخل رقم جوال سعودي صحيح (05xxxxxxxx).")
             else:
                 try:
-                    # فحص لحظي مباشر من السحابة لمنع الـ Race Condition
                     current_active = get_active_session_bookings(db_session_key)
                     
                     if any(item["phone"] == clean_phone for item in current_active):
@@ -383,27 +388,61 @@ else:
                     st.error("حدث خطأ أثناء معالجة الطلب، يرجى المحاولة ثانية.")
 
 # ==============================================================================
-# 7. لوحة تحكم المنظم الآمنة ضد هجمات التوقيت (Constant-Time Auth)
+# 7. قائمة المؤشرات الاقتصادية والتشغيلية المدمجة (Operational & Unit Economics Menu)
 # ==============================================================================
-with st.expander("⚙️ بوابة إدارة المنظم"):
+st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+with st.expander("📊 قائمة الإدارة والمؤشرات الاقتصادية"):
     admin_pin = st.text_input("رمز الدخول السريع:", type="password", key="admin_pin_input")
     
-    # استخدام hmac.compare_digest لمنع هجمات التوقيت (Timing Attacks)
+    # التحقق الآمن ضد هجمات التوقيت
     if admin_pin and hmac.compare_digest(admin_pin.strip(), ADMIN_PIN_HASH):
-        st.success("تم التحقق بنجاح. بيانات الجلسة الحالية:")
-        st.write(f"**جلسة:** {db_session_key} | **المقاعد:** {booked_count}/{COURT_CAPACITY}")
-        
+        # 1. جلب البيانات اللحظية
         current_data = supabase.table("bookings") \
             .select("id, name, phone, payment_status, expires_at") \
             .eq("session_day", db_session_key) \
             .eq("status", "confirmed") \
+            .order("id") \
             .execute().data or []
             
+        paid_players = [p for p in current_data if p.get("payment_status") == "paid"]
+        pending_players = [p for p in current_data if p.get("payment_status") == "pending"]
+        
+        # 2. الحسابات المالية اللحظية (Unit Economics & Escrow Tracking)
+        paid_count = len(paid_players)
+        total_collected = paid_count * UNIT_PRICE
+        escrow_reserved = min(total_collected, FIXED_COURT_COST)       # محفظة الضمان (أول 300 ريال)
+        net_profit = max(0, total_collected - FIXED_COURT_COST)         # صافي الربح الفعلي
+        total_liability = round(paid_count * LOYALTY_LIABILITY, 2)     # التزام الولاء المؤجل
+        remaining_to_breakeven = max(0, BREAK_EVEN_PLAYERS - paid_count)
+        
+        # 3. عرض لوحة المؤشرات المالية
+        st.markdown(f"""
+        <div class="metrics-card">
+            <div style="font-size:0.85em; color:#94a3b8; font-weight:700; margin-bottom:6px;">📈 المؤشرات الاقتصادية للجلسة:</div>
+            <div style="font-size:0.82em; color:#e2e8f0; line-height:1.7;">
+                • <b>المحصل الفعلي كاش:</b> <span style="color:#38bdf8;">{total_collected} ر.س</span><br>
+                • <b>حساب الضمان المجمد للملعب (Escrow):</b> <span style="color:#fbbf24;">{escrow_reserved} / {FIXED_COURT_COST} ر.س</span><br>
+                • <b>صافي الأرباح المحررة:</b> <span style="color:#22c55e; font-weight:800;">{net_profit} ر.س</span><br>
+                • <b>مخصص الولاء المؤجل (IFRS 15):</b> <span style="color:#f87171;">{total_liability} ر.س</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # 4. حالة وقف الخسارة ونقطة التعادل
+        if paid_count >= BREAK_EVEN_PLAYERS:
+            st.success(f"✅ تم تجاوز نقطة التعادل ({paid_count} مدفوع). إقامة التمرين آمنة ومربحة.")
+        else:
+            st.warning(f"⚠️ وضع الحذر: باقي {remaining_to_breakeven} لاعبين لتغطية إيجار الملعب (Stop-Loss Active).")
+
+        # 5. قائمة إدارة تأكيد التحويلات
+        st.markdown("<div style='font-size:0.85em; font-weight:700; color:#38bdf8; margin:8px 0 4px 0;'>👥 كشف الحضور وتأكيد التحويلات:</div>", unsafe_allow_html=True)
         for row in current_data:
-            c1, c2, c3 = st.columns([2, 2, 1])
-            c1.write(f"{row['name']} ({row['phone']})")
-            c2.write(f"الحالة: {row['payment_status']}")
-            if row['payment_status'] == 'pending':
-                if c3.button("تثبيت الدفع ✅", key=f"pay_{row['id']}"):
+            c1, c2, c3 = st.columns([2, 1.2, 1.2])
+            c1.write(f"**{row['name']}**\n`{row['phone']}`")
+            if row['payment_status'] == 'paid':
+                c2.markdown("<span style='color:#22c55e; font-size:0.8em; font-weight:700;'>مدفوع ✅</span>", unsafe_allow_html=True)
+            else:
+                c2.markdown("<span style='color:#fbbf24; font-size:0.8em; font-weight:700;'>معلق ⏳</span>", unsafe_allow_html=True)
+                if c3.button("تثبيت الدفع", key=f"btn_pay_{row['id']}"):
                     supabase.table("bookings").update({"payment_status": "paid"}).eq("id", row['id']).execute()
                     st.rerun()
