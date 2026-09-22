@@ -12,9 +12,8 @@ from supabase import create_client, Client
 # ==========================================
 # 1. إعداد الاتصال السحابي (Supabase Client)
 # ==========================================
-# يتم جلب المفاتيح بأمان من أسرار Streamlit Secrets أو القيم الافتراضية
-SUPABASE_URL = st.secrets.get("SUPABASE_URL", "ضع_رابط_سوبابيس_هنا")
-SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "ضع_مفتاح_سوبابيس_هنا")
+SUPABASE_URL = st.secrets.get("SUPABASE_URL", "https://your-project.supabase.co")
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "your-anon-key")
 
 @st.cache_resource
 def init_supabase() -> Client:
@@ -27,7 +26,7 @@ def init_supabase() -> Client:
 supabase = init_supabase()
 
 # ==========================================
-# 2. إعداد الصفحة والهوية البصرية (Apple Minimalist)
+# 2. إعداد الصفحة وتصميم الهوية (Apple Minimalist)
 # ==========================================
 st.set_page_config(
     page_title="Padel 99 | بادل 99",
@@ -41,41 +40,42 @@ LANG = {
         "dir": "rtl",
         "align": "right",
         "brand": "Padel 99.",
-        "hero_sub": "تمرين {}. متعة اللعب، بتنظيم أبسط.",
-        "contrast_banner": "⚡ حجز فوري • 6 لاعبين للملعب • السابع علينا.",
-        "promo_badge": "✨ العب 6 تمارين. والسابع مجاناً.",
+        "hero_sub": "تمرين {}. متعة اللعب بأعلى معايير التنظيم.",
+        "contrast_banner": "⚡ كرات جديدة كلياً • ماء مبرد • تدوير عادل 15 دقيقة",
+        "promo_badge": "✨ العب 6 تمارين والسابع مجاناً بالكامل",
         "price_tag": "65 ر.س",
         "time_str": "⏰ ٩:٣٠ م – ١١:٠٠ م | كورت 1 (6 مقاعد)",
         "court1": "🏟️ كورت 1",
         "tab_book": "⚡ حجز مقعد",
-        "tab_rules": "📜 القواعد",
+        "tab_system": "📋 خطة التمرين والتدوير",
+        "tab_rules": "📜 القواعد والاسترجاع",
         "tab_cancel": "❌ اعتذار",
-        "name_lbl": "الاسم",
+        "name_lbl": "الاسم الثلاثي أو المستعار",
         "phone_lbl": "رقم الجوال (05xxxxxxxx)",
         "level_lbl": "مستوى اللعب",
         "levels": [
-            "🟢 متوسط • تبادل مستمر وثبات",
-            "🔥 متقدم • سرعة وتكتيك",
-            "⚪ مبتدئ • انطلاقة وتعلّم"
+            "🟢 متوسط • تبادل مستمر وثبات تكتيكي",
+            "🔥 متقدم • سرعة وقوة ودقة",
+            "⚪ مبتدئ • بداية التعلّم والضربات الأساسية"
         ],
-        "btn_book": "تأكيد الانضمام 🚀",
-        "err_fields": "فضلاً أدخل الاسم ورقم جوال سعودي صحيح يبدأ بـ 05.",
+        "btn_book": "تأكيد المقعد والانتقال للسداد 🚀",
+        "err_fields": "يرجى إدخال اسم صحيح ورقم جوال يبدأ بـ 05 ويتكون من 10 أرقام.",
         "err_duplicate": "أنت مسجل بالفعل في تمرين اليوم.",
-        "err_spam": "تم رفض الطلب للاشتباه في نشاط آلي.",
-        "succ_book_title": "✅ تم تأكيد حجزك بنجاح! شكراً لك يا كابتن {}",
-        "succ_book_desc": "تم حجز مقعدك في <b>{}</b>. نتطلع لرؤيتك وتقديم تمرين ممتع!",
-        "succ_wait": "اكتملت المقاعد الأساسية. أنت في صدارة قائمة الاحتياط (#{}).",
-        "cancel_phone": "رقم الجوال:",
-        "cancel_reason": "السبب:",
+        "err_spam": "تم حظر العملية لاشتباه بنشاط آلي.",
+        "succ_book_title": "✅ تم تثبيت المقعد المبدئي يا كابتن {}!",
+        "succ_book_desc": "مقعدك في <b>{}</b> متاح مؤقتاً. يرجى إتمام التحويل لتأكيد القائمة النهائية.",
+        "succ_wait": "اكتملت المقاعد الأساسية. تم تسجيلك في المرتبة #{} في قائمة الاحتياط.",
+        "cancel_phone": "رقم الجوال المسجل:",
+        "cancel_reason": "سبب الاعتذار:",
         "reasons": [
-            "تعارض في المواعيد",
-            "إجهاد بدني أو إصابة",
-            "ظرف طارئ",
+            "تعارض مفاجئ في المواعيد",
+            "إجهاد بدني أو إصابة رياضية",
+            "ظرف شخصي طارئ",
             "صعوبة في المواصلات"
         ],
         "btn_cancel": "إلغاء المقعد وإتاحته للبديل",
         "succ_cancel": "تم قبول اعتذارك يا كابتن {}. نراك في التمرين القادم.",
-        "err_cancel": "لا يوجد حجز مؤكد مرتبط بهذا الرقم.",
+        "err_cancel": "لا يوجد حجز مسجل مرتبط بهذا الرقم اليوم.",
         "admin_pin": "رمز الإدارة السري المشفر:",
         "export_btn": "📥 تصدير السجل (Excel/CSV)",
         "timer_prefix": "⏳ متبقي على إغلاق الحجز:",
@@ -85,45 +85,46 @@ LANG = {
         "dir": "ltr",
         "align": "left",
         "brand": "Padel 99.",
-        "hero_sub": "{} Session. Pure play, zero hassle.",
-        "contrast_banner": "⚡ Instant Booking • 6 Players • 7th on Us.",
-        "promo_badge": "✨ Play 6 sessions. The 7th is free.",
+        "hero_sub": "{} Session. Pure padel, zero hassle.",
+        "contrast_banner": "⚡ Fresh Balls • Chilled Water • 15m Fair Rotation",
+        "promo_badge": "✨ Play 6 sessions, get the 7th on us.",
         "price_tag": "65 SAR",
         "time_str": "⏰ 9:30 PM – 11:00 PM | Court 1 (6 Slots)",
         "court1": "🏟️ Court 1",
-        "tab_book": "⚡ Reserve",
-        "tab_rules": "📜 Rules",
+        "tab_book": "⚡ Reserve Spot",
+        "tab_system": "📋 Rotation System",
+        "tab_rules": "📜 Rules & Policy",
         "tab_cancel": "❌ Cancel",
-        "name_lbl": "Name",
+        "name_lbl": "Player Name",
         "phone_lbl": "Mobile (05xxxxxxxx)",
         "level_lbl": "Skill Level",
         "levels": [
             "🟢 Intermediate • Steady rallies",
-            "🔥 Advanced • Fast & tactical",
-            "⚪ Beginner • Starting out"
+            "🔥 Advanced • High pace & tactical",
+            "⚪ Beginner • Fundamentals & fun"
         ],
-        "btn_book": "Confirm Spot 🚀",
-        "err_fields": "Enter a valid name and Saudi mobile (05xxxxxxxx).",
-        "err_duplicate": "Already registered for today's session.",
-        "err_spam": "Request rejected due to automated activity.",
-        "succ_book_title": "✅ Booking Confirmed! Thank you Captain {}",
-        "succ_book_desc": "Your slot is locked for <b>{}</b>. See you on the court!",
-        "succ_wait": "Roster full. You are #{} on the waitlist.",
-        "cancel_phone": "Mobile Number:",
-        "cancel_reason": "Reason:",
+        "btn_book": "Reserve & Proceed to Payment 🚀",
+        "err_fields": "Enter a valid name and a 10-digit Saudi phone starting with 05.",
+        "err_duplicate": "You have an active booking for today.",
+        "err_spam": "Rejected due to automated activity.",
+        "succ_book_title": "✅ Spot Reserved for Captain {}!",
+        "succ_book_desc": "Your slot for <b>{}</b> is temporarily held. Transfer to lock it in.",
+        "succ_wait": "Main roster is full. You are #{} on the waitlist.",
+        "cancel_phone": "Registered Mobile:",
+        "cancel_reason": "Cancellation Reason:",
         "reasons": [
             "Schedule conflict",
-            "Fatigue or injury",
+            "Physical fatigue or injury",
             "Personal emergency",
             "Transportation issue"
         ],
-        "btn_cancel": "Release Spot",
-        "succ_cancel": "Cancelled for Captain {}. See you next time.",
-        "err_cancel": "No active booking found for this number.",
-        "admin_pin": "Encrypted Passcode:",
+        "btn_cancel": "Release Spot to Waitlist",
+        "succ_cancel": "Reservation cancelled for {}. See you next time.",
+        "err_cancel": "No active booking found for this number today.",
+        "admin_pin": "Manager Master PIN:",
         "export_btn": "📥 Export Timesheet (Excel/CSV)",
-        "timer_prefix": "⏳ Booking closes in:",
-        "timer_closed": "🔒 Booking closed for this session"
+        "timer_prefix": "⏳ Registration Closes In:",
+        "timer_closed": "🔒 Session Closed"
     }
 }
 
@@ -134,19 +135,19 @@ l_code = "ar" if curr_lang == "العربية" else "en"
 t = LANG[l_code]
 
 # ==========================================
-# 3. واجهة وتنسيقات CSS المتوافقة
+# 3. أنماط CSS المتقدمة (Apple Dark Modern)
 # ==========================================
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
 * {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Cairo', sans-serif; direction: {t['dir']}; text-align: {t['align']}; }}
-.block-container {{ padding: 0.8rem 0.5rem 1rem 0.5rem !important; max-width: 580px !important; }}
+.block-container {{ padding: 0.8rem 0.5rem 1.2rem 0.5rem !important; max-width: 580px !important; }}
 .stAppHeader {{ display: none; }}
 
-.hero-header {{ font-size: 1.65em; font-weight: 900; letter-spacing: -0.5px; color: #f4f4f5; margin: 0; }}
+.hero-header {{ font-size: 1.7em; font-weight: 900; letter-spacing: -0.5px; color: #f4f4f5; margin: 0; }}
 .hero-sub {{ font-size: 0.88em; color: #a1a1aa; margin-bottom: 6px; }}
-.contrast-pill {{ background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; padding: 4px 8px; font-size: 0.75em; color: #cbd5e1; font-weight: 600; margin-bottom: 4px; }}
-.promo-badge {{ background: rgba(30, 58, 138, 0.35); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; padding: 4px 8px; text-align: center; color: #bfdbfe; font-weight: 700; font-size: 0.75em; margin-bottom: 4px; }}
+.contrast-pill {{ background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; padding: 5px 8px; font-size: 0.75em; color: #cbd5e1; font-weight: 600; margin-bottom: 4px; }}
+.promo-badge {{ background: rgba(30, 58, 138, 0.35); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 6px; padding: 4px 8px; text-align: center; color: #bfdbfe; font-weight: 700; font-size: 0.75em; margin-bottom: 6px; }}
 
 .countdown-box {{
     background: rgba(245, 158, 11, 0.08);
@@ -172,24 +173,23 @@ st.markdown(f"""
 .thankyou-title {{ color: #34d399; font-size: 1.05em; font-weight: 800; margin-bottom: 4px; }}
 .thankyou-sub {{ color: #e2e8f0; font-size: 0.84em; }}
 
-.rules-card {{
+.info-card {{
     background: #18181b;
     border: 1px solid #27272a;
     border-radius: 14px;
     padding: 14px;
     margin: 8px 0;
 }}
-.rule-item {{
+.info-row {{
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     font-size: 0.82em;
     color: #e2e8f0;
     line-height: 1.4;
 }}
-.rule-item:last-child {{ margin-bottom: 0; }}
-.rule-icon {{ font-size: 1.1em; }}
+.info-row:last-child {{ margin-bottom: 0; }}
 
 .alrajhi-card {{
     background: #111418;
@@ -208,18 +208,17 @@ st.markdown(f"""
     padding-bottom: 8px;
     margin-bottom: 12px;
 }}
-.bank-title {{ font-size: 0.95em; font-weight: 800; color: #f8fafc; }}
 .price-pill {{ background: #10b981; color: #022c22; padding: 3px 10px; border-radius: 20px; font-weight: 900; font-size: 0.85em; }}
 .qr-container {{ background: #ffffff; padding: 10px; border-radius: 12px; display: inline-block; margin: 4px auto 10px auto; }}
-.qr-container img {{ display: block; width: 135px; height: 135px; }}
-.card-owner {{ font-size: 1.15em; font-weight: 800; color: #f8fafc; margin-bottom: 10px; text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.12); padding-bottom: 8px; }}
+.qr-container img {{ display: block; width: 130px; height: 130px; }}
+.card-owner {{ font-size: 1.1em; font-weight: 800; color: #f8fafc; margin-bottom: 10px; text-align: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.12); padding-bottom: 8px; }}
 .copy-badge {{
     background: #1e293b;
     border: 1px solid #334155;
     border-radius: 8px;
     padding: 8px 10px;
     font-family: monospace;
-    font-size: 0.92em;
+    font-size: 0.90em;
     color: #38bdf8;
     font-weight: 700;
     display: flex;
@@ -228,9 +227,8 @@ st.markdown(f"""
     cursor: pointer;
     margin-bottom: 8px;
 }}
-.copy-badge:active {{ background: #0f172a; border-color: #38bdf8; }}
 
-.wa-apple-btn {{
+.wa-action-btn {{
     display: block;
     width: 100%;
     background: linear-gradient(180deg, #25D366 0%, #1da851 100%);
@@ -241,8 +239,23 @@ st.markdown(f"""
     font-weight: 800;
     text-decoration: none;
     margin-top: 8px;
-    font-size: 0.95em;
+    font-size: 0.92em;
     box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+}}
+
+.wa-community-btn {{
+    display: block;
+    width: 100%;
+    background: rgba(30, 41, 59, 0.9);
+    border: 1px solid #3b82f6;
+    color: #93c5fd !important;
+    text-align: center;
+    padding: 10px;
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    margin-top: 8px;
+    font-size: 0.85em;
 }}
 
 .padel-court {{ background: radial-gradient(circle, #064e3b 0%, #022c22 100%); border: 1.5px solid rgba(16, 185, 129, 0.6); border-radius: 12px; padding: 12px; margin-bottom: 6px; }}
@@ -260,7 +273,7 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp_security_field"]) {{ dis
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 4. دوال التحقق والأمان
+# 4. محرك التوقيت والتحقق
 # ==========================================
 def clean_and_validate_sa_phone(raw_phone):
     if not raw_phone:
@@ -300,7 +313,7 @@ def verify_admin_security(input_pin):
         
     if now < st.session_state["admin_lockout_until"]:
         rem = int(st.session_state["admin_lockout_until"] - now)
-        st.error(f"🔒 تم قفل لوحة الإدارة مؤقتاً. يرجى الانتظار: {rem // 60}:{rem % 60:02d} دقيقة.")
+        st.error(f"🔒 لوحة الإدارة مقفلة مؤقتاً لحمايتها. انتظر: {rem // 60}:{rem % 60:02d} دقيقة.")
         return False
 
     if not input_pin:
@@ -309,31 +322,22 @@ def verify_admin_security(input_pin):
     ar_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
     p = str(input_pin).translate(ar_digits).strip()
     
-    master_secret = None
-    try:
-        master_secret = st.secrets.get("ADMIN_PASSWORD", None) or st.secrets.get("ADMIN_PIN", None)
-    except Exception:
-        pass
+    master_secret = st.secrets.get("ADMIN_PASSWORD", None) or st.secrets.get("ADMIN_PIN", "Padel99#Master@2026")
+    target_secret = str(master_secret).translate(ar_digits).strip()
 
-    target_secret = str(master_secret).translate(ar_digits).strip() if master_secret else "Padel99#Master@2026"
-    is_valid = hmac.compare_digest(p, target_secret)
-
-    if is_valid:
+    if hmac.compare_digest(p, target_secret):
         st.session_state["admin_attempts"] = 0
         return True
     else:
         st.session_state["admin_attempts"] += 1
         if st.session_state["admin_attempts"] >= 3:
             st.session_state["admin_lockout_until"] = now + 600
-            st.error("🚨 تم حظر المحاولات وقفل لوحة الإدارة لمدة 10 دقائق بسبب تكرار الخطأ.")
+            st.error("🚨 تم حظر المحاولات لمدة 10 دقائق بعد 3 محاولات غير صحيحة.")
         else:
             left = 3 - st.session_state["admin_attempts"]
-            st.error(f"رمز الدخول غير صحيح. (المحاولات المتبقية: {left})")
+            st.error(f"رمز غير صحيح. المتبقي: {left} محاولات.")
         return False
 
-# ==========================================
-# 5. محرك التوقيت والعد التنازلي التفاعلي
-# ==========================================
 def get_next_session(cutoff_minutes_before: int = 60):
     ksa_tz = timezone(timedelta(hours=3))
     now = datetime.now(ksa_tz)
@@ -421,12 +425,12 @@ def render_session_countdown(cutoff_dt: datetime, lang_dict: dict):
     """
     st.markdown(countdown_html, unsafe_allow_html=True)
 
-# استدعاء الحالة الزمنية
+# استدعاء الجلسة الحالية
 sess_ar, sess_en, db_session_key, session_cutoff_dt = get_next_session()
 display_session = sess_ar if l_code == "ar" else sess_en
 COURT_CAPACITY = 6
 
-# جلب بيانات الملعب والاحتياط مباشرة من Supabase
+# جلب البيانات الحالية من Supabase
 c1 = []
 waitlist = []
 if supabase:
@@ -437,22 +441,27 @@ if supabase:
         res_wait = supabase.table("bookings").select("*").eq("session_day", db_session_key).eq("status", "waitlist").order("id").execute()
         waitlist = res_wait.data if res_wait.data else []
     except Exception as e:
-        st.warning(f"جاري مزامنة البيانات مع سوبابيس... تأكد من صحة الاتصال.")
+        st.warning("جاري مزامنة السجلات السحابية...")
 
 total_booked = len(c1)
+remaining_slots = max(0, COURT_CAPACITY - total_booked)
 
 # ==========================================
-# 6. واجهة المستخدم والتسجيل
+# 5. واجهة العرض والتسجيل
 # ==========================================
 st.markdown(f"<div class='hero-header'>{t['brand']}</div>", unsafe_allow_html=True)
 st.markdown(f"<div class='hero-sub'>{t['hero_sub'].format(display_session)}</div>", unsafe_allow_html=True)
 st.markdown(f"<div class='contrast-pill'>{t['contrast_banner']}</div>", unsafe_allow_html=True)
 st.markdown(f'<div class="promo-badge">{t["promo_badge"]}</div>', unsafe_allow_html=True)
-st.caption(f"{t['time_str']} • <b>المؤكدين: {total_booked}/6</b>", unsafe_allow_html=True)
+
+if remaining_slots > 0:
+    st.caption(f"{t['time_str']} • <b style='color:#34d399;'>متبقي {remaining_slots} مقاعد فقط! 🔥</b>", unsafe_allow_html=True)
+else:
+    st.caption(f"{t['time_str']} • <b style='color:#f87171;'>اكتملت المقاعد الأساسية (قائمة الاحتياط مفتوحة)</b>", unsafe_allow_html=True)
 
 render_session_countdown(session_cutoff_dt, t)
 
-tab_book, tab_rules, tab_cancel = st.tabs([t["tab_book"], t["tab_rules"], t["tab_cancel"]])
+tab_book, tab_system, tab_rules, tab_cancel = st.tabs([t["tab_book"], t["tab_system"], t["tab_rules"], t["tab_cancel"]])
 
 with tab_book:
     with st.form("booking_form", clear_on_submit=False):
@@ -482,14 +491,12 @@ with tab_book:
                 st.warning(t["err_duplicate"])
             else:
                 try:
-                    # فحص عدد المؤكدين الحاليين من سوبابيس
                     res_count = supabase.table("bookings").select("id", count="exact").eq("session_day", db_session_key).eq("court", 1).eq("status", "confirmed").execute()
                     cur_c1 = len(res_count.data) if res_count.data else 0
 
                     status_val = 'confirmed' if cur_c1 < COURT_CAPACITY else 'waitlist'
 
-                    # إدخال البيانات في جدول bookings في سوبابيس
-                    insert_res = supabase.table("bookings").insert({
+                    supabase.table("bookings").insert({
                         "name": clean_name,
                         "phone": clean_phone,
                         "session_day": db_session_key,
@@ -516,8 +523,9 @@ with tab_book:
                     }
                     st.rerun()
                 except Exception as e:
-                    st.error(f"حدث خطأ أثناء الاتصال بقاعدة البيانات السحابية الحفظ: {e}")
+                    st.error(f"حدث خطأ أثناء حفظ الحجز: {e}")
 
+    # صندوق السداد الفوري والتأكيد
     if "last_booking" in st.session_state:
         lb = st.session_state["last_booking"]
         escaped_user_name = html.escape(lb["name"])
@@ -543,7 +551,7 @@ with tab_book:
             card_html = f"""
 <div class="alrajhi-card">
     <div class="card-top">
-        <div class="bank-title">🏛️ مصرف الراجحي</div>
+        <div style="font-weight:800; font-size:0.95em;">🏛️ مصرف الراجحي</div>
         <div class="price-pill">65 ر.س</div>
     </div>
     <div style="text-align:center;">
@@ -577,29 +585,52 @@ with tab_book:
 """
             st.markdown(card_html, unsafe_allow_html=True)
             
-            wa_msg = f"🎾 تأكيد حجز | بادل 99\n\nالكابتن: {lb['name']}\nالتمرين: {lb['session']} (كورت 1)\nالمبلغ: 65 ر.س\n\nمرفق إشعار التحويل البنكي لحساب كابتن فارس العصيمي. نلتقي في الملعب."
+            wa_msg = f"🎾 تأكيد حجز ومقعد | بادل 99\n\nالكابتن: {lb['name']}\nالتمرين: {lb['session']} (كورت 1)\nالمبلغ: 65 ر.س\n\nمرفق إشعار التحويل البنكي لحساب كابتن فارس العصيمي. نلتقي في الملعب."
             wa_url = f"https://wa.me/966566261868?text={urllib.parse.quote(wa_msg)}"
-            st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-apple-btn">📲 إرسال إشعار التحويل عبر WhatsApp وتثبيت المقعد</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-action-btn">📲 إرسال إشعار التحويل وتثبيت المقعد نهائياً (خلال 15 دقيقة)</a>', unsafe_allow_html=True)
+            
+            # حلقة المجتمع المستدام (Community Loop)
+            wa_group_url = "https://chat.whatsapp.com/YOUR_GROUP_LINK"
+            st.markdown(f'<a href="{wa_group_url}" target="_blank" class="wa-community-btn">👥 انضم إلى مجتمع بادل 99 السري (أولوية الحجز والتحديات)</a>', unsafe_allow_html=True)
         else:
             st.info(t["succ_wait"].format(lb.get("wait_pos", 1)))
 
+# قسم خطة التمرين ونظام التدوير (Americano System)
+with tab_system:
+    st.markdown("""
+    <div class="info-card">
+        <div class="info-row">
+            <span style="font-size:1.3em;">🔄</span>
+            <div><b>نظام التدوير (Rotation):</b> 6 لاعبين على الملعب؛ 4 يلعبون شوطين (أو 15 دقيقة) و2 يستريحون، مما يضمن أن يلعب الجميع مع وضد بعضهم بعدالة تامة.</div>
+        </div>
+        <div class="info-row">
+            <span style="font-size:1.3em;">🎾</span>
+            <div><b>كرات جديدة تفتح أمامكم:</b> نضمن علبة كرات جديدة مضغوطة بالكامل لكل تمرين لضمان سرعة اللعب ونقاء التبادلات.</div>
+        </div>
+        <div class="info-row">
+            <span style="font-size:1.3em;">🧊</span>
+            <div><b>الضيافة والترطيب:</b> مياه باردة متوفرة بجانب الملعب طوال فترة التمرين.</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 with tab_rules:
     st.markdown("""
-<div class="rules-card">
-    <div class="rule-item">
-        <span class="rule-icon">⏱️</span>
-        <div><b>قبل 4 ساعات.</b> استرجاع كامل أو ترحيل فوري لتمرينك القادم.</div>
+    <div class="info-card">
+        <div class="info-row">
+            <span style="font-size:1.3em;">⏱️</span>
+            <div><b>قبل 4 ساعات من التمرين:</b> استرجاع كامل للمبلغ أو ترحيله تلقائياً لتمرينك القادم دون أي خصم.</div>
+        </div>
+        <div class="info-row">
+            <span style="font-size:1.3em;">⚠️</span>
+            <div><b>أقل من 4 ساعات:</b> يُسترجع المبلغ فوراً بمجرد تأكيد حجز لاعب بديل من قائمة الاحتياط.</div>
+        </div>
+        <div class="info-row">
+            <span style="font-size:1.3em;">⏳</span>
+            <div><b>مهلة الـ 15 دقيقة:</b> يرجى إرسال إشعار التحويل عبر الواتساب لتفادي إتاحة المقعد للاحتياط.</div>
+        </div>
     </div>
-    <div class="rule-item">
-        <span class="rule-icon">⚠️</span>
-        <div><b>أقل من 4 ساعات.</b> يُسترجع المبلغ فور تأكيد لاعب بديل من الاحتياط.</div>
-    </div>
-    <div class="rule-item">
-        <span class="rule-icon">⚡</span>
-        <div><b>تأكيد فوري.</b> أرسل إشعار التحويل خلال 15 دقيقة لضمان مقعدك.</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 with tab_cancel:
     with st.form("cancel_form"):
@@ -618,10 +649,8 @@ with tab_cancel:
 
                     if target_rows:
                         target = target_rows[0]
-                        # تحديث الحالة إلى ملغي في سوبابيس
                         supabase.table("bookings").update({"status": "cancelled"}).eq("id", target["id"]).execute()
 
-                        # تسجيل سبب الإلغاء
                         supabase.table("cancellations").insert({
                             "player_name": target["name"],
                             "player_phone": clean_cp,
@@ -630,7 +659,6 @@ with tab_cancel:
                             "reason": can_reason
                         }).execute()
 
-                        # تصعيد اللاعب الأول من قائمة الاحتياط تلقائياً
                         if target["status"] == 'confirmed':
                             res_wait_first = supabase.table("bookings").select("*").eq("session_day", db_session_key).eq("status", "waitlist").order("id").limit(1).execute()
                             wait_players = res_wait_first.data if res_wait_first.data else []
@@ -645,10 +673,10 @@ with tab_cancel:
                     else:
                         st.error(t["err_cancel"])
                 except Exception as e:
-                    st.error(f"حدث خطأ أثناء معالجة الإلغاء: {e}")
+                    st.error(f"خطأ أثناء معالجة الإلغاء: {e}")
 
 # ==========================================
-# 7. التشكيلة المباشرة في الملعب
+# 6. تشكيلة الملعب المباشرة (Social Proof)
 # ==========================================
 st.markdown("---")
 
@@ -694,13 +722,13 @@ if waitlist:
     st.caption("📋 **أولوية الاحتياط:** " + " • ".join(safe_waitlist))
 
 # ==========================================
-# 8. لوحة الإدارة وتصدير البيانات
+# 7. لوحة الإدارة وتصدير البيانات
 # ==========================================
 with st.expander("⚙️ لوحة الإدارة والبيانات", expanded=False):
-    pin_input = st.text_input(t["admin_pin"], type="password", help="لوحة مشفرة ومحمية من التخمين")
+    pin_input = st.text_input(t["admin_pin"], type="password")
     
     if verify_admin_security(pin_input):
-        st.success("تم تأكيد الهوية والصلاحيات 👑")
+        st.success("تم التحقق بنجاح 👑")
         
         try:
             res_canc = supabase.table("cancellations").select("reason").execute()
@@ -745,4 +773,4 @@ with st.expander("⚙️ لوحة الإدارة والبيانات", expanded=F
                     "text/csv"
                 )
         except Exception as e:
-            st.error(f"خطأ في جلب بيانات لوحة الإدارة: {e}")
+            st.error(f"خطأ في لوحة الإدارة: {e}")
