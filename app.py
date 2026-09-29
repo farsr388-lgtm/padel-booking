@@ -4,12 +4,13 @@ from supabase import create_client, Client
 import re
 import html
 import hmac
+import json
 import urllib.parse
 from datetime import datetime, timezone, timedelta
 import math
 
 # ==============================================================================
-# 1. إعداد الصفحة والتنسيق البصري المتجاوب (Mobile-First CSS)
+# 1. إعداد الصفحة وتنسيق الموبايل فائق السرعة
 # ==============================================================================
 st.set_page_config(
     page_title="بادل 99 | Padel 99",
@@ -24,7 +25,7 @@ header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 .block-container { 
     padding-top: 0.5rem !important; 
     padding-bottom: 2rem !important; 
-    max-width: 450px !important; 
+    max-width: 440px !important; 
     margin: 0 auto; 
 }
 html, body, [class*="css"] { 
@@ -34,22 +35,22 @@ html, body, [class*="css"] {
     background-color: #0b0f19;
 }
 
-/* بطاقة الهيدر */
+/* بطاقة الهيدر الرئيسية */
 .hero-box {
     background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
     border: 1px solid #334155;
     border-radius: 16px;
     padding: 14px;
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 .hero-title { font-size: 1.6em; font-weight: 900; color: #f8fafc; margin: 0; }
-.hero-desc { color: #94a3b8; font-size: 0.85em; margin-top: 4px; }
+.hero-desc { color: #94a3b8; font-size: 0.84em; margin-top: 4px; }
 .features-pill {
     background: rgba(15, 23, 42, 0.85);
     border: 1px solid #38bdf8;
     border-radius: 20px;
-    padding: 4px 12px;
+    padding: 5px 12px;
     font-size: 0.78em;
     color: #38bdf8;
     margin: 6px 0;
@@ -57,7 +58,7 @@ html, body, [class*="css"] {
     font-weight: 700;
 }
 
-/* شبكة مقاعد الكورت */
+/* بطاقة الكورت وشبكة المقاعد الستة */
 .court-container {
     background: #0f172a;
     border: 1.5px solid #1e3a8a;
@@ -95,7 +96,7 @@ html, body, [class*="css"] {
     color: #fca5a5;
 }
 
-/* بطاقات الحالة المتقدمة */
+/* بطاقات الحالة والتأكيد */
 .status-card-success {
     background: rgba(34, 197, 94, 0.12);
     border: 2px solid #22c55e;
@@ -112,11 +113,12 @@ html, body, [class*="css"] {
     text-align: center;
     margin-top: 8px;
 }
+
 .memo-tag {
     background: #0b0f19;
     border: 1.5px dashed #38bdf8;
     border-radius: 8px;
-    padding: 6px 12px;
+    padding: 6px 10px;
     display: inline-block;
     font-family: monospace;
     font-size: 1.15em;
@@ -125,32 +127,57 @@ html, body, [class*="css"] {
     margin: 6px 0;
 }
 
-/* لوحة المؤشرات المالية */
 .finance-card {
     background: #111827;
     border: 1px solid #1f2937;
     border-radius: 12px;
-    padding: 14px;
+    padding: 12px;
     margin-bottom: 10px;
 }
 .stat-row {
     display: flex;
     justify-content: space-between;
     font-size: 0.84em;
-    padding: 6px 0;
+    padding: 5px 0;
     border-bottom: 1px solid #1e293b;
 }
 
-/* أزرار الإجراءات السريعة */
+/* بطاقة جولة الأمريكانو */
+.match-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+.match-title {
+    font-weight: 800;
+    color: #38bdf8;
+    font-size: 0.88em;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+.match-teams {
+    font-size: 0.85em;
+    color: #f8fafc;
+}
+.match-rest {
+    font-size: 0.78em;
+    color: #fbbf24;
+    margin-top: 4px;
+}
+
 div[data-testid="stFormSubmitButton"] > button {
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
     color: #ffffff !important;
-    font-size: 1.1em !important;
+    font-size: 1.15em !important;
     font-weight: 800 !important;
-    height: 50px !important;
+    height: 52px !important;
     border-radius: 12px !important;
     border: none !important;
     box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35) !important;
+    margin-top: 6px !important;
 }
 
 .wa-btn {
@@ -158,209 +185,258 @@ div[data-testid="stFormSubmitButton"] > button {
     background: #25D366;
     color: #ffffff !important;
     text-align: center;
-    padding: 13px;
+    padding: 14px;
     border-radius: 12px;
     font-weight: 800;
-    font-size: 1em;
+    font-size: 1.05em;
     text-decoration: none;
     box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
     margin-top: 10px;
 }
 
-/* إخفاء حقل فخ الروبوتات */
-.honeypot-field {
-    opacity: 0;
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 0;
-    width: 0;
-    z-index: -1;
+div[data-testid="stCodeBlock"] {
+    direction: ltr !important;
+    border-radius: 10px !important;
+    border: 1px dashed #38bdf8 !important;
 }
+
+div[data-testid="stTextInput"]:has(input[aria-label="hp"]) { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 2. حوكمة الربط السحابي (Cloud Database Resilience)
+# 2. ربط قاعدة البيانات السحابية (Supabase)
 # ==============================================================================
 @st.cache_resource
-def init_supabase() -> Client:
-    try:
-        return create_client(
-            st.secrets["SUPABASE_URL"].strip().rstrip('/'),
-            st.secrets["SUPABASE_KEY"].strip()
-        )
-    except Exception as e:
-        st.error(f"خطأ في الاتصال بقاعدة البيانات: {e}")
-        st.stop()
+def get_supabase_client() -> Client:
+    url = st.secrets["SUPABASE_URL"].strip().rstrip('/')
+    if url.endswith("/rest/v1"):
+        url = url[:-8]
+    return create_client(url, st.secrets["SUPABASE_KEY"].strip())
 
-supabase = init_supabase()
+try:
+    supabase = get_supabase_client()
+except Exception:
+    st.error("تعذر الاتصال بالسحابة. يرجى التحقق من إعدادات Secrets.")
+    st.stop()
 
 # ==============================================================================
-# 3. محرك الجدولة الزمنية الصارم (Deterministic Scheduling Engine)
+# 3. محرك الجدولة الزمنية التلقائية
 # ==============================================================================
-KSA_TZ = timezone(timedelta(hours=3))
-
-def resolve_target_session() -> tuple[str, str, datetime]:
-    """
-    حساب الموعد القادم بدقة رياضية: الأحد، الثلاثاء، الخميس (الساعة 21:30 ت م).
-    """
-    now = datetime.now(KSA_TZ)
-    # الأيام: 0: الإثنين, 1: الثلاثاء, 2: الأربعاء, 3: الخميس, 4: الجمعة, 5: السبت, 6: الأحد
-    schedule_map = {
-        0: (1, "الثلاثاء"),
-        1: (0, "الثلاثاء"),
-        2: (1, "الخميس"),
-        3: (0, "الخميس"),
-        4: (2, "الأحد"),
-        5: (1, "الأحد"),
+def resolve_next_session() -> tuple[str, str, datetime]:
+    ksa_tz = timezone(timedelta(hours=3))
+    now = datetime.now(ksa_tz)
+    
+    # 0: الإثنين, 1: الثلاثاء, 2: الأربعاء, 3: الخميس, 4: الجمعة, 5: السبت, 6: الأحد
+    weekday_offsets = {
+        0: (1, "الثلاثاء"), 1: (0, "الثلاثاء"),
+        2: (1, "الخميس"),   3: (0, "الخميس"),
+        4: (2, "الأحد"),    5: (1, "الأحد"),
         6: (0, "الأحد")
     }
     
-    offset_days, day_name = schedule_map[now.weekday()]
-    candidate_dt = (now + timedelta(days=offset_days)).replace(hour=21, minute=30, second=0, microsecond=0)
+    days_to_add, day_name = weekday_offsets.get(now.weekday(), (0, "الأحد"))
     
-    # إذا كان اليوم هو يوم التمرين وانتهى موعد الدخول (بعد 22:30)، ننتقل للتمرين التالي
-    if offset_days == 0 and now >= candidate_dt + timedelta(hours=1):
-        next_search = now + timedelta(days=1)
-        next_offset, next_day_name = schedule_map[next_search.weekday()]
-        candidate_dt = (next_search + timedelta(days=next_offset)).replace(hour=21, minute=30, second=0, microsecond=0)
-        day_name = next_day_name
+    if days_to_add == 0 and (now.hour > 22 or (now.hour == 22 and now.minute >= 30)):
+        next_dt = now + timedelta(days=1)
+        days_to_add, day_name = weekday_offsets.get(next_dt.weekday(), (0, "الأحد"))
+        days_to_add += 1
+        
+    target_date = now + timedelta(days=days_to_add)
+    session_start_dt = target_date.replace(hour=21, minute=30, second=0, microsecond=0)
+    
+    return f"{day_name} ({target_date.strftime('%d/%m')})", f"{day_name} {target_date.strftime('%Y-%m-%d')}", session_start_dt
 
-    display_label = f"{day_name} ({candidate_dt.strftime('%d/%m')})"
-    db_key = f"{day_name} {candidate_dt.strftime('%Y-%m-%d')}"
-    return display_label, db_key, candidate_dt
-
-display_session, db_session_key, session_start_dt = resolve_target_session()
+display_session, db_session_key, session_start_time = resolve_next_session()
 
 # ==============================================================================
-# 4. محرك المالية والأسعار الفوري (Decision Support & Real-time Finance)
+# 4. محرك المالية والأسعار الفوري
 # ==============================================================================
 COURT_CAPACITY = 6
 ADMIN_PHONE = "966566261868"
 ADMIN_PIN_HASH = "9900"
-PAYMENT_TIMEOUT_MINUTES = 15
 
-def get_financial_ledger(session_key: str) -> dict:
+def fetch_financial_settings(session_key: str) -> dict:
     defaults = {
-        "court_cost": 300.0,
-        "unit_price": 65.0,
-        "balls_cost": 35.0,
-        "water_cost": 15.0,
+        "court_cost": 300,
+        "unit_price": 65,
+        "balls_cost": 35,
+        "water_cost": 15,
         "court_paid": False,
         "iban_number": "SA9380000222608016013114",
-        "account_name": "مصرف الراجحي | فارس ربيع العصيمي"
+        "account_name": "مصرف الراجحي | فارس ربيع العصيمي",
+        "schedule_json": None
     }
-    if "temp_fin_ledger" in st.session_state:
-        return st.session_state["temp_fin_ledger"]
+    if "override_fin" in st.session_state:
+        return st.session_state["override_fin"]
     try:
         res = supabase.table("session_finance").select("*").eq("session_day", session_key).execute()
-        if res.data:
+        if res.data and len(res.data) > 0:
             return {**defaults, **res.data[0]}
     except Exception:
         pass
     return defaults
 
-fin_settings = get_financial_ledger(db_session_key)
-UNIT_PRICE = float(fin_settings["unit_price"])
-COURT_COST = float(fin_settings["court_cost"])
-BALLS_COST = float(fin_settings["balls_cost"])
-WATER_COST = float(fin_settings["water_cost"])
-COURT_IS_PAID = bool(fin_settings["court_paid"])
-IBAN_NUMBER = str(fin_settings["iban_number"])
-ACCOUNT_NAME = str(fin_settings["account_name"])
+fin_data = fetch_financial_settings(db_session_key)
+UNIT_PRICE = float(fin_data.get("unit_price", 65))
+COURT_COST = float(fin_data.get("court_cost", 300))
+BALLS_COST = float(fin_data.get("balls_cost", 35))
+WATER_COST = float(fin_data.get("water_cost", 15))
+COURT_IS_PAID = bool(fin_data.get("court_paid", False))
+IBAN_NUMBER = str(fin_data.get("iban_number", "SA9380000222608016013114"))
+ACCOUNT_NAME = str(fin_data.get("account_name", "مصرف الراجحي | فارس ربيع العصيمي"))
+
+# استرجاع جدول الأمريكانو المحفوظ
+saved_schedule = fin_data.get("schedule_json")
+if isinstance(saved_schedule, str):
+    try:
+        saved_schedule = json.loads(saved_schedule)
+    except Exception:
+        saved_schedule = None
 
 # ==============================================================================
-# 5. منطق الشلال ومعالجة المقاعد وحماية التزامن (Waterfall & Integrity)
+# 5. محرك تدوير وموازنة الأمريكانو الرياضي المطور
 # ==============================================================================
-def sync_roster_and_waterfall(session_key: str):
+def generate_balanced_americano(players_list: list) -> list:
     """
-    معالجة الإلغاء التلقائي للمتأخرين وتصعيد قائمة الانتظار لضمان إشغال المقاعد.
+    توليد جدول 6 جولات دقيق لـ 6 لاعبين:
+    - كل لاعب يلعب 4 جولات ويرتاح جولتين بدقة تامة.
+    - موازنة مجموع مستويات الفرق بناءً على تقييم المستوى.
     """
+    if len(players_list) < 6:
+        return []
+
+    level_weights = {"متقدم": 3, "متوسط": 2, "مبتدئ متمكن": 1}
+
+    # مصفوفة الراحة الرياضية الصارمة (كل لاعب يرتاح مرتين فقط في 6 جولات)
+    rest_pairs_matrix = [
+        (4, 5),  # ج1: راحة 4 و 5
+        (0, 1),  # ج2: راحة 0 و 1
+        (2, 3),  # ج3: راحة 2 و 3
+        (0, 4),  # ج4: راحة 0 و 4
+        (1, 2),  # ج5: راحة 1 و 2
+        (3, 5)   # ج6: راحة 3 و 5
+    ]
+
+    schedule = []
+    for r_idx, rest_pair in enumerate(rest_pairs_matrix, 1):
+        active_players = [p for i, p in enumerate(players_list) if i not in rest_pair]
+        resting_players = [players_list[i] for i in rest_pair]
+
+        # اختبار التوزيعات الممكنة لاختيار الأقل فارقاً في المستوى
+        pairings = [
+            ((active_players[0], active_players[1]), (active_players[2], active_players[3])),
+            ((active_players[0], active_players[2]), (active_players[1], active_players[3])),
+            ((active_players[0], active_players[3]), (active_players[1], active_players[2]))
+        ]
+
+        best_pair = pairings[0]
+        min_diff = float('inf')
+
+        for t_a, t_b in pairings:
+            diff = abs(
+                sum(level_weights.get(p.get("level", "متوسط"), 2) for p in t_a) -
+                sum(level_weights.get(p.get("level", "متوسط"), 2) for p in t_b)
+            )
+            if diff < min_diff:
+                min_diff = diff
+                best_pair = (t_a, t_b)
+
+        schedule.append({
+            "round": r_idx,
+            "team_a": [best_pair[0][0]["name"], best_pair[0][1]["name"]],
+            "team_b": [best_pair[1][0]["name"], best_pair[1][1]["name"]],
+            "resting": [resting_players[0]["name"], resting_players[1]["name"]]
+        })
+
+    return schedule
+
+# ==============================================================================
+# 6. محرك الشلال التلقائي وتصفية المقاعد
+# ==============================================================================
+def process_waterfall_and_roster(session_key: str):
     now_utc = datetime.now(timezone.utc)
-    now_utc_str = now_utc.isoformat()
+    now_utc_iso = now_utc.isoformat()
     
     try:
-        response = supabase.table("bookings")\
-            .select("*")\
-            .eq("session_day", session_key)\
-            .order("id")\
-            .execute()
-        records = response.data or []
+        all_players = supabase.table("bookings") \
+            .select("*") \
+            .eq("session_day", session_key) \
+            .order("id") \
+            .execute().data or []
+            
+        confirmed_active = []
+        waitlist_players = []
+        
+        for p in all_players:
+            if p.get("status") == "waitlist":
+                waitlist_players.append(p)
+            elif p.get("status") == "confirmed":
+                is_paid = p.get("payment_status") == "paid"
+                is_expired = p.get("expires_at") and p["expires_at"] <= now_utc_iso
+                
+                # إلغاء المقعد المعلق بعد انقضاء الـ 15 دقيقة
+                if not is_paid and is_expired:
+                    supabase.table("bookings").update({
+                        "status": "cancelled",
+                        "player_note": "انتهاء مهلة السداد (15 دقيقة)"
+                    }).eq("id", p["id"]).execute()
+                else:
+                    confirmed_active.append(p)
+        
+        # تصعيد الانتظار تلقائياً في حال وجود شواغر
+        vacancies = COURT_CAPACITY - len(confirmed_active)
+        if vacancies > 0 and waitlist_players:
+            to_promote = waitlist_players[:vacancies]
+            for wp in to_promote:
+                new_exp = (now_utc + timedelta(minutes=15)).isoformat()
+                supabase.table("bookings").update({
+                    "status": "confirmed",
+                    "payment_status": "pending",
+                    "expires_at": new_exp,
+                    "player_note": "تصعيد تلقائي من قائمة الانتظار"
+                }).eq("id", wp["id"]).execute()
+                
+                wp["status"] = "confirmed"
+                wp["payment_status"] = "pending"
+                wp["expires_at"] = new_exp
+                confirmed_active.append(wp)
+                waitlist_players.remove(wp)
+                
+        return confirmed_active[:COURT_CAPACITY], waitlist_players
     except Exception:
         return [], []
 
-    active_confirmed = []
-    waitlist = []
-
-    for r in records:
-        status = r.get("status")
-        if status == "waitlist":
-            waitlist.append(r)
-        elif status == "confirmed":
-            is_paid = r.get("payment_status") == "paid"
-            exp_time = r.get("expires_at")
-            is_expired = exp_time and exp_time <= now_utc_str
-            
-            # إلغاء المقعد المعلق بعد انقضاء المهلة
-            if not is_paid and is_expired:
-                supabase.table("bookings").update({
-                    "status": "cancelled",
-                    "player_note": "إلغاء تلقائي: انتهاء مهلة الـ 15 دقيقة"
-                }).eq("id", r["id"]).execute()
-            else:
-                active_confirmed.append(r)
-
-    # التصعيد التلقائي للشواغر
-    available_slots = COURT_CAPACITY - len(active_confirmed)
-    if available_slots > 0 and waitlist:
-        promoted = waitlist[:available_slots]
-        for p in promoted:
-            new_exp = (now_utc + timedelta(minutes=PAYMENT_TIMEOUT_MINUTES)).isoformat()
-            supabase.table("bookings").update({
-                "status": "confirmed",
-                "payment_status": "pending",
-                "expires_at": new_exp,
-                "player_note": "تصعيد تلقائي من قائمة الانتظار"
-            }).eq("id", p["id"]).execute()
-            
-            p["status"] = "confirmed"
-            p["payment_status"] = "pending"
-            p["expires_at"] = new_exp
-            active_confirmed.append(p)
-            waitlist.remove(p)
-
-    return active_confirmed[:COURT_CAPACITY], waitlist
-
-confirmed_roster, waitlist_roster = sync_roster_and_waterfall(db_session_key)
-confirmed_count = len(confirmed_roster)
-waitlist_count = len(waitlist_roster)
-seats_remaining = max(0, COURT_CAPACITY - confirmed_count)
+confirmed_players, waitlist_players = process_waterfall_and_roster(db_session_key)
+booked_count = len(confirmed_players)
+waitlist_count = len(waitlist_players)
+seats_left = max(0, COURT_CAPACITY - booked_count)
 
 # ==============================================================================
-# 6. الواجهة الرئيسية وشبكة الكورت
+# 7. واجهة المستخدم والعداد التنازلي المباشر
 # ==============================================================================
-cutoff_timestamp_ms = int(session_start_dt.astimezone(timezone.utc).timestamp() * 1000)
+cutoff_epoch_ms = int(session_start_time.astimezone(timezone.utc).timestamp() * 1000)
 
 st.markdown(f"""
 <div class="hero-box">
     <div class="hero-title">🎾 Padel 99</div>
-    <div class="hero-desc">تمرين {display_session} • نظام أمريكانو تنافسي</div>
-    <div class="features-pill">⚡ كرات جديدة • مياه مبردة • تدوير متكافئ</div>
+    <div class="hero-desc">تمرين {display_session} • تنظيم متكامل وتنافسي</div>
+    <div class="features-pill">⚡ كرات جديدة • مياه مبردة • تدوير عادل 6 جولات</div>
     <div style="font-size:0.86em; color:#e2e8f0; margin-top:4px;">
-        ⏰ 9:30 م - 11:30 م | كورت 1 ({COURT_CAPACITY} لاعبين) • 
-        <b>{'متبقي ' + str(seats_remaining) + ' مقاعد فقط! 🔥' if seats_remaining > 0 else 'اكتملت المقاعد (متاح قائمة الانتظار ⏳)'}</b>
+        ⏰ 9:30 م - 11:30 م | كورت 1 ({COURT_CAPACITY} مقاعد) • 
+        <b>{'متبقي ' + str(seats_left) + ' مقاعد فقط! 🔥' if seats_left > 0 else 'المقاعد مكتملة (الانتظار متاح ⏳)'}</b>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# عداد الوقت التنازلي للتمرين
+# عداد موعد التمرين
 components.html(f"""
+<!DOCTYPE html>
 <div style="direction: rtl; text-align: center; font-family: -apple-system, sans-serif; background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 7px; color: #f59e0b; font-size: 13px; font-weight: 700;">
     ⏳ متبقي على انطلاق التمرين: <span id="event_timer" style="font-family: monospace; font-size: 16px; color: #fbbf24; font-weight: 900;">--:--:--</span>
 </div>
 <script>
-    var target = {cutoff_timestamp_ms};
+    var target = {cutoff_epoch_ms};
     function updateClock() {{
         var diff = target - new Date().getTime();
         var el = document.getElementById('event_timer');
@@ -381,84 +457,108 @@ components.html(f"""
 </script>
 """, height=48)
 
-# عرض بطاقات المقاعد
-seats_ui = []
+# عرض شبكة الكورت
+seats_html = []
 for i in range(COURT_CAPACITY):
-    if i < confirmed_count:
-        first_name = html.escape(confirmed_roster[i]['name'].split()[0])
-        seats_ui.append(f'<div class="seat-card seat-taken">👤 {first_name} (محجوز)</div>')
+    if i < booked_count:
+        p_name = html.escape(confirmed_players[i]['name'].split()[0])
+        seats_html.append(f'<div class="seat-card seat-taken">👤 {p_name} (محجوز)</div>')
     else:
-        seats_ui.append('<div class="seat-card seat-empty">✨ مقعد شاغر</div>')
+        seats_html.append('<div class="seat-card seat-empty">✨ مقعد شاغر</div>')
 
 st.markdown(f"""
 <div class="court-container">
-    <div class="court-header">🏟️ كورت 1 ({confirmed_count}/{COURT_CAPACITY})</div>
-    <div class="seats-grid">{''.join(seats_ui)}</div>
+    <div class="court-header">🏟️ كورت 1 ({booked_count}/{COURT_CAPACITY})</div>
+    <div class="seats-grid">{''.join(seats_html)}</div>
 </div>
 """, unsafe_allow_html=True)
 
-# خطة تنظيم التمرين (نظام الأمريكانو)
-with st.expander("📋 تفاصيل نظام التدوير والأمريكانو (120 دقيقة)"):
+# بطاقة تفاصيل التدوير والأمريكانو
+with st.expander("📋 نظام التدوير وضمان حقك باللعب (نظام الأمريكانو 120 دقيقة)"):
     st.markdown("""
-    <div style="background: rgba(15, 23, 42, 0.7); border: 1px dashed #334155; border-radius: 10px; padding: 10px; font-size: 0.8em; color: #cbd5e1; line-height: 1.6;">
-        • <b>مدة الجلسة:</b> ساعتان (120 دقيقة) مقسمة بالتساوي على 6 جولات.<br>
-        • <b>الجهد البدني:</b> يلعب كل لاعب 4 جولات فعلية (72 دقيقة لعب عالي الكثافة).<br>
-        • <b>الاسترجاع:</b> جولتان راحة (36 دقيقة) لإعادة الترطيب والتواصل الاجتماعي.<br>
-        • <b>العدالة:</b> نظام تدوير الشركاء الرياضي لضمان التكافؤ التام بين جميع المشتركين.
+    <div style="background: rgba(15, 23, 42, 0.7); border: 1px dashed #334155; border-radius: 12px; padding: 10px; margin: 8px 0; font-size: 0.8em; color: #cbd5e1; line-height: 1.6;">
+        • <b>مدة التمرين:</b> ساعتان كاملة (120 دقيقة) مقسمة على 6 جولات منظمة.<br>
+        • <b>وقت اللعب الفعلي:</b> يلعب كل مشترك 4 جولات كاملة (نحو 75 دقيقة لعب عالي الكثافة).<br>
+        • <b>فترات الراحة:</b> جولتان منفصلتان (35 دقيقة) للاسترجاع، شرب الماء، والتواصل.<br>
+        • <b>العدالة:</b> تدوير شركاء اللعب بالتساوي والموازنة الرياضية للمستويات 🎾.
     </div>
     """, unsafe_allow_html=True)
 
+# عرض جدول الجولات للمشتركين إذا تم اعتماده
+if saved_schedule:
+    with st.expander("🎾 جدول المباريات ومواعيد الراحة (معتمد)", expanded=True):
+        for m in saved_schedule:
+            p1, p2 = m['team_a'][0].split()[0], m['team_a'][1].split()[0]
+            p3, p4 = m['team_b'][0].split()[0], m['team_b'][1].split()[0]
+            r1, r2 = m['resting'][0].split()[0], m['resting'][1].split()[0]
+            st.markdown(f"""
+            <div class="match-card">
+                <div class="match-title">
+                    <span>⚔️ الجولة {m['round']}</span>
+                    <span style="color:#38bdf8;">ملعب 1</span>
+                </div>
+                <div class="match-teams">
+                    <b>[{p1} + {p2}]</b> <span style="color:#ef4444; font-weight:700;">ضد</span> <b>[{p3} + {p4}]</b>
+                </div>
+                <div class="match-rest">☕ استراحة: {r1} و {r2}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
 # ==============================================================================
-# 7. معالجة تدفق الحجز والتحقق المنطقي المزدوج
+# 8. شاشات ما بعد التسجيل
 # ==============================================================================
-if "current_user_booking" in st.session_state:
-    booking_meta = st.session_state["current_user_booking"]
+if "booked" in st.session_state:
+    b = st.session_state["booked"]
     
-    if booking_meta.get("is_waitlist", False):
+    # 1. شاشة قائمة الانتظار
+    if b.get("is_waitlist", False):
         st.markdown(f"""
         <div class="status-card-waitlist">
             <h2 style="color:#fbbf24; margin:0 0 6px 0;">⏳ تم تسجيلك في قائمة الانتظار</h2>
-            <div style="font-size:1.05em; color:#fef3c7; margin:6px 0;">
-                ترتيبك الحالي: <b style="font-size:1.4em; color:#ffffff;">#{booking_meta.get('position', 1)}</b>
+            <div style="font-size:1.05em; color:#fef3c7; margin:8px 0;">
+                ترتيبك الحالي: <b style="font-size:1.4em; color:#ffffff;">#{b.get('pos', 1)}</b>
             </div>
             <div style="font-size:0.84em; color:#fde68a; line-height:1.6;">
-                يراقب النظام سداد المقاعد آلياً؛ في حال تعثر سداد أي مقعد خلال مهلته، يتم تصعيدك تلقائياً للتشكيلة الأساسية وتفتح لك نافذة السداد.
+                النظام يراقب المقاعد لحظياً؛ بمجرد اعتذار أي لاعب أو انقضاء مهلة الـ 15 دقيقة، 
+                <b>يتم تصعيدك تلقائياً لتدخل الملعب وتتاح لك مهلة التحويل.</b>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
-        wa_wait_text = f"هلا كابتن فارس 🎾\nأنا مسجل في انتظار بادل 99 ({display_session})\n👤 الاسم: {booking_meta['name']}\n🔢 ترتيبي: #{booking_meta.get('position', 1)}\nجاهز للتحويل وتأكيد المقعد فور توفره! 🔥"
-        wa_wait_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_wait_text)}"
-        st.markdown(f'<a href="{wa_wait_link}" target="_blank" class="wa-btn" style="background:#d97706;">📲 تأكيد وجودي بالانتظار عبر واتساب</a>', unsafe_allow_html=True)
-    
+        wa_wait_msg = f"هلا كابتن فارس 🎾\nأنا مسجل في انتظار تمرين بادل 99 ({display_session})\n👤 الاسم: {b['name']}\n🔢 ترتيبي: #{b.get('pos', 1)}\n\nبلغني لو توفر مقعد شاغر عشان أحول فوراً! 🔥"
+        wa_wait_url = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_wait_msg)}"
+        st.markdown(f'<a href="{wa_wait_url}" target="_blank" class="wa-btn" style="background:#d97706;">📲 تأكيد وجودي بالانتظار عبر واتساب</a>', unsafe_allow_html=True)
+        
+    # 2. شاشة الحجز المؤكد والدفع
     else:
-        expire_ms = booking_meta.get("expire_timestamp", 0)
-        memo_code = booking_meta.get("memo_code", "P99")
+        target_epoch_ms = b.get("expire_timestamp", 0)
+        memo_code = b.get("memo_code", "P99")
         
         st.markdown(f"""
         <div class="status-card-success">
-            <h2 style="color:#22c55e; margin:0 0 4px 0;">🎉 تم حجز مقعدك المبدئي!</h2>
+            <h2 style="color:#22c55e; margin:0 0 4px 0;">🎉 تم حجز مقعدك بنجاح!</h2>
             <div style="font-size:1em; color:#e2e8f0; margin:6px 0;">
-                المبلغ المطلوب للتحويل: <b style="color:#22c55e; font-size:1.35em;">{int(UNIT_PRICE)} ر.س</b>
+                المبلغ المطلوب للسداد: <b style="color:#22c55e; font-size:1.35em;">{int(UNIT_PRICE)} ر.س</b>
             </div>
             <div style="font-size:0.85em; color:#94a3b8; margin-top:4px;">
-                رمز الحجز المرجعي الخاص بك:
+                كود الحجز المرجعي الخاص بك:
             </div>
             <div class="memo-tag">#{memo_code}</div>
-            <div style="font-size:0.75em; color:#f87171;">(هام: اكتب الرمز أعلاه في خانة الملاحظات أثناء التحويل البنكي)</div>
+            <div style="font-size:0.75em; color:#f87171;">(يرجى كتابة الكود في خانة الملاحظات أثناء التحويل البنكي)</div>
         </div>
         """, unsafe_allow_html=True)
         
         # عداد الـ 15 دقيقة
         components.html(f"""
-        <div style="direction: rtl; text-align: center; font-family: -apple-system, sans-serif; background: rgba(239, 68, 68, 0.2); border: 2px solid #ef4444; border-radius: 14px; padding: 10px; color: #fca5a5; margin: 4px auto;">
-            <div style="font-size: 13px; font-weight: 700; margin-bottom: 2px;">⏱️ مهلة سداد وتثبيت المقعد:</div>
-            <div id="big_pay_timer" style="font-family: monospace; font-size: 34px; color: #ef4444; font-weight: 900; letter-spacing: 2px;">--:--</div>
-            <div style="font-size: 11px; color: #f87171;">(بعد انتهاء العداد يلغى الحجز آلياً ويصعد اللاعب التالي بالانتظار)</div>
+        <!DOCTYPE html>
+        <div style="direction: rtl; text-align: center; font-family: -apple-system, sans-serif; background: rgba(239, 68, 68, 0.2); border: 2px solid #ef4444; border-radius: 14px; padding: 12px; color: #fca5a5; margin: 4px auto;">
+            <div style="font-size: 14px; font-weight: 700; margin-bottom: 4px;">⏱️ مهلة سداد وتثبيت المقعد:</div>
+            <div id="big_pay_timer" style="font-family: monospace; font-size: 36px; color: #ef4444; font-weight: 900; letter-spacing: 2px;">--:--</div>
+            <div style="font-size: 11px; color: #f87171; margin-top: 2px;">(تنبيه: بعد انتهاء العداد يتحول المقعد تلقائياً للاعب التالي في الانتظار)</div>
         </div>
         <script>
-            var payTarget = {expire_ms};
-            function runPaymentTimer() {{
+            var payTarget = {target_epoch_ms};
+            function updatePayTimer() {{
                 var diff = payTarget - new Date().getTime();
                 var el = document.getElementById('big_pay_timer');
                 if (!el) return;
@@ -471,169 +571,167 @@ if "current_user_booking" in st.session_state:
                 var s = Math.floor((diff % 60000) / 1000);
                 el.innerHTML = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
             }}
-            runPaymentTimer();
-            setInterval(runPaymentTimer, 1000);
+            updatePayTimer();
+            setInterval(updatePayTimer, 1000);
         </script>
-        """, height=105)
+        """, height=110)
 
         st.markdown(f"""
         <div style="background:#1e293b; border:1px solid #334155; border-radius:10px; padding:8px 12px; text-align:center; margin-top:8px;">
             <div style="font-size:0.8em; color:#94a3b8;">{ACCOUNT_NAME}</div>
-            <div style="font-size:0.75em; color:#38bdf8; margin-top:2px;">انسخ رقم الآيبان للتحويل 👇</div>
+            <div style="font-size:0.75em; color:#38bdf8; margin-top:2px;">اضغط على الأيقونة لنسخ رقم الآيبان مباشرة 👇</div>
         </div>
         """, unsafe_allow_html=True)
+        
         st.code(IBAN_NUMBER, language=None)
         
-        wa_confirm_text = f"هلا كابتن فارس 🎾\nحجزت مقعدي في تمرين بادل 99 ({display_session})\n👤 الكابتن: {booking_meta['name']}\n🔖 كود الحجز: #{memo_code}\n💵 المبلغ المحول: {int(UNIT_PRICE)} ر.س\n\nمرفق إيصال التحويل البنكي للتثبيت النهائي! 🔥"
-        wa_confirm_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_confirm_text)}"
-        st.markdown(f'<a href="{wa_confirm_link}" target="_blank" class="wa-btn">📲 إرسال الإيصال عبر واتساب وتثبيت المقعد</a>', unsafe_allow_html=True)
+        wa_msg = f"هلا كابتن فارس 🎾\nأكدت حجز مقعدي في تمرين بادل 99 🤩\n\n👤 الكابتن: {b['name']}\n🔖 كود الحجز: #{memo_code}\n📅 تمرين: {display_session}\n💵 المبلغ المحول: {int(UNIT_PRICE)} ر.س\n\nمرفق إيصال التحويل لتثبيت المقعد! 🔥"
+        wa_url = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_msg)}"
+        st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال الإيصال عبر واتساب وتأكيد المقعد</a>', unsafe_allow_html=True)
 
+# ==============================================================================
+# 9. نموذج التسجيل الموحد
+# ==============================================================================
 else:
-    is_waitlist_mode = (seats_remaining == 0)
-    btn_text = "التسجيل في قائمة الانتظار ⏳" if is_waitlist_mode else "تثبيت المقعد والانتقال للسداد 💸"
+    is_mode_waitlist = (seats_left == 0)
+    btn_label = "التسجيل في قائمة الانتظار ⏳" if is_mode_waitlist else "تثبيت المقعد والانتقال للسداد 💸"
     
-    if is_waitlist_mode:
-        st.warning(f"⚠️ اكتملت المقاعد الـ 6 الأساسية. التسجيل متاح في قائمة الانتظار (يوجد {waitlist_count} لاعبين بالانتظار).")
+    if is_mode_waitlist:
+        st.warning(f"⚠️ اكتملت مقاعد الكورت الـ 6. التسجيل متاح في قائمة الانتظار (يوجد {waitlist_count} لاعبين بالانتظار).")
         
-    with st.form("booking_form_v6", clear_on_submit=False):
-        form_name = st.text_input("اسم اللاعب", placeholder="اكتب اسمك الثنائي أو الثلاثي", key="player_name_input")
-        form_phone = st.text_input("رقم الجوال (05xxxxxxxx)", placeholder="05xxxxxxxx", key="player_phone_input")
-        form_level = st.selectbox(
+    with st.form("main_booking_unified_v8", clear_on_submit=False):
+        f_name = st.text_input("اسم اللاعب", placeholder="اكتب اسمك الثلاثي أو الثنائي", key="f_name_v8")
+        f_phone = st.text_input("رقم الجوال (05xxxxxxxx)", placeholder="05xxxxxxxx", key="f_phone_v8")
+        f_level = st.selectbox(
             "مستوى اللعب", 
-            ["🟢 متوسط • ثبات في التبادلات والتمركز", "🔵 متقدم • سرعة وتكتيك وقوة ضربات", "🟡 مبتدئ متمكن • إلمام بالقواعد والإرسال"],
-            key="player_level_select"
+            ["🟢 متوسط • ثبات في التبادلات والتمركز", "🔵 متقدم • سرعة وتكتيك وقوة ضربات", "🟡 مبتدئ متمكن • معرفة بقواعد اللعب والإرسال"],
+            key="f_level_v8"
         )
-        # فخ برائحة العسل لمكافحة روبوتات السبام
-        st.markdown('<div class="honeypot-field">', unsafe_allow_html=True)
-        honeypot = st.text_input("hp_field", key="hp_field_key", label_visibility="collapsed")
-        st.markdown('</div>', unsafe_allow_html=True)
+        hp = st.text_input("hp", label_visibility="collapsed", key="f_hp_v8")
         
-        submit_booking = st.form_submit_button(btn_text, use_container_width=True)
+        btn_submit = st.form_submit_button(btn_label, use_container_width=True)
 
-        if submit_booking:
-            if honeypot:
-                st.stop()  # استبعاد روبوتات الجمع العشوائي
-                
-            clean_name = form_name.strip()
-            # توحيد الأرقام وتطهير المدخلات
-            arabic_to_western = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
-            clean_phone = re.sub(r'[\s\-\+]', '', form_phone.strip().translate(arabic_to_western))
-            if clean_phone.startswith("966"):
-                clean_phone = "0" + clean_phone[3:]
-            elif clean_phone.startswith("5"):
-                clean_phone = "0" + clean_phone
-                
+        if btn_submit and not hp:
+            clean_name = f_name.strip()
+            raw_phone = f_phone.strip().translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
+            clean_phone = re.sub(r'[\s\-\+]', '', raw_phone)
+            if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
+            elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
+            
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
-                st.error("يرجى إدخال اسم صحيح ورقم جوال سعودي يبدأ بـ 05 ويتكون من 10 أرقام.")
+                st.error("فضلاً أدخل اسمك ورقم جوال سعودي صحيح يبدأ بـ 05.")
             else:
                 try:
-                    # إعادة فحص السجلات لحظياً قبل إتمام المعاملة لمنع التصادم
-                    active_c, active_w = sync_roster_and_waterfall(db_session_key)
+                    c_active, w_active = process_waterfall_and_roster(db_session_key)
                     
-                    if any(x["phone"] == clean_phone for x in active_c):
-                        st.warning("أنت مسجل بالفعل في التشكيلة الأساسية لهذا التمرين!")
-                    elif any(x["phone"] == clean_phone for x in active_w):
+                    if any(item["phone"] == clean_phone for item in c_active):
+                        st.warning("أنت مسجل بالفعل ومقعدك محجوز في هذا التمرين!")
+                    elif any(item["phone"] == clean_phone for item in w_active):
                         st.warning("أنت مسجل مسبقاً في قائمة الانتظار!")
                     else:
                         memo_id = f"P99-{clean_phone[-4:]}"
-                        now_utc = datetime.now(timezone.utc)
+                        selected_lvl = f_level.split("•")[0].strip().replace("🟢", "").replace("🔵", "").replace("🟡", "").strip()
                         
-                        # تحقق منطقي من الطاقة الاستيعابية
-                        if len(active_c) < COURT_CAPACITY:
-                            expire_at = now_utc + timedelta(minutes=PAYMENT_TIMEOUT_MINUTES)
+                        if len(c_active) < COURT_CAPACITY:
+                            now_utc = datetime.now(timezone.utc)
+                            expire_dt = now_utc + timedelta(minutes=15)
+                            
                             supabase.table("bookings").insert({
                                 "name": clean_name,
                                 "phone": clean_phone,
                                 "session_day": db_session_key,
                                 "court": 1,
-                                "level": form_level.split("•")[0].strip(),
+                                "level": selected_lvl,
                                 "status": "confirmed",
                                 "payment_status": "pending",
-                                "expires_at": expire_at.isoformat(),
+                                "expires_at": expire_dt.isoformat(),
                                 "hear_about": "DIRECT",
                                 "player_note": f"MEMO:{memo_id}"
                             }).execute()
                             
-                            st.session_state["current_user_booking"] = {
+                            st.session_state["booked"] = {
                                 "name": clean_name,
                                 "memo_code": memo_id,
                                 "is_waitlist": False,
-                                "expire_timestamp": int(expire_at.timestamp() * 1000)
+                                "expire_timestamp": int(expire_dt.timestamp() * 1000)
                             }
                             st.rerun()
                         else:
-                            # في حال اكتمال المقاعد أثناء إدخال البيانات، يوجه للانتظار تلقائياً
                             supabase.table("bookings").insert({
                                 "name": clean_name,
                                 "phone": clean_phone,
                                 "session_day": db_session_key,
                                 "court": 1,
-                                "level": form_level.split("•")[0].strip(),
+                                "level": selected_lvl,
                                 "status": "waitlist",
                                 "payment_status": "unpaid",
                                 "hear_about": "WAITLIST",
                                 "player_note": "انتظار"
                             }).execute()
                             
-                            st.session_state["current_user_booking"] = {
+                            st.session_state["booked"] = {
                                 "name": clean_name,
                                 "is_waitlist": True,
-                                "position": len(active_w) + 1
+                                "pos": len(w_active) + 1
                             }
                             st.rerun()
-                            
                 except Exception as ex:
-                    st.error(f"حدث خطأ أثناء معالجة العملية: {ex}")
+                    st.error(f"حدث خطأ أثناء معالجة الطلب: {ex}")
 
 # ==============================================================================
-# 8. لوحة الإدارة ونظام دعم القرار المالي (Decision Support System)
+# 10. لوحة الإدارة الشاملة (الأمريكانو المطور + التحكم المالي والكشوفات)
 # ==============================================================================
 st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-with st.expander("⚙️ لوحة الإدارة والتحكم المالي"):
-    admin_pass = st.text_input("رمز الدخول (PIN):", type="password", key="admin_pin_input_master")
+with st.expander("⚙️ لوحة الإدارة والتحكم الشامل"):
+    admin_pin = st.text_input("رمز الدخول السري (PIN):", type="password", key="admin_pin_input_master_v8")
     
-    if admin_pass and hmac.compare_digest(admin_pass.strip(), ADMIN_PIN_HASH):
-        st.success("🔓 تم التحقق وفتح صلاحيات الإدارة.")
-        tab_fin, tab_roster, tab_settings = st.tabs(["💰 المركز المالي", "👥 كشف اللاعبين", "🛠️ تعديل التكاليف"])
+    if admin_pin and hmac.compare_digest(admin_pin.strip(), ADMIN_PIN_HASH):
+        st.success("🔓 تم فتح لوحة التحكم الإدارية.")
         
-        # 1. المركز المالي ومؤشرات الأداء (KPIs)
-        with tab_fin:
-            records_res = supabase.table("bookings").select("id, name, phone, status, payment_status").eq("session_day", db_session_key).execute()
-            records = records_res.data or []
+        tab1, tab2, tab3, tab4 = st.tabs([
+            "💰 المركز المالي", 
+            "👥 كشف الملعب والانتظار", 
+            "🎾 تدوير وضبط الأمريكانو", 
+            "🛠️ تعديل الأسعار"
+        ])
+        
+        # 1. المركز المالي
+        with tab1:
+            all_records = supabase.table("bookings") \
+                .select("id, name, phone, status, payment_status") \
+                .eq("session_day", db_session_key) \
+                .execute().data or []
+                
+            paid_players = [p for p in all_records if p.get("status") == "confirmed" and p.get("payment_status") == "paid"]
+            pending_players = [p for p in all_records if p.get("status") == "confirmed" and p.get("payment_status") == "pending"]
             
-            paid_players = [p for p in records if p.get("status") == "confirmed" and p.get("payment_status") == "paid"]
-            pending_players = [p for p in records if p.get("status") == "confirmed" and p.get("payment_status") == "pending"]
-            
-            inflow_actual = len(paid_players) * UNIT_PRICE
-            inflow_projected = len(pending_players) * UNIT_PRICE
+            paid_count = len(paid_players)
+            total_inflow = paid_count * UNIT_PRICE
+            pending_inflow = len(pending_players) * UNIT_PRICE
             total_expenses = COURT_COST + BALLS_COST + WATER_COST
-            escrow_obligation = min(inflow_actual, COURT_COST) if not COURT_IS_PAID else 0
-            net_operating_profit = inflow_actual - total_expenses
-            
-            # حساب نقطة التعادل التشغيلي ومعدل الأمان
-            break_even_players = math.ceil(total_expenses / UNIT_PRICE) if UNIT_PRICE > 0 else 0
-            margin_of_safety_seats = COURT_CAPACITY - break_even_players
+            escrow_reserved = min(total_inflow, COURT_COST) if not COURT_IS_PAID else 0
+            net_profit = total_inflow - total_expenses
+            break_even_seats = max(1, int(-(-total_expenses // UNIT_PRICE)))
             
             st.markdown(f"""
             <div class="finance-card">
-                <div style="font-weight:800; color:#38bdf8; font-size:0.95em; margin-bottom:8px;">📊 مؤشرات الجلسة ({db_session_key}):</div>
-                <div class="stat-row"><span>💵 المقبوضات الفعلية (الكاش المحصل):</span><b style="color:#22c55e;">{int(inflow_actual)} ر.س</b></div>
-                <div class="stat-row"><span>⏳ المقبوضات المتوقعة (قيد التأكيد):</span><b style="color:#fbbf24;">{int(inflow_projected)} ر.س</b></div>
-                <div class="stat-row"><span>🏟️ إيجار الملعب:</span><span>{int(COURT_COST)} ر.س ({'مسدد ✅' if COURT_IS_PAID else 'مستحق ⏳'})</span></div>
+                <div style="font-weight:800; color:#38bdf8; font-size:0.95em; margin-bottom:8px;">📊 ملخص الجلسة ({db_session_key}):</div>
+                <div class="stat-row"><span>💵 إجمالي المقبوض كاش (المدفوع):</span><b style="color:#22c55e;">{int(total_inflow)} ر.س</b></div>
+                <div class="stat-row"><span>⏳ مبالغ معلقة (قيد التحويل):</span><b style="color:#fbbf24;">{int(pending_inflow)} ر.س</b></div>
+                <div class="stat-row"><span>🏟️ تكلفة إيجار الملعب:</span><span>{int(COURT_COST)} ر.س ({'تم السداد ✅' if COURT_IS_PAID else 'معلق لم يسدد ⏳'})</span></div>
                 <div class="stat-row"><span>🎾 تكلفة الكرات الجديدة:</span><span>{int(BALLS_COST)} ر.س</span></div>
-                <div class="stat-row"><span>💧 تكلفة المياه:</span><span>{int(WATER_COST)} ر.س</span></div>
-                <div class="stat-row"><span>🔒 أمانة الملعب المحتجزة (Escrow):</span><b style="color:#38bdf8;">{int(escrow_obligation)} ر.س</b></div>
-                <div class="stat-row"><span>🎯 نقطة التعادل (Break-even):</span><b>{break_even_players} مقاعد تغطي التكاليف</b></div>
-                <div class="stat-row"><span>🛡️ هامش الأمان التشغيلي:</span><b>{margin_of_safety_seats} مقاعد أرباح خالصة</b></div>
-                <div class="stat-row" style="border:none; margin-top:6px;">
-                    <span style="font-size:1em;">🏆 صافي الربح التشغيلي المحقق:</span>
-                    <b style="color:{'#22c55e' if net_operating_profit >= 0 else '#ef4444'}; font-size:1.15em;">{int(net_operating_profit)} ر.س</b>
+                <div class="stat-row"><span>💧 تكلفة مياه الشرب:</span><span>{int(WATER_COST)} ر.س</span></div>
+                <div class="stat-row"><span>🔒 أمانة الملعب المحجوزة (Escrow):</span><b style="color:#38bdf8;">{int(escrow_reserved)} ر.س</b></div>
+                <div class="stat-row"><span>🎯 نقطة التعادل:</span><b>{break_even_seats} مقاعد لتغطية التكاليف</b></div>
+                <div class="stat-row" style="border:none; margin-top:6px; font-size:1em;">
+                    <span>🏆 صافي الربح الحقيقي:</span>
+                    <b style="color:{'#22c55e' if net_profit >= 0 else '#ef4444'}; font-size:1.15em;">{int(net_profit)} ر.س</b>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
             if not COURT_IS_PAID:
-                if st.button("تأكيد سداد الملعب وإخلاء عهدة الأمانة 🏟️", use_container_width=True):
+                if st.button("تأكيد سداد الملعب رسمياً 🏟️", use_container_width=True):
                     supabase.table("session_finance").upsert({"session_day": db_session_key, "court_paid": True}, on_conflict="session_day").execute()
                     st.rerun()
             else:
@@ -641,40 +739,40 @@ with st.expander("⚙️ لوحة الإدارة والتحكم المالي"):
                     supabase.table("session_finance").upsert({"session_day": db_session_key, "court_paid": False}, on_conflict="session_day").execute()
                     st.rerun()
 
-        # 2. كشف اللاعبين والتحكم الإداري
-        with tab_roster:
-            st.markdown("#### 👥 التشكيلة الأساسية للكورت:")
-            c_current, w_current = sync_roster_and_waterfall(db_session_key)
+        # 2. كشف اللاعبين وتمديد المهلة
+        with tab2:
+            st.markdown("#### 👥 المؤكدين في الملعب:")
+            c_list, w_list = process_waterfall_and_roster(db_session_key)
             
-            for row in c_current:
-                col1, col2, col3, col4 = st.columns([2, 1.1, 1.1, 1.1])
-                col1.write(f"**{row['name']}**\n`{row['phone']}`")
+            for row in c_list:
+                c1, c2, c3, c4 = st.columns([2, 1.1, 1.1, 1.1])
+                c1.write(f"**{row['name']}** ({row.get('level', 'متوسط')})\n`{row['phone']}`")
                 
                 if row['payment_status'] == 'paid':
-                    col2.markdown("<span style='color:#22c55e; font-weight:700;'>مدفوع ✅</span>", unsafe_allow_html=True)
+                    c2.markdown("<span style='color:#22c55e; font-weight:700;'>مدفوع ✅</span>", unsafe_allow_html=True)
                 else:
-                    col2.markdown("<span style='color:#fbbf24; font-weight:700;'>معلق ⏳</span>", unsafe_allow_html=True)
-                    if col3.button("تأكيد ✅", key=f"pay_btn_{row['id']}"):
+                    c2.markdown("<span style='color:#fbbf24; font-weight:700;'>معلق ⏳</span>", unsafe_allow_html=True)
+                    if c3.button("تثبيت ✅", key=f"pay_btn_v8_{row['id']}"):
                         supabase.table("bookings").update({"payment_status": "paid"}).eq("id", row['id']).execute()
                         st.rerun()
                         
-                    if col4.button("+15د ⏱️", key=f"ext_btn_{row['id']}"):
-                        base_t = datetime.fromisoformat(row['expires_at'].replace('Z', '+00:00')) if row.get('expires_at') else datetime.now(timezone.utc)
-                        new_t = (base_t + timedelta(minutes=15)).isoformat()
-                        supabase.table("bookings").update({"expires_at": new_t}).eq("id", row['id']).execute()
-                        st.success(f"تم تمديد المهلة لـ {row['name']}!")
+                    if c4.button("+15د ⏱️", key=f"extend_btn_v8_{row['id']}"):
+                        current_exp = datetime.fromisoformat(row['expires_at'].replace('Z', '+00:00')) if row.get('expires_at') else datetime.now(timezone.utc)
+                        new_exp = (current_exp + timedelta(minutes=15)).isoformat()
+                        supabase.table("bookings").update({"expires_at": new_exp}).eq("id", row['id']).execute()
+                        st.success(f"تم تمديد المهلة 15 دقيقة لـ {row['name']}!")
                         st.rerun()
                         
             st.markdown("---")
-            st.markdown(f"#### ⏳ قائمة الانتظار ({len(w_current)} لاعبين):")
-            if not w_current:
-                st.info("لا توجد أسماء في قائمة الانتظار حالياً.")
+            st.markdown(f"#### ⏳ قائمة الانتظار ({len(w_list)} لاعبين):")
+            if not w_list:
+                st.info("لا يوجد لاعبين في قائمة الانتظار حالياً.")
             else:
-                for idx, wp in enumerate(w_current, 1):
-                    cw1, cw2, cw3 = st.columns([2.5, 1.2, 1])
-                    cw1.write(f"**#{idx} - {wp['name']}**\n`{wp['phone']}`")
+                for idx, wp in enumerate(w_list, 1):
+                    col_w1, col_w2, col_w3 = st.columns([2.5, 1.2, 1])
+                    col_w1.write(f"**#{idx} - {wp['name']}**\n`{wp['phone']}`")
                     
-                    if cw2.button("تصعيد ⬆️", key=f"promote_{wp['id']}"):
+                    if col_w2.button("تصعيد ⬆️", key=f"promo_v8_{wp['id']}"):
                         new_promo_exp = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
                         supabase.table("bookings").update({
                             "status": "confirmed",
@@ -684,40 +782,114 @@ with st.expander("⚙️ لوحة الإدارة والتحكم المالي"):
                         st.success(f"تم تصعيد {wp['name']} إلى الملعب!")
                         st.rerun()
                         
-                    promo_wa_msg = f"هلا كابتن {wp['name']} 🎾\nألف مبروك! توفر مقعد لك في تمرين بادل 99 ({display_session}) 🤩\nأمامك 15 دقيقة لتحويل الرسوم ({int(UNIT_PRICE)} ر.س) لتثبيت الحجز.\nالآيبان: {IBAN_NUMBER}\nبانتظار إيصالك! 🔥"
-                    promo_link = f"https://wa.me/{wp['phone'].replace('05', '9665', 1)}?text={urllib.parse.quote(promo_wa_msg)}"
-                    cw3.markdown(f'<a href="{promo_link}" target="_blank" style="text-decoration:none; font-size:1.3em;">💬</a>', unsafe_allow_html=True)
+                    promo_wa = f"هلا كابتن {wp['name']} 🎾\nألف مبروك! توفر لك مقعد رسمي في تمرين بادل 99 ({display_session}) 🤩\nمهلتك 15 دقيقة لتأكيد التحويل ({int(UNIT_PRICE)} ر.س) وتثبيت المقعد.\nالآيبان: {IBAN_NUMBER}\nبانتظار إيصالك! 🔥"
+                    p_url = f"https://wa.me/{wp['phone'].replace('05', '9665', 1)}?text={urllib.parse.quote(promo_wa)}"
+                    col_w3.markdown(f'<a href="{p_url}" target="_blank" style="text-decoration:none; font-size:1.3em;">💬</a>', unsafe_allow_html=True)
 
-        # 3. إعدادات التسعير المرن الفوري
-        with tab_settings:
-            st.markdown("#### 🛠️ تعديل الأسعار والتكاليف:")
-            with st.form("admin_settings_form"):
-                in_court = st.number_input("تكلفة إيجار الملعب (ر.س):", value=int(COURT_COST), step=10)
-                in_unit = st.number_input("سعر المقعد للاعب (ر.س):", value=int(UNIT_PRICE), step=5)
-                in_balls = st.number_input("تكلفة علبة الكرات (ر.س):", value=int(BALLS_COST), step=5)
-                in_water = st.number_input("تكلفة كرتون المياه (ر.س):", value=int(WATER_COST), step=5)
+        # 3. تدوير وضبط الأمريكانو المطور (توليد آلي وتحكم يدوي)
+        with tab3:
+            st.markdown("#### 🔄 نظام وتدوير الأمريكانو (6 جولات متوازنة):")
+            c_players, _ = process_waterfall_and_roster(db_session_key)
+            
+            if len(c_players) < 6:
+                st.warning(f"⚠️ يلزم اكتمال الـ 6 لاعبين لتوليد الجدول بدقة. (المسجلين حالياً: {len(c_players)}/6)")
+            else:
+                st.markdown("##### 👥 اللاعبين ومستوياتهم:")
+                p_cols = st.columns(3)
+                for idx, pl in enumerate(c_players):
+                    p_cols[idx % 3].caption(f"• **{pl['name'].split()[0]}**: {pl.get('level', 'متوسط')}")
+                
+                # زر التوليد الذكي المتكافئ
+                if st.button("⚡ توليد جدول متكافئ تلقائياً بناءً على المستويات", use_container_width=True):
+                    gen_schedule = generate_balanced_americano(c_players)
+                    st.session_state["draft_schedule"] = gen_schedule
+                    st.success("تم توليد التشكيلات المتوازنة بنجاح! يمكنك مراجعتها وحفظها بالأسفل 👇")
+
+            # مساحة التحكم والتعديل اليدوي على الجولات
+            current_active_sched = st.session_state.get("draft_schedule", saved_schedule)
+            
+            if current_active_sched and len(c_players) == 6:
                 st.markdown("---")
-                in_iban = st.text_input("رقم الآيبان (IBAN):", value=IBAN_NUMBER)
-                in_acc = st.text_input("اسم الحساب والبنك:", value=ACCOUNT_NAME)
+                st.markdown("##### ✏️ ضبط وتعديل أطراف الجولات يدوياً:")
                 
-                save_settings = st.form_submit_button("حفظ وتحديث فوري 💾", use_container_width=True)
+                player_names = [p["name"] for p in c_players]
+                edited_schedule = []
                 
-                if save_settings:
-                    payload = {
+                for idx, r_data in enumerate(current_active_sched):
+                    with st.expander(f"الجولة {r_data['round']} (تعديل الفرق)", expanded=False):
+                        col_t1, col_t2 = st.columns(2)
+                        
+                        # الفريق الأول
+                        def_a1 = r_data['team_a'][0] if r_data['team_a'][0] in player_names else player_names[0]
+                        def_a2 = r_data['team_a'][1] if r_data['team_a'][1] in player_names else player_names[1]
+                        a1 = col_t1.selectbox(f"فريق أ (لاعب 1) - ج{idx+1}", player_names, index=player_names.index(def_a1), key=f"sa1_{idx}")
+                        a2 = col_t1.selectbox(f"فريق أ (لاعب 2) - ج{idx+1}", player_names, index=player_names.index(def_a2), key=f"sa2_{idx}")
+                        
+                        # الفريق الثاني
+                        def_b1 = r_data['team_b'][0] if r_data['team_b'][0] in player_names else player_names[2]
+                        def_b2 = r_data['team_b'][1] if r_data['team_b'][1] in player_names else player_names[3]
+                        b1 = col_t2.selectbox(f"فريق ب (لاعب 1) - ج{idx+1}", player_names, index=player_names.index(def_b1), key=f"sb1_{idx}")
+                        b2 = col_t2.selectbox(f"فريق ب (لاعب 2) - ج{idx+1}", player_names, index=player_names.index(def_b2), key=f"sb2_{idx}")
+                        
+                        # حساب لاعبي الاستراحة تلقائياً
+                        current_active_set = {a1, a2, b1, b2}
+                        rest_names = [p for p in player_names if p not in current_active_set]
+                        
+                        if len(current_active_set) < 4:
+                            st.error("⚠️ يوجد تكرار في أسماء اللاعبين المشاركين في هذه الجولة!")
+                        else:
+                            st.caption(f"☕ استراحة الجولة: {', '.join(rest_names)}")
+                            
+                        edited_schedule.append({
+                            "round": idx + 1,
+                            "team_a": [a1, a2],
+                            "team_b": [b1, b2],
+                            "resting": rest_names if len(rest_names) == 2 else r_data['resting']
+                        })
+                
+                # زر الاعتماد والحفظ السحابي
+                if st.button("💾 اعتماد ونشر جدول الأمريكانو للاعبين", use_container_width=True):
+                    supabase.table("session_finance").upsert({
                         "session_day": db_session_key,
-                        "court_cost": in_court,
-                        "unit_price": in_unit,
-                        "balls_cost": in_balls,
-                        "water_cost": in_water,
-                        "iban_number": in_iban.strip(),
-                        "account_name": in_acc.strip(),
+                        "schedule_json": json.dumps(edited_schedule)
+                    }, on_conflict="session_day").execute()
+                    
+                    st.session_state["draft_schedule"] = edited_schedule
+                    st.success("✅ تم حفظ ونشر جدول المباريات على الصفحة الرئيسية لجميع اللاعبين!")
+                    st.rerun()
+
+        # 4. تعديل الأسعار اللحظي الفوري
+        with tab4:
+            st.markdown("#### 🛠️ تعديل الأسعار والتكاليف (ينعكس فوراً):")
+            with st.form("settings_instant_form_v8"):
+                new_court = st.number_input("تكلفة إيجار الملعب (ر.س):", value=int(COURT_COST), step=10)
+                new_unit = st.number_input("سعر المقعد للاعب (ر.س):", value=int(UNIT_PRICE), step=5)
+                new_balls = st.number_input("تكلفة علبة الكرات (ر.س):", value=int(BALLS_COST), step=5)
+                new_water = st.number_input("تكلفة كرتون المياه (ر.س):", value=int(WATER_COST), step=5)
+                
+                st.markdown("---")
+                new_iban = st.text_input("رقم الآيبان (IBAN):", value=IBAN_NUMBER)
+                new_acc = st.text_input("اسم صاحب الحساب والبنك:", value=ACCOUNT_NAME)
+                
+                btn_save_instant = st.form_submit_button("تطبيق وتحديث الأسعار فوراً 💾", use_container_width=True)
+                
+                if btn_save_instant:
+                    updated_dict = {
+                        "session_day": db_session_key,
+                        "court_cost": new_court,
+                        "unit_price": new_unit,
+                        "balls_cost": new_balls,
+                        "water_cost": new_water,
+                        "iban_number": new_iban.strip(),
+                        "account_name": new_acc.strip(),
                         "court_paid": COURT_IS_PAID,
                         "updated_at": datetime.now(timezone.utc).isoformat()
                     }
-                    st.session_state["temp_fin_ledger"] = payload
+                    st.session_state["override_fin"] = updated_dict
+                    
                     try:
-                        supabase.table("session_finance").upsert(payload, on_conflict="session_day").execute()
-                        st.success("تم تحديث البيانات المالية وتطبيقها بنجاح!")
+                        supabase.table("session_finance").upsert(updated_dict, on_conflict="session_day").execute()
+                        st.success("✅ تم تحديث الأسعار والحساب فوراً في المنصة والسحابة!")
                     except Exception:
-                        st.info("تم حفظ الإعدادات للجلسة الحالية محلياً!")
+                        st.info("✅ تم تطبيق الأسعار الجديدة بنجاح للجلسة الحالية!")
                     st.rerun()
