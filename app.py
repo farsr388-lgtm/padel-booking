@@ -8,7 +8,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 1. إعداد الصفحة وهوية المنصة المتجاوبة
+# 1. إعداد الصفحة وتنسيق الموبايل
 # ==============================================================================
 st.set_page_config(
     page_title="التفكير التشاركي | عطور درعة",
@@ -158,18 +158,17 @@ def get_supabase_client() -> Client:
 try:
     supabase = get_supabase_client()
 except Exception:
-    st.error("تعذر الاتصال بالسحابة. يرجى التحقق من إعدادات Secrets.")
+    st.error("تعذر الاتصال بقاعدة البيانات. يرجى التحقق من إعدادات Secrets.")
     st.stop()
 
 # ==============================================================================
 # 3. إعدادات السلة الذهبية وحساب التكلفة العادلة
 # ==============================================================================
-BASKET_ID = "DERAAH-GOLD-01"    # يمثل session_day في جدول bookings
-BASKET_CAPACITY = 4              # عرض درعة (2 عطر + 2 مجاناً)
+BASKET_ID = "DERAAH-GOLD-01"
+BASKET_CAPACITY = 4
 ADMIN_PHONE = "966566261868"
 ADMIN_PIN_HASH = "9900"
 
-# الفئة السعرية الموحدة (210 - 220 ر.س بالمتجر) لضمان خصم 50% دقيق
 GOLD_TIER_PERFUMES = [
     "عطر ليدر (Leader)",
     "عطر بورموا (Pour Moi)",
@@ -179,18 +178,17 @@ GOLD_TIER_PERFUMES = [
     "عطر ميس درعة (Miss Deraah)"
 ]
 
-# خيارات الاستلام المحصورة في جدة
 DELIVERY_OPTIONS = {
     "🤝 استلام شخصي - رد سي مول (مواقف بوابة 1)": 0.0,
     "📦 إيداع في أقرب خزانة RedBox ذكية بجدة": 15.0
 }
 
-BASE_PERFUME_PRICE = 105.0  # (210 ر.س ÷ 2) = نصف القيمة تماماً
+BASE_PERFUME_PRICE = 105.0
 IBAN_NUMBER = "SA9380000222608016013114"
 ACCOUNT_NAME = "مصرف الراجحي | فارس ربيع العصيمي"
 
 # ==============================================================================
-# 4. محرك الشلال التلقائي وحفظ الحصص (Waterfall Engine)
+# 4. محرك الشلال التلقائي وحفظ الحصص
 # ==============================================================================
 def process_basket_orders(session_key: str):
     now_utc = datetime.now(timezone.utc)
@@ -213,7 +211,6 @@ def process_basket_orders(session_key: str):
                 is_paid = r.get("payment_status") == "paid"
                 is_expired = r.get("expires_at") and r["expires_at"] <= now_utc_iso
                 
-                # إلغاء المقعد المعلق بعد انقضاء الـ 15 دقيقة
                 if not is_paid and is_expired:
                     supabase.table("bookings").update({
                         "status": "cancelled",
@@ -222,7 +219,6 @@ def process_basket_orders(session_key: str):
                 else:
                     confirmed_active.append(r)
                     
-        # تصعيد الانتظار تلقائياً للشواغر
         vacancies = BASKET_CAPACITY - len(confirmed_active)
         if vacancies > 0 and waitlist_records:
             to_promote = waitlist_records[:vacancies]
@@ -264,7 +260,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# استعراض زجاجات العرض
+# استعراض شبكة الحصص
 slots_html = []
 for i in range(BASKET_CAPACITY):
     if i < taken_count:
@@ -272,34 +268,36 @@ for i in range(BASKET_CAPACITY):
         c_name = html.escape(item['name'].split()[0])
         p_name = html.escape(item.get('level', 'عطر مختار'))
         status_txt = "تم الدفع ✅" if item.get('payment_status') == 'paid' else "مهلة سداد ⏳"
-        slots_html.append(f"""
-        <div class="slot-card slot-taken">
-            🧴 <b>{c_name}</b><br>
-            <span style="font-size:0.82em; color:#f1f5f9;">{p_name}</span><br>
-            <span style="font-size:0.75em; color:#6ee7b7;">{status_txt}</span>
-        </div>
-        """)
+        slots_html.append(
+            f'<div class="slot-card slot-taken">'
+            f'🧴 <b>{c_name}</b><br>'
+            f'<span style="font-size:0.82em; color:#f1f5f9;">{p_name}</span><br>'
+            f'<span style="font-size:0.75em; color:#6ee7b7;">{status_txt}</span>'
+            f'</div>'
+        )
     else:
-        slots_html.append("""
-        <div class="slot-card slot-empty">
-            ✨ <b>حصة شاغرة</b><br>
-            <span style="font-size:0.82em; color:#94a3b8;">اختر أي عطر ذهبي</span><br>
-            <span style="font-size:0.75em; color:#818cf8;">احجز الآن</span>
-        </div>
-        """)
+        slots_html.append(
+            '<div class="slot-card slot-empty">'
+            '✨ <b>حصة شاغرة</b><br>'
+            '<span style="font-size:0.82em; color:#94a3b8;">اختر أي عطر ذهبي</span><br>'
+            '<span style="font-size:0.75em; color:#818cf8;">احجز الآن</span>'
+            '</div>'
+        )
 
-st.markdown(f"""
-<div class="basket-container">
-    <div class="basket-header">🛒 سلة الشراء الحالية ({taken_count}/{BASKET_CAPACITY})</div>
-    <div class="slots-grid">{''.join(slots_html)}</div>
-</div>
-""", unsafe_allow_html=True)
+cards_markup = "".join(slots_html)
+st.markdown(
+    f'<div class="basket-container">'
+    f'<div class="basket-header">🛒 سلة الشراء الحالية ({taken_count}/{BASKET_CAPACITY})</div>'
+    f'<div class="slots-grid">{cards_markup}</div>'
+    f'</div>',
+    unsafe_allow_html=True
+)
 
 with st.expander("⚖️ الضمان والشفافية"):
     st.markdown("""
-    • **الفاتورة الرسمية:** يتم تصوير فاتورة درعة الإلكترونية وتزويد جميع المشتركين بها فور الشراء من الفرع.<br>
-    • **ضمان الاسترداد:** في حال عدم اكتمال السلة خلال 24 ساعة أو نفاد العطر، يُعاد المبلغ لحسابك فوراً.<br>
-    • **الأصالة:** جميع العطور تُشترى مباشرة من فرع درعة الرسمي داخل رد سي مول بجدة.
+    • **الفاتورة الرسمية:** يتم تصوير فاتورة درعة الإلكترونية ومشاركتها فور الشراء.<br>
+    • **ضمان الاسترداد:** يُعاد المبلغ بالكامل فوراً في حال عدم اكتمال السلة أو نفاد الصنف.<br>
+    • **الأصالة:** الشراء يتم مباشرة من فرع درعة الرسمي داخل رد سي مول بجدة.
     """, unsafe_allow_html=True)
 
 # ==============================================================================
@@ -314,7 +312,7 @@ if "deal_booked" in st.session_state:
             <h3 style="color:#fbbf24; margin:0 0 6px 0;">⏳ مسجل في قائمة الانتظار للسلة القادمة</h3>
             <div style="font-size:1em; color:#fef3c7;">ترتيبك: <b style="font-size:1.3em;">#{b.get('pos', 1)}</b></div>
             <div style="font-size:0.82em; color:#fde68a; margin-top:4px;">
-                في حال تخلف أي مشترك عن السداد أو تم فتح سلة ثانية، ستنتقل تلقائياً للحجز المباشر.
+                في حال اعتذار أي مشترك عن السداد أو فتح سلة جديدة، سيتم تحويلك مباشرة للحجز المكتمل.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -334,17 +332,16 @@ if "deal_booked" in st.session_state:
             <div style="font-size:1.1em; color:#f8fafc; margin:6px 0;">
                 المبلغ المطلوب للسداد: <b style="color:#10b981; font-size:1.35em;">{int(total_price)} ر.س</b>
             </div>
-            <div style="font-size:0.82em; color:#94a3b8;">نص الملاحظة البنكية المطلوب وضعه عند التحويل:</div>
+            <div style="font-size:0.82em; color:#94a3b8;">نص الملاحظة البنكية المطلوب نسخه عند التحويل:</div>
             <div class="memo-tag">{memo_full_text}</div>
-            <div style="font-size:0.75em; color:#f87171;">(مهم: انسخ الكود وضعه في ملاحظات التحويل لمطابقة الحوالة فورياً)</div>
+            <div style="font-size:0.75em; color:#f87171;">(يرجى لصق النص كما هو في خانة الملاحظات أثناء التحويل لتأكيد الطلب)</div>
         </div>
         """, unsafe_allow_html=True)
         
-        # عداد الـ 15 دقيقة التنازلي
         components.html(f"""
         <!DOCTYPE html>
         <div style="direction: rtl; text-align: center; font-family: -apple-system, sans-serif; background: rgba(239, 68, 68, 0.2); border: 2px solid #ef4444; border-radius: 12px; padding: 10px; color: #fca5a5; margin: 4px auto;">
-            <div style="font-size: 13px; font-weight: 700;">⏱️️ مهلة تثبيت الحصة قبل التحويل للانتظار:</div>
+            <div style="font-size: 13px; font-weight: 700;">⏱ مهلة تثبيت الحصة قبل التحويل للانتظار:</div>
             <div id="big_pay_timer" style="font-family: monospace; font-size: 32px; color: #ef4444; font-weight: 900;">--:--</div>
         </div>
         <script>
@@ -480,7 +477,7 @@ else:
                     st.error(f"حدث خطأ أثناء معالجة الحجز: {ex}")
 
 # ==============================================================================
-# 8. لوحة الإدارة لمتابعة الفاتورة والمشتريات
+# 8. لوحة الإدارة
 # ==============================================================================
 st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
 with st.expander("⚙️ لوحة الإدارة وتنفيذ الطلب"):
