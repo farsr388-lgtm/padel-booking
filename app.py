@@ -4,6 +4,7 @@ from supabase import create_client, Client
 import re
 import html
 import hmac
+import uuid
 import urllib.parse
 from datetime import datetime, timezone, timedelta
 
@@ -17,6 +18,23 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# ==============================================================================
+# 2. تفعيل تتبع الجلسات والخرائط الحرارية (Microsoft Clarity)
+# تم ربط الكود بالنافذة الرئيسية (window.parent) لضمان تسجيل الشاشة بالكامل
+# ==============================================================================
+components.html("""
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window.parent, window.parent.document, "clarity", "script", "ytjnujh8td");
+</script>
+""", height=0, width=0)
+
+# ==============================================================================
+# 3. أنماط الواجهة (CSS)
+# ==============================================================================
 st.markdown("""
 <style>
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
@@ -76,8 +94,6 @@ html, body, [class*="css"] {
     border: 1px solid #10b981;
     color: #a7f3d0;
 }
-
-/* بطاقة المكونات الأنيقة أسفل اختيار العطر */
 .perfume-details-card {
     background: rgba(30, 41, 59, 0.75);
     border: 1.5px solid #4f46e5;
@@ -88,10 +104,7 @@ html, body, [class*="css"] {
     color: #e2e8f0;
     line-height: 1.6;
 }
-.perfume-details-card b {
-    color: #818cf8;
-}
-
+.perfume-details-card b { color: #818cf8; }
 .status-card-success {
     background: rgba(16, 185, 129, 0.12);
     border: 2px solid #10b981;
@@ -108,11 +121,7 @@ html, body, [class*="css"] {
     margin: 8px 0;
     text-align: center;
 }
-.big-code-title {
-    font-size: 0.82em;
-    color: #94a3b8;
-    margin-bottom: 2px;
-}
+.big-code-title { font-size: 0.82em; color: #94a3b8; margin-bottom: 2px; }
 .big-code-val {
     font-family: monospace;
     font-size: 1.6em;
@@ -168,7 +177,7 @@ div[data-testid="stTextInput"]:has(input[aria-label="hp"]) { display: none !impo
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 2. ربط قاعدة البيانات السحابية (Supabase)
+# 4. ربط قاعدة البيانات السحابية (Supabase)
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -184,14 +193,33 @@ except Exception:
     st.stop()
 
 # ==============================================================================
-# 3. كتالوج العطور والمكونات والتسعير المعتمد
+# 5. محرك تتبع سلوك المستخدم (Event Tracker)
+# ==============================================================================
+if "session_uuid" not in st.session_state:
+    st.session_state["session_uuid"] = str(uuid.uuid4())[:8]
+
+def log_event(event_name: str, meta: str = ""):
+    try:
+        supabase.table("site_analytics").insert({
+            "session_id": st.session_state["session_uuid"],
+            "event_name": event_name,
+            "metadata": meta
+        }).execute()
+    except Exception:
+        pass
+
+if "page_view_logged" not in st.session_state:
+    log_event("page_view", "زيارة أولى للموقع")
+    st.session_state["page_view_logged"] = True
+
+# ==============================================================================
+# 6. كتالوج العطور والمكونات والتسعير
 # ==============================================================================
 BASKET_ID = "MAQSOOM-DERAAH-01"
 BASKET_CAPACITY = 6
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD_HASH = st.secrets.get("ADMIN_PASSWORD", "Mq99#Jeddah!2026")
 
-# كتالوج دقيق يضم الاسم، السعر بالمتجر، والمكونات
 PERFUMES_CATALOG = {
     "عطر ليدر (Leader)": {
         "store_price": 210,
@@ -239,7 +267,7 @@ IBAN_NUMBER = "SA9380000222608016013114"
 ACCOUNT_NAME = "مصرف الراجحي | فارس ربيع العصيمي"
 
 # ==============================================================================
-# 4. محرك الشلال التلقائي وتدوير المقاعد
+# 7. محرك الشلال التلقائي وتدوير المقاعد
 # ==============================================================================
 def process_basket_orders(session_key: str):
     now_utc = datetime.now(timezone.utc)
@@ -267,6 +295,7 @@ def process_basket_orders(session_key: str):
                         "status": "cancelled",
                         "player_note": "انتهاء مهلة السداد (15 دقيقة)"
                     }).eq("id", r["id"]).execute()
+                    log_event("expired_unpaid", f"User: {r['phone']}")
                 else:
                     confirmed_active.append(r)
                     
@@ -297,7 +326,7 @@ taken_count = len(confirmed_orders)
 slots_left = max(0, BASKET_CAPACITY - taken_count)
 
 # ==============================================================================
-# 5. الواجهة البصرية المباشرة
+# 8. الواجهة البصرية المباشرة
 # ==============================================================================
 st.markdown(f"""
 <div class="hero-box">
@@ -336,7 +365,7 @@ cards_markup = "".join(slots_html)
 st.markdown(f'<div class="slots-grid">{cards_markup}</div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 6. شاشة ما بعد الحجز والدفع
+# 9. شاشة ما بعد الحجز والدفع
 # ==============================================================================
 if "deal_booked" in st.session_state:
     b = st.session_state["deal_booked"]
@@ -425,7 +454,7 @@ if "deal_booked" in st.session_state:
         st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال الإيصال وتأكيد الحجز عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 7. نموذج الحجز التفاعلي (عرض العطر والمكونات فورياً)
+# 10. نموذج الحجز والتفاعل المباشر
 # ==============================================================================
 else:
     is_waitlist = (slots_left == 0)
@@ -433,24 +462,25 @@ else:
     
     st.markdown("##### 1. اختر عطرك المفضل:")
     
-    # خيارات القائمة تدمج الاسم والسعر الأصلي وسعر السلة
     perfume_display_options = [
         f"{name} — [سعره بالمتجر: {data['store_price']} ر.س | بالقطة: {data['share_price']} ر.س]"
         for name, data in PERFUMES_CATALOG.items()
     ]
     
-    # وضع القائمة هنا يجعل الموقع يتفاعل لحظياً بمجرد تغيير الاختيار
     chosen_perfume_str = st.selectbox(
         "العطور المشمولة بالعرض:",
         perfume_display_options,
         label_visibility="collapsed"
     )
     
-    # استخراج اسم العطر وبياناته
     chosen_perfume_name = chosen_perfume_str.split(" — ")[0]
     perfume_info = PERFUMES_CATALOG[chosen_perfume_name]
     
-    # بطاقة المكونات الذكية التي تظهر أسفل الاختيار مباشرة
+    # تسجيل العطر الأكثر اختياراً في التحليلات
+    if "last_selected_perfume" not in st.session_state or st.session_state["last_selected_perfume"] != chosen_perfume_name:
+        st.session_state["last_selected_perfume"] = chosen_perfume_name
+        log_event("perfume_selected", chosen_perfume_name)
+    
     st.markdown(f"""
     <div class="perfume-details-card">
         🌿 <b>مكونات ونوتات العطر:</b> {perfume_info['notes']}<br>
@@ -508,6 +538,8 @@ else:
                                 "player_note": stored_note
                             }).execute()
                             
+                            log_event("slot_booked_pending", f"{chosen_perfume_name} | {clean_phone}")
+                            
                             st.session_state["deal_booked"] = {
                                 "name": clean_name,
                                 "phone": clean_phone,
@@ -531,6 +563,8 @@ else:
                                 "player_note": stored_note
                             }).execute()
                             
+                            log_event("waitlist_joined", clean_phone)
+                            
                             st.session_state["deal_booked"] = {
                                 "name": clean_name,
                                 "phone": clean_phone,
@@ -545,17 +579,44 @@ else:
                     st.error(f"حدث خطأ أثناء معالجة الحجز: {ex}")
 
 # ==============================================================================
-# 8. لوحة الإدارة الآمنة
+# 11. لوحة الإدارة والتحليلات المباشرة (Analytics Funnel)
 # ==============================================================================
 st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
-with st.expander("⚙️ لوحة الإدارة"):
+with st.expander("⚙️ لوحة الإدارة والتحليلات"):
     admin_pin = st.text_input("رمز الدخول (Password):", type="password", key="admin_pwd_input")
     if admin_pin and hmac.compare_digest(admin_pin.strip(), ADMIN_PASSWORD_HASH):
-        st.success("🔓 تم فتح لوحة التحكم.")
-        c_list, _ = process_basket_orders(BASKET_ID)
-        paid_orders = [o for o in c_list if o.get("payment_status") == "paid"]
+        st.success("🔓 تم فتح لوحة التحكم الإدارية والتحليلات.")
         
-        st.caption(f"المقاعد المسددة: {len(paid_orders)} / {BASKET_CAPACITY}")
+        try:
+            logs = supabase.table("site_analytics").select("*").execute().data or []
+            total_views = len([l for l in logs if l["event_name"] == "page_view"])
+            perf_clicks = len([l for l in logs if l["event_name"] == "perfume_selected"])
+            
+            all_b = supabase.table("bookings").select("*").eq("session_day", BASKET_ID).execute().data or []
+            total_registered = len(all_b)
+            paid_count = len([b for b in all_b if b.get("payment_status") == "paid"])
+            expired_unpaid = len([b for b in all_b if b.get("status") == "cancelled"])
+            
+            st.markdown("### 📊 قمع تحويل العملاء (Conversion Funnel):")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("👀 زوار الموقع", total_views)
+            c2.metric("🧴 تصفحوا العطور", perf_clicks)
+            c3.metric("📝 حجزوا المقعد", total_registered)
+            
+            c4, c5 = st.columns(2)
+            c4.metric("✅ سددوا الحوالة", paid_count)
+            c5.metric("⏳ سجلوا ولم يحولوا", expired_unpaid)
+            
+            if total_registered > 0:
+                drop_rate = (expired_unpaid / total_registered) * 100
+                st.caption(f"📉 نسبة التسرب بعد حجز المقعد (سجل ولم يحول): **{drop_rate:.1f}%**")
+                
+        except Exception:
+            st.warning("تعذر تحميل أرقام التحليلات حالياً.")
+            
+        st.markdown("---")
+        st.markdown("##### 👥 متابعة مقاعد السلة:")
+        c_list, _ = process_basket_orders(BASKET_ID)
         for row in c_list:
             col1, col2, col3 = st.columns([2.2, 1, 1])
             col1.write(f"**{row['name']}** - `{row.get('level', '-')}`\n`{row['phone']}`")
@@ -565,4 +626,5 @@ with st.expander("⚙️ لوحة الإدارة"):
                 col2.markdown("<span style='color:#fbbf24; font-weight:700;'>معلق ⏳</span>", unsafe_allow_html=True)
                 if col3.button("تأكيد", key=f"pay_perf_{row['id']}"):
                     supabase.table("bookings").update({"payment_status": "paid"}).eq("id", row['id']).execute()
+                    log_event("payment_confirmed_admin", row['phone'])
                     st.rerun()
