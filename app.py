@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 # 1. إعداد الصفحة وهوية المنصة
 # ==============================================================================
 st.set_page_config(
-    page_title="مَقسوم جدة | قطة عطور درعة",
+    page_title="مَقسوم جدة | قطة عطور درعة الكبرى",
     page_icon="🛍️",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -32,7 +32,7 @@ components.html("""
 """, height=0, width=0)
 
 # ==============================================================================
-# 3. أنماط الواجهة (CSS محسّن مع لافتات الندرة والموقع)
+# 3. أنماط الواجهة (CSS محسّن لتجربة جوال فائقة السلاسة)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -51,19 +51,6 @@ html, body, [class*="css"] {
     color: #f1f5f9;
 }
 
-/* شريط التنبيه العلوي العاجل */
-.urgent-banner {
-    background: linear-gradient(90deg, rgba(239, 68, 68, 0.25) 0%, rgba(185, 28, 28, 0.4) 100%);
-    border: 1px solid #ef4444;
-    border-radius: 12px;
-    padding: 8px 12px;
-    text-align: center;
-    font-size: 0.82em;
-    font-weight: 800;
-    color: #fecaca;
-    margin-bottom: 10px;
-}
-
 /* بطاقة الهيدر الرئيسية */
 .hero-box {
     background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
@@ -71,7 +58,7 @@ html, body, [class*="css"] {
     border-radius: 16px;
     padding: 16px 14px;
     text-align: center;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     box-shadow: 0 8px 24px rgba(67, 56, 202, 0.2);
 }
 .location-badge {
@@ -86,7 +73,7 @@ html, body, [class*="css"] {
     margin-bottom: 6px;
 }
 .hero-title { font-size: 1.45em; font-weight: 900; color: #ffffff; margin: 0 0 6px 0; }
-.hero-desc { font-size: 0.85em; color: #cbd5e1; line-height: 1.5; margin-bottom: 10px; }
+.hero-desc { font-size: 0.85em; color: #cbd5e1; line-height: 1.5; margin-bottom: 8px; }
 
 /* بطاقة الأسعار الواضحة */
 .price-breakdown {
@@ -129,7 +116,7 @@ html, body, [class*="css"] {
     font-weight: 800;
 }
 
-/* صندوق الضمان المالي */
+/* صندوق الضمان */
 .guarantee-box {
     background: rgba(16, 185, 129, 0.08);
     border: 1.5px solid #10b981;
@@ -142,7 +129,7 @@ html, body, [class*="css"] {
     text-align: center;
 }
 
-/* بطاقات المقاعد */
+/* شبكة المقاعد */
 .slots-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -167,7 +154,7 @@ html, body, [class*="css"] {
     color: #f1f5f9;
 }
 
-/* تفاصيل العطر */
+/* بطاقة تفاصيل العطر */
 .perfume-details-card {
     background: rgba(30, 41, 59, 0.7);
     border: 1.5px solid #4f46e5;
@@ -260,7 +247,7 @@ except Exception:
     st.stop()
 
 # ==============================================================================
-# 5. محرك تتبع سلوك المستخدم
+# 5. محرك تتبع سلوك المستخدم (Event Tracker)
 # ==============================================================================
 if "session_uuid" not in st.session_state:
     st.session_state["session_uuid"] = str(uuid.uuid4())[:8]
@@ -276,11 +263,11 @@ def log_event(event_name: str, meta: str = ""):
         pass
 
 if "page_view_logged" not in st.session_state:
-    log_event("page_view", "زيارة جديدة - جدة")
+    log_event("page_view", "زيارة سلة جدة (الأندلس/RedBox)")
     st.session_state["page_view_logged"] = True
 
 # ==============================================================================
-# 6. كتالوج العطور والتسعير
+# 6. كتالوج العطور والحسبة المالية
 # ==============================================================================
 BASKET_ID = "MAQSOOM-JEDDAH-01"
 BASKET_CAPACITY = 6
@@ -288,47 +275,43 @@ ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD_HASH = st.secrets.get("ADMIN_PASSWORD", "Mq99#Jeddah!2026")
 
 PERFUMES_CATALOG = {
-    "عطر ليدر (Leader)": {
+    "عطر ليدر (Leader) 100مل": {
         "store_price": 210,
         "share_price": 63,
         "notes": "جلود فاخرة، أخشاب الأرز، وتوابل دافئة",
         "character": "فخم ورسمي جداً للمناسبات وساعات الدوام"
     },
-    "عطر بورموا (Pour Moi)": {
+    "عطر بورموا (Pour Moi) 100مل": {
         "store_price": 210,
         "share_price": 63,
         "notes": "فانيلا فرنسية، عنبر ناعم، وزهور بيضاء",
         "character": "سويت جذاب ومريح للاستخدام اليومي"
     },
-    "عطر لينك الأسود (Link Black)": {
+    "عطر لينك الأسود (Link Black) 100مل": {
         "store_price": 210,
         "share_price": 63,
         "notes": "برغموت إيطالي، حمضيات فواحة، مسك نقي",
         "character": "منعش، فواح، ويعطيك طاقة صباحية متجددة"
     },
-    "عطر خواطر (Khawater)": {
+    "عطر خواطر (Khawater) 100مل": {
         "store_price": 210,
         "share_price": 63,
         "notes": "باتشولي هادئ، نفحات عود خفيف، وقاعدة عنبرية",
         "character": "طابع شرقي كلاسيكي بثبات وفوحان عالي للمجالس"
     },
-    "عطر سول (Soul)": {
+    "عطر سول (Soul) 100مل": {
         "store_price": 210,
         "share_price": 63,
         "notes": "هيل عطري، خزامى برية، وخشب الصندل الدافئ",
         "character": "عصري وشبابي ملفت للطلعات واللقاءات"
     },
-    "عطر ميس درعة (Miss Deraah)": {
+    "عطر ميس درعة (Miss Deraah) 100مل": {
         "store_price": 210,
         "share_price": 63,
         "notes": "زهور الياسمين، فواكه حمراء، بودرة ومسك ناعم",
         "character": "ناعم وهادئ، خيار أنيق وراقي جداً"
     }
 }
-
-PERFUME_SHARE = 63.0             # قيمة العطر الصافية داخل السلة
-REDBOX_FEE = 25.0                # رسوم خزانة RedBox بجدة
-TOTAL_SLOT_PRICE = PERFUME_SHARE + REDBOX_FEE  # 88 ر.س الإجمالي الشامل
 
 IBAN_NUMBER = "SA9380000222608016013114"
 ACCOUNT_NAME = "مصرف الراجحي | فارس ربيع العصيمي"
@@ -395,52 +378,72 @@ slots_left = max(0, BASKET_CAPACITY - taken_count)
 # ==============================================================================
 # 8. الواجهة البصرية المباشرة
 # ==============================================================================
-# شريط انتهاء العرض العاجل
-st.markdown("""
-<div class="urgent-banner">
-    ⏳ <b>تنبيه:</b> متبقي <b>4 أيام فقط</b> على انتهاء عرض درعة الكبرى وإغلاق السلة!
+# عداد تنازلي حي لانتهاء العرض (4 أيام)
+components.html("""
+<!DOCTYPE html>
+<div style="direction: rtl; text-align: center; font-family: -apple-system, 'Cairo', sans-serif; background: linear-gradient(90deg, #1e1b4b, #312e81); border: 1px solid #818cf8; border-radius: 12px; padding: 10px; color: #ffffff; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);">
+    <div style="font-size: 13px; font-weight: 800; color: #cbd5e1; margin-bottom: 4px;">
+        ⏳ متبقي على انتهاء عرض درعة الكبرى وإغلاق السلة:
+    </div>
+    <div id="offer_countdown" style="font-family: monospace; font-size: 22px; font-weight: 900; color: #38bdf8; letter-spacing: 1px;">
+        جاري الحساب...
+    </div>
 </div>
-""", unsafe_allow_html=True)
+<script>
+    var targetDate = new Date().getTime() + (4 * 24 * 60 * 60 * 1000);
+    function updateCountdown() {
+        var now = new Date().getTime();
+        var diff = targetDate - now;
+        if (diff <= 0) {
+            document.getElementById('offer_countdown').innerHTML = "انتهى العرض!";
+            return;
+        }
+        var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        document.getElementById('offer_countdown').innerHTML = 
+            days + " يوم و " + (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+</script>
+""", height=75)
 
 st.markdown(f"""
 <div class="hero-box">
-    <div class="location-badge">📍 حصرياً لمدينة جدة • خزانة RedBox</div>
+    <div class="location-badge">📍 حصرياً لمدينة جدة • استلام الأندلس مول أو RedBox</div>
     <div class="hero-title">قطّة عطور درعة (1+2 مجاناً)</div>
     <div class="hero-desc">
-        نجمّع 6 مشترين من <b>جدة</b> للاستفادة من عرض درعة الكبرى بأعلى نسبة توفير؛ عِطرك الأصلي بسعر الجملة الصافي.
+        نجمّع 6 مشترين من <b>جدة</b> لاقتناص عرض درعة الكبرى بأعلى خصم ممكن؛ عِطرك الأصلي 100مل بسعر الجملة الصافي.
     </div>
     <div class="price-breakdown">
         <div class="price-item">
             <div class="val">63 ر.س</div>
-            <div class="lbl">العطر (بدل 210)</div>
+            <div class="lbl">استلام يدوي (الأندلس مول)</div>
         </div>
-        <div class="price-divider">+</div>
+        <div class="price-divider">أو</div>
         <div class="price-item">
-            <div class="val">25 ر.س</div>
-            <div class="lbl">خزانة RedBox بجدة</div>
-        </div>
-        <div class="price-divider">=</div>
-        <div class="price-item">
-            <div class="val" style="color:#10b981;">88 ر.س</div>
-            <div class="lbl">الإجمالي الشامل</div>
+            <div class="val" style="color:#a5b4fc;">88 ر.س</div>
+            <div class="lbl">عبر خزانة RedBox (+25)</div>
         </div>
     </div>
 </div>
 
 <div class="steps-container">
-    <div class="step-item active"><b>1. اختر عطرك</b><br>من التشكيلة الذهبية</div>
-    <div class="step-item"><b>2. حوّل حصتك</b><br>تثبيت المقعد (88 ر.س)</div>
-    <div class="step-item"><b>3. استلم بجدة</b><br>عبر أقرب خزانة لك</div>
+    <div class="step-item active"><b>1. اختر عِطرك</b><br>من القائمة الذهبية</div>
+    <div class="step-item"><b>2. حدد طريقة الاستلام</b><br>الأندلس أو RedBox</div>
+    <div class="step-item"><b>3. حوّل واستلم</b><br>تثبيت المقعد فوراً</div>
 </div>
 
 <div class="guarantee-box">
     🛡️ <b>ضمان الأمان والاسترجاع 100%:</b><br>
-    إذا لم تكتمل المقاعد الستة خلال <b>24 ساعة</b>، يُسترد كامل المبلغ إلى حسابك البنكي تلقائياً وبشكل فوري دون أي خصومات.
+    إذا لم تكتمل المقاعد الستة خلال <b>24 ساعة</b>، يُسترد كامل المبلغ إلى حسابك البنكي تلقائياً وفوراً دون أي خصم.
 </div>
 """, unsafe_allow_html=True)
 
 # بطاقات المقاعد
-st.markdown(f"<div style='font-weight:800; font-size:0.9em; margin: 4px 0 8px 0;'>🛒 مقاعد سلة جدة ({taken_count}/{BASKET_CAPACITY}) — متبقي {slots_left} فقط:</div>", unsafe_allow_html=True)
+st.markdown(f"<div style='font-weight:800; font-size:0.9em; margin: 4px 0 8px 0;'>🛒 مقاعد سلة جدة ({taken_count}/{BASKET_CAPACITY}) — متبقي {slots_left} مقاعد فقط:</div>", unsafe_allow_html=True)
 
 slots_html = []
 for i in range(BASKET_CAPACITY):
@@ -462,7 +465,7 @@ for i in range(BASKET_CAPACITY):
             f'<div class="slot-card slot-empty">'
             f'✨ <b>مقعد #{i+1} شاغر</b><br>'
             f'<span style="font-size:0.8em; color:#94a3b8;">متاح للحجز</span><br>'
-            f'<span style="font-size:0.72em; color:#818cf8;">88 ر.س شامل RedBox</span>'
+            f'<span style="font-size:0.72em; color:#818cf8;">من 63 ر.س فقط</span>'
             f'</div>'
         )
 
@@ -481,6 +484,8 @@ if "deal_booked" in st.session_state:
         target_epoch_ms = b.get("expire_timestamp", 0)
         memo_code = b['memo_code']
         customer_phone = b['phone']
+        total_to_pay = b.get('price', 63)
+        delivery_choice = b.get('delivery_type', 'استلام يدوي (الأندلس مول)')
         
         st.markdown(f"""
         <div class="status-card-success">
@@ -488,8 +493,11 @@ if "deal_booked" in st.session_state:
             <div style="font-size:0.95em; color:#cbd5e1; margin:4px 0;">
                 العطر المحجوز: <b style="color:#ffffff;">{b.get('perfume', '')}</b>
             </div>
+            <div style="font-size:0.9em; color:#94a3b8; margin:2px 0;">
+                طريقة الاستلام: <b style="color:#38bdf8;">{delivery_choice}</b>
+            </div>
             <div style="font-size:1.05em; color:#f8fafc; margin:6px 0;">
-                المبلغ المطلوب تحويله: <b style="color:#10b981; font-size:1.35em;">{int(TOTAL_SLOT_PRICE)} ر.س</b>
+                المبلغ المطلوب تحويله: <b style="color:#10b981; font-size:1.4em;">{int(total_to_pay)} ر.س فقط</b>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -503,11 +511,11 @@ if "deal_booked" in st.session_state:
         """, unsafe_allow_html=True)
         st.code(memo_code, language=None)
 
-        st.markdown("""
+        st.markdown(f"""
         <div class="alert-instruction">
             ⚠️ <b>خطوة تثبيت المقعد:</b><br>
-            قم بتحويل (88 ر.س) للحساب أدناه مع كتابة كود الحجز في الملاحظات، ثم أرسل الإشعار عبر الواتساب لاعتماده فوراً. 
-            <i>(إذا لم تكتمل السلة، يُسترد المبلغ تلقائياً خلال 24 ساعة)</i>.
+            قم بتحويل <b>({int(total_to_pay)} ر.س)</b> للحساب أدناه مع كتابة كود الحجز في الملاحظات، ثم أرسل الإشعار عبر الواتساب لاعتماده فوراً. 
+            <i>(لو لم تكتمل السلة، يُسترد المبلغ تلقائياً لحسابك خلال 24 ساعة)</i>.
         </div>
         """, unsafe_allow_html=True)
         
@@ -546,21 +554,20 @@ if "deal_booked" in st.session_state:
             f"📱 الجوال: {customer_phone}\n"
             f"🔖 كود الحجز: #{memo_code}\n"
             f"🧴 العطر: {b.get('perfume', '')}\n"
-            f"📍 حي الاستلام بجدة: {b.get('redbox_loc', '')}\n"
-            f"💵 المبلغ: {int(TOTAL_SLOT_PRICE)} ر.س\n\n"
+            f"📍 الاستلام: {delivery_choice}\n"
+            f"💵 المبلغ: {int(total_to_pay)} ر.س\n\n"
             f"مرفق إشعار التحويل البنكي لتأكيد المقعد!"
         )
         wa_url = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_msg)}"
         st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل وتأكيد المقعد عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 10. نموذج الحجز واختيار العطر
+# 10. نموذج الحجز واختيار العطر وطريقة الاستلام
 # ==============================================================================
 else:
     is_waitlist = (slots_left == 0)
-    btn_text = "انضم لقائمة الانتظار ⏳" if is_waitlist else "تثبيت المقعد (88 ر.س شامل التوصيل بجدة) 🛍️️"
     
-    st.markdown("##### 1. اختر عطرك المفضل:")
+    st.markdown("##### 1. اختر عِطرك من العرض:")
     
     perfume_display_options = [
         f"{name} — [وفرت {data['store_price'] - data['share_price']} ر.س]"
@@ -584,18 +591,35 @@ else:
     <div class="perfume-details-card">
         🌿 <b>النوتات العطرية:</b> {perfume_info['notes']}<br>
         🎯 <b>الطابع والمناسبة:</b> {perfume_info['character']}<br>
-        💰 <b>الحسبة:</b> سعر المعرض {perfume_info['store_price']} ر.س ➔ سعر حصتك <b>{perfume_info['share_price']} ر.س فقط</b>
+        💰 <b>الحسبة:</b> سعر المعرض {perfume_info['store_price']} ر.س ➔ سعر حصتك <b>{perfume_info['share_price']} ر.س فقط</b> (توفير 147 ر.س)
     </div>
     """, unsafe_allow_html=True)
     
     with st.form("perfume_deal_form"):
-        st.markdown("##### 2. بيانات المستلم (جدة فقط):")
+        st.markdown("##### 2. طريقة الاستلام وبياناتك:")
+        
+        delivery_mode = st.radio(
+            "حدد طريقة الاستلام المفضلة بجدة:",
+            [
+                "استلام يدوي مجاناً (الأندلس مول) — 63 ر.س فقط",
+                "خزانة RedBox الذكية (+25 ر.س) — 88 ر.س شامل التوصيل"
+            ]
+        )
+        
+        is_redbox_selected = "RedBox" in delivery_mode
+        active_price = 88.0 if is_redbox_selected else 63.0
+        
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
-        f_phone = st.text_input("رقم الجوال لتلقي كود استلام RedBox:", placeholder="05xxxxxxxx")
-        f_redbox = st.text_input("الحي السكني بجدة (لأقرب خزانة RedBox):", placeholder="مثال: الروضة، الزهراء، الصفا، السامر...")
+        f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
+        
+        f_loc = ""
+        if is_redbox_selected:
+            f_loc = st.text_input("الحي المفضل لخزانة RedBox بجدة:", placeholder="مثال: الروضة، الزهراء، الصفا...")
+        
+        btn_caption = f"تثبيت المقعد ({int(active_price)} ر.س) 🛍️" if not is_waitlist else "انضم لقائمة الانتظار ⏳"
         
         hp = st.text_input("hp", label_visibility="collapsed")
-        submit_btn = st.form_submit_button(btn_text, use_container_width=True)
+        submit_btn = st.form_submit_button(btn_caption, use_container_width=True)
         
         if submit_btn and not hp:
             clean_name = f_name.strip()
@@ -606,19 +630,20 @@ else:
             
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
                 st.error("يرجى إدخال اسم صحيح ورقم جوال سعودي يبدأ بـ 05.")
-            elif not f_redbox.strip():
-                st.error("فضلاً حدد اسم الحي في جدة لتحديد أقرب خزانة RedBox.")
+            elif is_redbox_selected and not f_loc.strip():
+                st.error("فضلاً حدد اسم الحي لاستلام شحنة RedBox.")
             else:
                 try:
                     c_active, w_active = process_basket_orders(BASKET_ID)
                     
                     if any(item["phone"] == clean_phone for item in c_active):
-                        st.warning("أنت مسجل بالفعل في هذه السلة!")
+                        st.warning("أنت مسجل ومقعدك محجوز بالفعل في هذه السلة!")
                     elif any(item["phone"] == clean_phone for item in w_active):
                         st.warning("أنت مسجل مسبقاً في قائمة الانتظار!")
                     else:
                         memo_id = f"PRF-{clean_phone[-4:]}"
-                        stored_note = f"PERFUME:{chosen_perfume_name} | REDBOX_JEDDAH:{f_redbox.strip()} | PHONE:{clean_phone}"
+                        delivery_str = f"RedBox ({f_loc.strip()})" if is_redbox_selected else "استلام الأندلس مول"
+                        stored_note = f"PERFUME:{chosen_perfume_name} | METHOD:{delivery_str} | PRICE:{int(active_price)} | PHONE:{clean_phone}"
                         
                         if len(c_active) < BASKET_CAPACITY:
                             now_utc = datetime.now(timezone.utc)
@@ -633,17 +658,18 @@ else:
                                 "status": "confirmed",
                                 "payment_status": "pending",
                                 "expires_at": expire_dt.isoformat(),
-                                "hear_about": f"JEDDAH: {f_redbox.strip()[:20]}",
+                                "hear_about": delivery_str[:25],
                                 "player_note": stored_note
                             }).execute()
                             
-                            log_event("slot_booked_pending", f"{chosen_perfume_name} | {clean_phone}")
+                            log_event("slot_booked_pending", f"{chosen_perfume_name} | {active_price} SAR | {clean_phone}")
                             
                             st.session_state["deal_booked"] = {
                                 "name": clean_name,
                                 "phone": clean_phone,
                                 "perfume": chosen_perfume_name,
-                                "redbox_loc": f_redbox.strip(),
+                                "delivery_type": delivery_str,
+                                "price": active_price,
                                 "memo_code": memo_id,
                                 "is_waitlist": False,
                                 "expire_timestamp": int(expire_dt.timestamp() * 1000)
@@ -658,7 +684,7 @@ else:
                                 "level": chosen_perfume_name,
                                 "status": "waitlist",
                                 "payment_status": "unpaid",
-                                "hear_about": f"JEDDAH: {f_redbox.strip()[:20]}",
+                                "hear_about": delivery_str[:25],
                                 "player_note": stored_note
                             }).execute()
                             
@@ -668,7 +694,8 @@ else:
                                 "name": clean_name,
                                 "phone": clean_phone,
                                 "perfume": chosen_perfume_name,
-                                "redbox_loc": f_redbox.strip(),
+                                "delivery_type": delivery_str,
+                                "price": active_price,
                                 "memo_code": memo_id,
                                 "is_waitlist": True,
                                 "pos": len(w_active) + 1
@@ -718,7 +745,7 @@ with st.expander("⚙️ لوحة الإدارة وقمع التحويل"):
         c_list, _ = process_basket_orders(BASKET_ID)
         for row in c_list:
             col1, col2, col3 = st.columns([2.2, 1, 1])
-            col1.write(f"**{row['name']}** - `{row.get('level', '-')}`\n`{row['phone']}`")
+            col1.write(f"**{row['name']}** - `{row.get('level', '-')}`\n`{row.get('hear_about', '-')}`\n`{row['phone']}`")
             if row['payment_status'] == 'paid':
                 col2.markdown("<span style='color:#10b981; font-weight:700;'>مدفوع ✅</span>", unsafe_allow_html=True)
             else:
