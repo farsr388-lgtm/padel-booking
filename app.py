@@ -589,7 +589,7 @@ if "deal_booked" in st.session_state:
         st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل وتأكيد المقعد عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 10. نموذج الحجز واختيار العطر وطريقة الاستلام
+# 10. نموذج الحجز واختيار العطر وطريقة الاستلام (تم إصلاح واستكمال السطر المنقطع)
 # ==============================================================================
 else:
     is_waitlist = (slots_left == 0)
@@ -610,5 +610,175 @@ else:
     chosen_perfume_name = chosen_perfume_str.split(" — ")[0]
     perfume_info = PERFUMES_CATALOG[chosen_perfume_name]
     
+    # اكتمال السطر المنقطع سابقاً
     if "last_selected_perfume" not in st.session_state or st.session_state["last_selected_perfume"] != chosen_perfume_name:
-        st.
+        st.session_state["last_selected_perfume"] = chosen_perfume_name
+        log_event("perfume_selected", chosen_perfume_name)
+    
+    st.markdown(f"""
+    <div class="perfume-details-card">
+        🌿 <b>النوتات العطرية:</b> {perfume_info['notes']}<br>
+        🎯 <b>الطابع والمناسبة:</b> {perfume_info['character']}<br>
+        💰 <b>الحسبة:</b> سعر المعرض {perfume_info['store_price']} ر.س ➔ سعرك بالقطة <b>{perfume_info['share_price']} ر.س فقط</b> (وفرت 70% كاش!)
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.form("perfume_deal_form"):
+        st.markdown("##### 2. طريقة الاستلام وبياناتك:")
+        
+        delivery_mode = st.radio(
+            "حدد طريقة الاستلام المفضلة بجدة:",
+            [
+                "استلام يدوي مجاناً (الأندلس مول) — 63 ر.س فقط",
+                "خزانة RedBox الذكية (+25 ر.س) — 88 ر.س شامل التوصيل"
+            ]
+        )
+        
+        is_redbox_selected = "RedBox" in delivery_mode
+        active_price = 88.0 if is_redbox_selected else 63.0
+        
+        f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
+        f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
+        
+        f_loc = ""
+        if is_redbox_selected:
+            f_loc = st.text_input("الحي المفضل لخزانة RedBox بجدة:", placeholder="مثال: الروضة، الزهراء، الصفا...")
+        
+        btn_caption = f"تثبيت المقعد ({int(active_price)} ر.س) 🛍️" if not is_waitlist else "انضم لقائمة الانتظار ⏳"
+        
+        hp = st.text_input("hp", label_visibility="collapsed")
+        submit_btn = st.form_submit_button(btn_caption, use_container_width=True)
+        
+        if submit_btn and not hp:
+            clean_name = f_name.strip()
+            raw_phone = f_phone.strip().translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
+            clean_phone = re.sub(r'[\s\-\+]', '', raw_phone)
+            if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
+            elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
+            
+            if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
+                st.error("يرجى إدخال اسم صحيح ورقم جوال سعودي يبدأ بـ 05.")
+            elif is_redbox_selected and not f_loc.strip():
+                st.error("فضلاً حدد اسم الحي لاستلام شحنة RedBox.")
+            else:
+                try:
+                    c_active, w_active = process_basket_orders(BASKET_ID)
+                    
+                    if any(item["phone"] == clean_phone for item in c_active):
+                        st.warning("أنت مسجل ومقعدك محجوز بالفعل في هذه السلة!")
+                    elif any(item["phone"] == clean_phone for item in w_active):
+                        st.warning("أنت مسجل مسبقاً في قائمة الانتظار!")
+                    else:
+                        memo_id = f"PRF-{clean_phone[-4:]}"
+                        delivery_str = f"RedBox ({f_loc.strip()})" if is_redbox_selected else "استلام الأندلس مول"
+                        stored_note = f"PERFUME:{chosen_perfume_name} | METHOD:{delivery_str} | PRICE:{int(active_price)} | PHONE:{clean_phone}"
+                        
+                        if len(c_active) < BASKET_CAPACITY:
+                            now_utc = datetime.now(timezone.utc)
+                            expire_dt = now_utc + timedelta(minutes=15)
+                            
+                            supabase.table("bookings").insert({
+                                "name": clean_name,
+                                "phone": clean_phone,
+                                "session_day": BASKET_ID,
+                                "court": 1,
+                                "level": chosen_perfume_name,
+                                "status": "confirmed",
+                                "payment_status": "pending",
+                                "expires_at": expire_dt.isoformat(),
+                                "hear_about": delivery_str[:25],
+                                "player_note": stored_note
+                            }).execute()
+                            
+                            log_event("slot_booked_pending", f"{chosen_perfume_name} | {active_price} SAR | {clean_phone}")
+                            
+                            st.session_state["deal_booked"] = {
+                                "name": clean_name,
+                                "phone": clean_phone,
+                                "perfume": chosen_perfume_name,
+                                "delivery_type": delivery_str,
+                                "price": active_price,
+                                "memo_code": memo_id,
+                                "is_waitlist": False,
+                                "expire_timestamp": int(expire_dt.timestamp() * 1000)
+                            }
+                            st.rerun()
+                        else:
+                            supabase.table("bookings").insert({
+                                "name": clean_name,
+                                "phone": clean_phone,
+                                "session_day": BASKET_ID,
+                                "court": 1,
+                                "level": chosen_perfume_name,
+                                "status": "waitlist",
+                                "payment_status": "unpaid",
+                                "hear_about": delivery_str[:25],
+                                "player_note": stored_note
+                            }).execute()
+                            
+                            log_event("waitlist_joined", clean_phone)
+                            
+                            st.session_state["deal_booked"] = {
+                                "name": clean_name,
+                                "phone": clean_phone,
+                                "perfume": chosen_perfume_name,
+                                "delivery_type": delivery_str,
+                                "price": active_price,
+                                "memo_code": memo_id,
+                                "is_waitlist": True,
+                                "pos": len(w_active) + 1
+                            }
+                            st.rerun()
+                except Exception as ex:
+                    st.error(f"حدث خطأ أثناء معالجة الطلب: {ex}")
+
+# ==============================================================================
+# 11. لوحة الإدارة وقمع التحويل (Admin Funnel)
+# ==============================================================================
+st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+with st.expander("⚙️ لوحة الإدارة وقمع التحويل"):
+    admin_pin = st.text_input("رمز الدخول الإداري:", type="password", key="admin_pwd_input")
+    if admin_pin and hmac.compare_digest(admin_pin.strip(), ADMIN_PASSWORD_HASH):
+        st.success("🔓 تم فتح لوحة التحكم.")
+        
+        try:
+            logs = supabase.table("site_analytics").select("*").execute().data or []
+            total_views = len([l for l in logs if l["event_name"] == "page_view"])
+            perf_clicks = len([l for l in logs if l["event_name"] == "perfume_selected"])
+            
+            all_b = supabase.table("bookings").select("*").eq("session_day", BASKET_ID).execute().data or []
+            total_registered = len(all_b)
+            paid_count = len([b for b in all_b if b.get("payment_status") == "paid"])
+            expired_unpaid = len([b for b in all_b if b.get("status") == "cancelled"])
+            
+            st.markdown("### 📊 قمع تحويل العملاء (جدة):")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("👀 الزيارات", total_views)
+            c2.metric("🧴 تصفح العطور", perf_clicks)
+            c3.metric("📝 الحجوزات", total_registered)
+            
+            c4, c5 = st.columns(2)
+            c4.metric("✅ تأكيد الدفع", paid_count)
+            c5.metric("⏳ تسرب دون تحويل", expired_unpaid)
+            
+            if total_registered > 0:
+                drop_rate = (expired_unpaid / total_registered) * 100
+                st.caption(f"📉 نسبة التسرب بعد الحجز: **{drop_rate:.1f}%**")
+                
+        except Exception:
+            st.warning("تعذر تحميل أرقام التحليلات حالياً.")
+            
+        st.markdown("---")
+        st.markdown("##### 👥 متابعة سلة جدة الحالية:")
+        c_list, _ = process_basket_orders(BASKET_ID)
+        for row in c_list:
+            col1, col2, col3 = st.columns([2.2, 1, 1])
+            col1.write(f"**{row['name']}** - `{row.get('level', '-')}`\n`{row.get('hear_about', '-')}`\n`{row['phone']}`")
+            if row['payment_status'] == 'paid':
+                col2.markdown("<span style='color:#10b981; font-weight:700;'>مدفوع ✅</span>", unsafe_allow_html=True)
+            else:
+                col2.markdown("<span style='color:#fbbf24; font-weight:700;'>معلق ⏳</span>", unsafe_allow_html=True)
+                if col3.button("اعتماد", key=f"pay_perf_{row['id']}"):
+                    supabase.table("bookings").update({"payment_status": "paid"}).eq("id", row['id']).execute()
+                    log_event("payment_confirmed_admin", row['phone'])
+                    st.rerun()
