@@ -441,4 +441,268 @@ if "deal_booked" in st.session_state:
     b = st.session_state["deal_booked"]
     
     if b.get("is_waitlist", False):
-        st.warning(f"⏳ تم تسجيلك في قائمة الانتظار لجد
+        st.warning(f"⏳ تم تسجيلك في قائمة الانتظار لجدة (ترتيبك: #{b.get('pos', 1)}). سنتواصل معك فور توفر مقعد.")
+    else:
+        target_epoch_ms = b.get("expire_timestamp", 0)
+        customer_phone = b['phone']
+        exact_price = b.get('price', 63.0)
+        delivery_choice = b.get('delivery_type', 'استلام يدوي (الأندلس مول)')
+        sender_account = b.get('sender_bank', 'غير محدد')
+        
+        st.markdown(f"""
+        <div class="status-card-success">
+            <h3 style="color:#10b981; margin:0 0 4px 0; font-size:1.3em;">🎉 تم حجز مقعدك بنجاح!</h3>
+            <div style="font-size:0.95em; color:#cbd5e1; margin:4px 0;">
+                العطر المحجوز: <b style="color:#ffffff;">{b.get('perfume', '')}</b>
+            </div>
+            <div style="font-size:0.88em; color:#94a3b8; margin:2px 0;">
+                طريقة الاستلام: <b style="color:#38bdf8;">{delivery_choice}</b>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class="pay-amount-box">
+            <div style="font-size:0.85em; color:#94a3b8; margin-bottom:4px;">المبلغ المطلوب تحويله لتأكيد مقعدك:</div>
+            <div class="pay-amount-val">{int(exact_price)} ر.س</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class="pay-method-card">
+            ⚡ <b>خيار 1: التحويل السريع برقم الجوال (سريع):</b><br>
+            • رقم الجوال: <b style="color:#38bdf8; font-family:monospace; font-size:1.1em;">{ADMIN_LOCAL_PHONE}</b><br>
+            • المستفيد: <b>{ACCOUNT_NAME}</b>
+        </div>
+        <div class="pay-method-card">
+            🏦 <b>خيار 2: التحويل عبر الآيبان ({BANK_NAME}):</b><br>
+            • المستفيد: <b>{ACCOUNT_NAME}</b>
+        </div>
+        """, unsafe_allow_html=True)
+        st.code(IBAN_NUMBER, language=None)
+        
+        components.html(f"""
+        <!DOCTYPE html>
+        <div style="direction: rtl; text-align: center; font-family: -apple-system, sans-serif; background: rgba(239, 68, 68, 0.15); border: 1.5px solid #ef4444; border-radius: 10px; padding: 6px; color: #fca5a5; margin: 4px auto;">
+            <span style="font-size: 13px; font-weight: 800;">⏱️ مهلة تثبيت الحصة عبر التحويل: </span>
+            <span id="big_pay_timer" style="font-family: monospace; font-size: 20px; color: #ef4444; font-weight: 900;">--:--</span>
+        </div>
+        <script>
+            var payTarget = {target_epoch_ms};
+            function updatePayTimer() {{
+                var diff = payTarget - new Date().getTime();
+                var el = document.getElementById('big_pay_timer');
+                if (!el) return;
+                if (diff <= 0) {{
+                    el.innerHTML = "00:00";
+                    return;
+                }}
+                var m = Math.floor(diff / 60000);
+                var s = Math.floor((diff % 60000) / 1000);
+                el.innerHTML = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+            }}
+            updatePayTimer();
+            setInterval(updatePayTimer, 1000);
+        </script>
+        """, height=52)
+        
+        wa_msg = (
+            f"مرحباً يا غالي 🛍️\n"
+            f"حجزت مقعدي في سلة درعة (جدة):\n\n"
+            f"👤 الاسم: {b['name']}\n"
+            f"📱 الجوال: {customer_phone}\n"
+            f"🧴 العطر: {b.get('perfume', '')}\n"
+            f"📍 الاستلام: {delivery_choice}\n"
+            f"💵 المبلغ المحول: {int(exact_price)} ر.س\n\n"
+            f"مرفق إشعار التحويل لتأكيد المقعد بالسلة!"
+        )
+        wa_url = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_msg)}"
+        st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال إشعار التحويل وتأكيد المقعد عبر واتساب</a>', unsafe_allow_html=True)
+
+# ==============================================================================
+# 8. نموذج الحجز واختيار العطر
+# ==============================================================================
+else:
+    is_waitlist = (slots_left == 0)
+    
+    st.markdown("##### 1. اختر عِطرك من العرض (خصم 70%):")
+    
+    perfume_display_options = [
+        f"{name} — [وفرت 147 ر.س]"
+        for name, data in PERFUMES_CATALOG.items()
+    ]
+    
+    chosen_perfume_str = st.selectbox(
+        "العطور المشمولة:",
+        perfume_display_options,
+        label_visibility="collapsed"
+    )
+    
+    chosen_perfume_name = chosen_perfume_str.split(" — ")[0]
+    perfume_info = PERFUMES_CATALOG[chosen_perfume_name]
+    
+    st.markdown(f"""
+    <div class="perfume-details-card">
+        🌿 <b>النوتات العطرية:</b> {perfume_info['notes']}<br>
+        🎯 <b>الطابع والمناسبة:</b> {perfume_info['character']}<br>
+        💰 <b>الحسبة:</b> سعر المعرض {perfume_info['store_price']} ر.س ➔ سعرك بالقطة <b>{perfume_info['share_price']} ر.س فقط</b> (وفرت 70% كاش!)
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.form("perfume_deal_form"):
+        st.markdown("##### 2. طريقة الاستلام وبياناتك:")
+        
+        delivery_mode = st.radio(
+            "حدد طريقة الاستلام المفضلة بجدة:",
+            [
+                "استلام يدوي مجاناً (الأندلس مول) — 63 ر.س فقط",
+                "خزانة RedBox الذكية (+25 ر.س) — 88 ر.س شامل التوصيل"
+            ]
+        )
+        
+        is_redbox_selected = "RedBox" in delivery_mode
+        active_price = 88.0 if is_redbox_selected else 63.0
+        
+        f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
+        f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
+        f_bank_sender = st.text_input("اسم صاحب الحساب اللي بتحول منه (لتأكيد فوري):", placeholder="اسم المحول البنكي")
+        
+        f_loc = ""
+        if is_redbox_selected:
+            f_loc = st.text_input("الحي المفضل لخزانة RedBox بجدة:", placeholder="مثال: الروضة، الزهراء، الصفا...")
+        
+        btn_caption = f"تثبيت المقعد ({int(active_price)} ر.س) 🛍️" if not is_waitlist else "انضم لقائمة الانتظار ⏳"
+        
+        hp = st.text_input("hp", label_visibility="collapsed")
+        submit_btn = st.form_submit_button(btn_caption, use_container_width=True)
+        
+        if submit_btn and not hp:
+            clean_name = f_name.strip()
+            raw_phone = f_phone.strip().translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
+            clean_phone = re.sub(r'[\s\-\+]', '', raw_phone)
+            if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
+            elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
+            
+            if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
+                st.error("يرجى إدخال اسم صحيح ورقم جوال سعودي يبدأ بـ 05.")
+            elif is_redbox_selected and not f_loc.strip():
+                st.error("فضلاً حدد اسم الحي لاستلام شحنة RedBox.")
+            else:
+                try:
+                    c_active, w_active = process_basket_orders(BASKET_ID)
+                    
+                    if any(item["phone"] == clean_phone for item in c_active):
+                        st.warning("أنت مسجل ومقعدك محجوز بالفعل في هذه السلة!")
+                    elif any(item["phone"] == clean_phone for item in w_active):
+                        st.warning("أنت مسجل مسبقاً في قائمة الانتظار!")
+                    else:
+                        delivery_str = f"RedBox ({f_loc.strip()})" if is_redbox_selected else "استلام الأندلس مول"
+                        sender_str = f_bank_sender.strip() if f_bank_sender.strip() else "غير محدد"
+                        stored_note = f"PERFUME:{chosen_perfume_name} | METHOD:{delivery_str} | PRICE:{int(active_price)} | SENDER:{sender_str} | PHONE:{clean_phone}"
+                        
+                        if len(c_active) < BASKET_CAPACITY:
+                            now_utc = datetime.now(timezone.utc)
+                            expire_dt = now_utc + timedelta(minutes=45)
+                            
+                            supabase.table("bookings").insert({
+                                "name": clean_name,
+                                "phone": clean_phone,
+                                "session_day": BASKET_ID,
+                                "court": 1,
+                                "level": chosen_perfume_name,
+                                "status": "confirmed",
+                                "payment_status": "pending",
+                                "expires_at": expire_dt.isoformat(),
+                                "hear_about": delivery_str[:25],
+                                "player_note": stored_note
+                            }).execute()
+                            
+                            st.session_state["deal_booked"] = {
+                                "name": clean_name,
+                                "phone": clean_phone,
+                                "perfume": chosen_perfume_name,
+                                "delivery_type": delivery_str,
+                                "price": active_price,
+                                "sender_bank": sender_str,
+                                "is_waitlist": False,
+                                "expire_timestamp": int(expire_dt.timestamp() * 1000)
+                            }
+                            st.rerun()
+                        else:
+                            supabase.table("bookings").insert({
+                                "name": clean_name,
+                                "phone": clean_phone,
+                                "session_day": BASKET_ID,
+                                "court": 1,
+                                "level": chosen_perfume_name,
+                                "status": "waitlist",
+                                "payment_status": "unpaid",
+                                "hear_about": delivery_str[:25],
+                                "player_note": stored_note
+                            }).execute()
+                            
+                            st.session_state["deal_booked"] = {
+                                "name": clean_name,
+                                "phone": clean_phone,
+                                "perfume": chosen_perfume_name,
+                                "delivery_type": delivery_str,
+                                "price": active_price,
+                                "sender_bank": sender_str,
+                                "is_waitlist": True,
+                                "pos": len(w_active) + 1
+                            }
+                            st.rerun()
+                except Exception as ex:
+                    st.error(f"حدث خطأ أثناء معالجة الطلب: {ex}")
+
+# ==============================================================================
+# 9. لوحة الإدارة (مع ميزة إضافة الحجوزات اليدوية مباشرة)
+# ==============================================================================
+st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
+with st.expander("⚙️ لوحة الإدارة"):
+    admin_pin = st.text_input("رمز الدخول الإداري:", type="password", key="admin_pwd_input")
+    if admin_pin and hmac.compare_digest(admin_pin.strip(), ADMIN_PASSWORD_HASH):
+        st.success("🔓 تم فتح لوحة التحكم.")
+        
+        # نموذج إضافة حجز يدوي مباشر
+        with st.form("manual_booking_form"):
+            st.markdown("##### ➕ إضافة مقعد يدوياً (حجزك الشخصي أو حوالة بنكية):")
+            m_name = st.text_input("الاسم:", placeholder="مثال: فارس العصيمي أو اسم المحول")
+            m_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
+            m_perf = st.selectbox("العطر المختار:", list(PERFUMES_CATALOG.keys()))
+            m_del = st.selectbox("طريقة الاستلام:", ["استلام الأندلس مول", "خزانة RedBox"])
+            m_paid = st.checkbox("الحوالة مستلمة (مدفوع ومؤكد ✅)", value=True)
+            
+            if st.form_submit_button("تثبيت المقعد بالسلة فوراً"):
+                if m_name and m_phone:
+                    st_p = "paid" if m_paid else "pending"
+                    note = f"PERFUME:{m_perf} | METHOD:{m_del} | SENDER:يدوي | PHONE:{m_phone}"
+                    supabase.table("bookings").insert({
+                        "name": m_name.strip(),
+                        "phone": m_phone.strip(),
+                        "session_day": BASKET_ID,
+                        "court": 1,
+                        "level": m_perf,
+                        "status": "confirmed",
+                        "payment_status": st_p,
+                        "hear_about": m_del[:25],
+                        "player_note": note
+                    }).execute()
+                    st.success("تم تثبيت المقعد بنجاح بالسلة!")
+                    st.rerun()
+                else:
+                    st.error("يرجى كتابة الاسم ورقم الجوال.")
+
+        st.markdown("---")
+        st.markdown("##### 👥 متابعة واعتماد مقاعد السلة:")
+        c_list, _ = process_basket_orders(BASKET_ID)
+        for row in c_list:
+            col1, col2, col3 = st.columns([2.2, 1, 1])
+            col1.write(f"**{row['name']}** - `{row.get('level', '-')}`\n`{row.get('hear_about', '-')}`\n`{row['phone']}`")
+            if row['payment_status'] == 'paid':
+                col2.markdown("<span style='color:#10b981; font-weight:700;'>مدفوع ✅</span>", unsafe_allow_html=True)
+            else:
+                col2.markdown("<span style='color:#fbbf24; font-weight:700;'>معلق ⏳</span>", unsafe_allow_html=True)
+                if col3.button("اعتماد", key=f"pay_perf_{row['id']}"):
+                    supabase.table("bookings").update({"payment_status": "paid"}).eq("id", row['id']).execute()
+                    st.rerun()
