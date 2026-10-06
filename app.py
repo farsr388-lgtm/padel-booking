@@ -8,7 +8,7 @@ import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 # ==============================================================================
-# 1. إعداد الصفحة وتنسيق الموبايل المطور
+# 1. إعداد الصفحة وهوية المنصة
 # ==============================================================================
 st.set_page_config(
     page_title="مَقسوم | قطة عطور درعة",
@@ -77,6 +77,21 @@ html, body, [class*="css"] {
     color: #a7f3d0;
 }
 
+/* بطاقة المكونات الأنيقة أسفل اختيار العطر */
+.perfume-details-card {
+    background: rgba(30, 41, 59, 0.75);
+    border: 1.5px solid #4f46e5;
+    border-radius: 12px;
+    padding: 12px;
+    margin: 6px 0 12px 0;
+    font-size: 0.85em;
+    color: #e2e8f0;
+    line-height: 1.6;
+}
+.perfume-details-card b {
+    color: #818cf8;
+}
+
 .status-card-success {
     background: rgba(16, 185, 129, 0.12);
     border: 2px solid #10b981;
@@ -85,7 +100,6 @@ html, body, [class*="css"] {
     text-align: center;
     margin-top: 8px;
 }
-
 .big-code-box {
     background: #0f172a;
     border: 2px solid #38bdf8;
@@ -106,7 +120,6 @@ html, body, [class*="css"] {
     color: #38bdf8;
     letter-spacing: 2px;
 }
-
 .big-phone-box {
     background: rgba(30, 41, 59, 0.6);
     border: 1px dashed #64748b;
@@ -116,7 +129,6 @@ html, body, [class*="css"] {
     font-size: 0.9em;
     color: #e2e8f0;
 }
-
 .alert-instruction {
     background: rgba(245, 158, 11, 0.15);
     border: 1.5px solid #f59e0b;
@@ -128,7 +140,6 @@ html, body, [class*="css"] {
     color: #fef3c7;
     text-align: right;
 }
-
 .wa-btn {
     display: block;
     background: #25D366;
@@ -173,24 +184,55 @@ except Exception:
     st.stop()
 
 # ==============================================================================
-# 3. إعدادات السلة والحسبة المالية (88 ر.س شامل RedBox)
+# 3. كتالوج العطور والمكونات والتسعير المعتمد
 # ==============================================================================
 BASKET_ID = "MAQSOOM-DERAAH-01"
 BASKET_CAPACITY = 6
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD_HASH = st.secrets.get("ADMIN_PASSWORD", "Mq99#Jeddah!2026")
 
-PERFUMES = {
-    "عطر ليدر (Leader)": "جلود وأخشاب فاخرة • رسمي وفخم",
-    "عطر بورموا (Pour Moi)": "فانيلا وعنبر دافئ • سويت وجذاب",
-    "عطر لينك الأسود (Link Black)": "حمضيات وبرغموت • منعش واستخدام يومي",
-    "عطر خواطر (Khawater)": "باتشولي وعود خفيف • كلاسيكي وثبات عالي",
-    "عطر سول (Soul)": "هيل وصندل • شبابي وعصري",
-    "عطر ميس درعة (Miss Deraah)": "ياسمين وباودر ناعم • هادئ ولطيف"
+# كتالوج دقيق يضم الاسم، السعر بالمتجر، والمكونات
+PERFUMES_CATALOG = {
+    "عطر ليدر (Leader)": {
+        "store_price": 210,
+        "share_price": 63,
+        "notes": "جلود فاخرة، أخشاب الأرز، ولمسات توابل دافئة",
+        "character": "فخم ورسمي جداً للمناسبات وساعات الدوام"
+    },
+    "عطر بورموا (Pour Moi)": {
+        "store_price": 210,
+        "share_price": 63,
+        "notes": "فانيلا فرنسية، عنبر ناعم، وزهور بيضاء هادئة",
+        "character": "سويت جذاب ومريح للاستخدام في كل الأوقات"
+    },
+    "عطر لينك الأسود (Link Black)": {
+        "store_price": 210,
+        "share_price": 63,
+        "notes": "برغموت إيطالي، حمضيات فواحة، مسك نقي",
+        "character": "منعش، فواح، ويعطيك طاقة صباحية يومية"
+    },
+    "عطر خواطر (Khawater)": {
+        "store_price": 210,
+        "share_price": 63,
+        "notes": "باتشولي هادئ، نفحات عود خفيف، وقاعدة عنبرية",
+        "character": "طابع شرقي كلاسيكي بثبات وفوحان عالي للمجالس"
+    },
+    "عطر سول (Soul)": {
+        "store_price": 210,
+        "share_price": 63,
+        "notes": "هيل عطري، خزامى برية، خشب الصندل الدافئ",
+        "character": "عصري وشبابي ملفت للطلعات المسائية واللقاءات"
+    },
+    "عطر ميس درعة (Miss Deraah)": {
+        "store_price": 210,
+        "share_price": 63,
+        "notes": "زهور الياسمين، فواكه حمراء، باودر ومسك ناعم",
+        "character": "ناعم وهادئ، خيار أنيق للجنسين أو للإهداء الفاخر"
+    }
 }
 
-PERFUME_SHARE = 63.0
-REDBOX_FEE = 25.0
+PERFUME_SHARE = 63.0             # قيمة العطر الصافية داخل السلة
+REDBOX_FEE = 25.0                # رسوم خزانة RedBox الذكية
 TOTAL_SLOT_PRICE = PERFUME_SHARE + REDBOX_FEE  # 88.0 ر.س شامل كل شيء
 
 IBAN_NUMBER = "SA9380000222608016013114"
@@ -383,20 +425,45 @@ if "deal_booked" in st.session_state:
         st.markdown(f'<a href="{wa_url}" target="_blank" class="wa-btn">📲 إرسال الإيصال وتأكيد الحجز عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 7. نموذج الحجز المبسط
+# 7. نموذج الحجز التفاعلي (عرض العطر والمكونات فورياً)
 # ==============================================================================
 else:
     is_waitlist = (slots_left == 0)
     btn_text = "التسجيل في قائمة الانتظار ⏳" if is_waitlist else "تثبيت العطر (88 ر.س شامل RedBox) 🛍"
     
+    st.markdown("##### 1. اختر عطرك المفضل:")
+    
+    # خيارات القائمة تدمج الاسم والسعر الأصلي وسعر السلة
+    perfume_display_options = [
+        f"{name} — [سعره بالمتجر: {data['store_price']} ر.س | بالقطة: {data['share_price']} ر.س]"
+        for name, data in PERFUMES_CATALOG.items()
+    ]
+    
+    # وضع القائمة هنا يجعل الموقع يتفاعل لحظياً بمجرد تغيير الاختيار
+    chosen_perfume_str = st.selectbox(
+        "العطور المشمولة بالعرض:",
+        perfume_display_options,
+        label_visibility="collapsed"
+    )
+    
+    # استخراج اسم العطر وبياناته
+    chosen_perfume_name = chosen_perfume_str.split(" — ")[0]
+    perfume_info = PERFUMES_CATALOG[chosen_perfume_name]
+    
+    # بطاقة المكونات الذكية التي تظهر أسفل الاختيار مباشرة
+    st.markdown(f"""
+    <div class="perfume-details-card">
+        🌿 <b>مكونات ونوتات العطر:</b> {perfume_info['notes']}<br>
+        🎯 <b>الطابع والاستخدام:</b> {perfume_info['character']}<br>
+        💰 <b>التوفير:</b> وفرت {perfume_info['store_price'] - perfume_info['share_price']} ر.س مقارنة بسعر المتجر الفردي!
+    </div>
+    """, unsafe_allow_html=True)
+    
     with st.form("perfume_deal_form"):
-        perfume_options = [f"{k} — ({v})" for k, v in PERFUMES.items()]
-        f_perfume_raw = st.selectbox("1. اختر عطرك المفضل:", perfume_options)
-        selected_perfume = f_perfume_raw.split(" — ")[0]
-        
-        f_name = st.text_input("2. اسمك الكريم:", placeholder="الاسم الثنائي أو الثلاثي")
-        f_phone = st.text_input("3. رقم الجوال (05xxxxxxxx):", placeholder="05xxxxxxxx")
-        f_redbox = st.text_input("4. الحي أو موقع أقرب خزانة RedBox لك:", placeholder="مثال: حي الروضة / المرجان")
+        st.markdown("##### 2. بيانات المستلم وتوصيل RedBox:")
+        f_name = st.text_input("اسمك الكريم:", placeholder="الاسم الثنائي أو الثلاثي")
+        f_phone = st.text_input("رقم الجوال (05xxxxxxxx):", placeholder="05xxxxxxxx")
+        f_redbox = st.text_input("الحي أو موقع أقرب خزانة RedBox لك:", placeholder="مثال: حي الروضة / المرجان")
         
         hp = st.text_input("hp", label_visibility="collapsed")
         submit_btn = st.form_submit_button(btn_text, use_container_width=True)
@@ -422,7 +489,7 @@ else:
                         st.warning("أنت مسجل مسبقاً في قائمة الانتظار!")
                     else:
                         memo_id = f"PRF-{clean_phone[-4:]}"
-                        stored_note = f"PERFUME:{selected_perfume} | REDBOX:{f_redbox.strip()} | PHONE:{clean_phone}"
+                        stored_note = f"PERFUME:{chosen_perfume_name} | REDBOX:{f_redbox.strip()} | PHONE:{clean_phone}"
                         
                         if len(c_active) < BASKET_CAPACITY:
                             now_utc = datetime.now(timezone.utc)
@@ -433,7 +500,7 @@ else:
                                 "phone": clean_phone,
                                 "session_day": BASKET_ID,
                                 "court": 1,
-                                "level": selected_perfume,
+                                "level": chosen_perfume_name,
                                 "status": "confirmed",
                                 "payment_status": "pending",
                                 "expires_at": expire_dt.isoformat(),
@@ -444,7 +511,7 @@ else:
                             st.session_state["deal_booked"] = {
                                 "name": clean_name,
                                 "phone": clean_phone,
-                                "perfume": selected_perfume,
+                                "perfume": chosen_perfume_name,
                                 "redbox_loc": f_redbox.strip(),
                                 "memo_code": memo_id,
                                 "is_waitlist": False,
@@ -457,7 +524,7 @@ else:
                                 "phone": clean_phone,
                                 "session_day": BASKET_ID,
                                 "court": 1,
-                                "level": selected_perfume,
+                                "level": chosen_perfume_name,
                                 "status": "waitlist",
                                 "payment_status": "unpaid",
                                 "hear_about": f_redbox.strip()[:25],
@@ -467,7 +534,7 @@ else:
                             st.session_state["deal_booked"] = {
                                 "name": clean_name,
                                 "phone": clean_phone,
-                                "perfume": selected_perfume,
+                                "perfume": chosen_perfume_name,
                                 "redbox_loc": f_redbox.strip(),
                                 "memo_code": memo_id,
                                 "is_waitlist": True,
