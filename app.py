@@ -7,72 +7,32 @@ import hmac
 import urllib.parse
 
 # ==============================================================================
-# 1. إعداد الصفحة وهوية المنصة
+# 1. إعداد الصفحة
 # ==============================================================================
 st.set_page_config(
-    page_title="مَقسوم جدة | قطة عطور درعة",
+    page_title="مَقسوم جدة | قطة عروض درعة",
     page_icon="🧴",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# حقن مباشر في جذر الصفحة لتغيير هوية Streamlit وقتل اللون الأحمر تماماً + Clarity
+# تتبع Microsoft Clarity
 components.html("""
 <script type="text/javascript">
-    // 1. تتبع Clarity
     (function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
         t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window.parent, window.parent.document, "clarity", "script", "ytjnujh8td");
-
-    // 2. فرض اللون الأخضر على جذر محرك Streamlit بالكامل
-    try {
-        var doc = window.parent.document;
-        var styleEl = doc.getElementById('force-emerald-theme');
-        if (!styleEl) {
-            styleEl = doc.createElement('style');
-            styleEl.id = 'force-emerald-theme';
-            styleEl.innerHTML = `
-                :root {
-                    --primary-color: #10b981 !important;
-                }
-                /* استئصال الإطار الأحمر وظل التركيز من القوائم */
-                div[data-baseweb="select"] * {
-                    border-color: #334155 !important;
-                    box-shadow: none !important;
-                }
-                div[data-baseweb="select"]:focus-within *,
-                div[data-baseweb="select"]:hover *,
-                div[data-baseweb="select"][aria-expanded="true"] * {
-                    border-color: #10b981 !important;
-                    box-shadow: 0 0 0 1px #10b981 !important;
-                    outline: none !important;
-                }
-                /* أزرار الراديو */
-                div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
-                    border-color: #475569 !important;
-                }
-                div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] {
-                    border-color: #10b981 !important;
-                }
-                div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] div {
-                    background-color: #10b981 !important;
-                }
-            `;
-            doc.head.appendChild(styleEl);
-        }
-    } catch (e) {
-        console.error("Theme injection error:", e);
-    }
 </script>
 """, height=0, width=0)
 
 # ==============================================================================
-# 2. أنماط CSS التكميلية
+# 2. أنماط CSS الموجهة (استئصال اللون الأحمر وفرض الأخضر الزمردي)
 # ==============================================================================
 st.markdown("""
 <style>
+/* إخفاء الهيدر الافتراضي */
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 
 .block-container { 
@@ -90,21 +50,62 @@ html, body, [class*="css"] {
     color: #f1f5f9;
 }
 
-/* القائمة المنسدلة (تنسيق مخصص ضد الأحمر) */
-div[data-baseweb="select"] > div {
-    background-color: #111827 !important;
-    border-color: #334155 !important;
-    color: #f1f5f9 !important;
+/* --------------------------------------------------------- */
+/* استئصال اللون الأحمر من قائمة العطور (Selectbox)         */
+/* --------------------------------------------------------- */
+div[data-baseweb="select"] {
     border-radius: 10px !important;
 }
+div[data-baseweb="select"] > div {
+    background-color: #111827 !important;
+    border: 1px solid #334155 !important;
+    color: #f1f5f9 !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+}
 div[data-baseweb="select"]:focus-within > div,
-div[data-baseweb="select"] > div:hover {
+div[data-baseweb="select"] > div:hover,
+div[data-baseweb="select"] > div:focus,
+div[data-baseweb="select"][aria-expanded="true"] > div {
     border-color: #10b981 !important;
     box-shadow: 0 0 0 1px #10b981 !important;
+    outline: none !important;
 }
-div[data-baseweb="select"] svg { fill: #10b981 !important; }
+div[data-baseweb="select"] svg { 
+    fill: #10b981 !important; 
+}
 
-/* حقول الإدخال */
+/* خيارات القائمة المنسدلة عند فتحها */
+ul[data-baseweb="menu"] {
+    background-color: #111827 !important;
+    border: 1px solid #1f2937 !important;
+}
+li[data-baseweb="menu-item"] {
+    color: #f1f5f9 !important;
+}
+li[data-baseweb="menu-item"][aria-selected="true"] {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    color: #34d399 !important;
+}
+
+/* --------------------------------------------------------- */
+/* استئصال اللون الأحمر من أزرار الراديو وحقول الإدخال      */
+/* --------------------------------------------------------- */
+div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
+    border-color: #475569 !important;
+    background-color: transparent !important;
+}
+div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:first-child,
+div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] {
+    border-color: #10b981 !important;
+}
+div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] div {
+    background-color: #10b981 !important;
+}
+div[data-testid="stRadio"] label:hover div {
+    border-color: #10b981 !important;
+}
+
 input, textarea { 
     caret-color: #10b981 !important; 
 }
@@ -114,7 +115,7 @@ div[data-baseweb="input"]:focus-within {
     box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* بطاقة الهيدر العلوية */
+/* الهيدر وبطاقات العرض */
 .store-header {
     background: #111827;
     border: 1px solid #1f2937;
@@ -137,7 +138,39 @@ div[data-baseweb="input"]:focus-within {
 .store-title { font-size: 1.35em; font-weight: 900; color: #ffffff; margin: 4px 0; }
 .store-desc { font-size: 0.84em; color: #94a3b8; line-height: 1.5; margin-bottom: 10px; }
 
-/* شريط الأسعار الصريح */
+/* بانر الهدف والعرض الرسمي لدرعة */
+.target-banner {
+    background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+    border: 1.5px solid #059669;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+    text-align: center;
+    color: #ecfdf5;
+}
+.target-title { font-size: 1.05em; font-weight: 900; color: #34d399; margin-bottom: 4px; }
+.target-desc { font-size: 0.8em; color: #a7f3d0; line-height: 1.4; margin-bottom: 8px; }
+
+/* مؤقت العرض */
+.timer-container {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 6px;
+    direction: ltr;
+}
+.timer-block {
+    background: rgba(6, 78, 59, 0.85);
+    border: 1px solid #10b981;
+    border-radius: 8px;
+    padding: 4px 8px;
+    min-width: 48px;
+    text-align: center;
+}
+.timer-val { font-size: 1.05em; font-weight: 900; color: #ffffff; }
+.timer-lbl { font-size: 0.62em; color: #6ee7b7; text-transform: uppercase; }
+
+/* شريط السعر */
 .price-strip {
     background: #0f172a;
     border: 1px solid #1e293b;
@@ -222,7 +255,6 @@ div[data-baseweb="input"]:focus-within {
     text-align: center;
 }
 
-/* زر الحجز الأساسي */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
@@ -349,14 +381,14 @@ taken_count = len(current_bookings)
 slots_left = max(0, BASKET_CAPACITY - taken_count)
 
 # ==============================================================================
-# 4. الواجهة البصرية
+# 4. الواجهة البصرية المباشرة
 # ==============================================================================
 st.markdown(f"""
 <div class="store-header">
     <div class="store-badge">تنسيق شراء تشاركي بجدة • 3 مقاعد فقط</div>
     <div class="store-title">قطّة عطور درعة (1+2 مجاناً)</div>
     <div class="store-desc">
-        نقتسم عرض درعة بين 3 أشخاص؛ نشتري السلة سوا من فرع درعة بالأندلس مول، 
+        نقتسم عرض درعة الرسمي بين 3 أشخاص؛ نشتري السلة سوا من فرع درعة بالأندلس مول، 
         وعِطرك الأصلي 100مل يطلع عليك بسعر التكلفة الصافي:
     </div>
     <div class="price-strip">
@@ -373,10 +405,47 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# بطاقة الشفافية
+# بانر عرض درعة الرسمي (Target) والمؤقت
+st.markdown("""
+<div class="target-banner">
+    <div class="target-title">🎁 عرض درعة الرسمي: 3 هدايا إضافية + توصيل مجاني</div>
+    <div class="target-desc">العرض ينتهي رسمياً من متجر درعة خلال:</div>
+    <div class="timer-container">
+        <div class="timer-block"><div class="timer-val" id="d-days">03</div><div class="timer-lbl">Days</div></div>
+        <div class="timer-block"><div class="timer-val" id="d-hours">08</div><div class="timer-lbl">Hours</div></div>
+        <div class="timer-block"><div class="timer-val" id="d-mins">30</div><div class="timer-lbl">Minutes</div></div>
+        <div class="timer-block"><div class="timer-val" id="d-secs">15</div><div class="timer-lbl">Seconds</div></div>
+    </div>
+</div>
+
+<script>
+    var totalSeconds = (3 * 86400) + (8 * 3600) + (30 * 60) + 15;
+    setInterval(function() {
+        if (totalSeconds > 0) {
+            totalSeconds--;
+            var d = Math.floor(totalSeconds / 86400);
+            var h = Math.floor((totalSeconds % 86400) / 3600);
+            var m = Math.floor((totalSeconds % 3600) / 60);
+            var s = totalSeconds % 60;
+            
+            var elD = document.getElementById("d-days");
+            var elH = document.getElementById("d-hours");
+            var elM = document.getElementById("d-mins");
+            var elS = document.getElementById("d-secs");
+            
+            if(elD) elD.innerText = d < 10 ? "0"+d : d;
+            if(elH) elH.innerText = h < 10 ? "0"+h : h;
+            if(elM) elM.innerText = m < 10 ? "0"+m : m;
+            if(elS) elS.innerText = s < 10 ? "0"+s : s;
+        }
+    }, 1000);
+</script>
+""", unsafe_allow_html=True)
+
+# بطاقة التحقق من درعة
 st.markdown("""
 <div class="official-verify">
-    🔎 <b>للشفافية الكاملة وتأكيد الأسعار الأصلية والعرض:</b><br>
+    🔎 <b>للشفافية وتأكيد الأسعار الرسمية والعرض:</b><br>
     <a href="https://deraahstore.com" target="_blank">اضغط هنا لفتح موقع درعة الرسمي والتأكد من سعر العطر الفردي والعروض ↗</a>
 </div>
 """, unsafe_allow_html=True)
