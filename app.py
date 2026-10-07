@@ -7,7 +7,7 @@ import hmac
 import urllib.parse
 
 # ==============================================================================
-# 1. إعداد الصفحة
+# 1. إعداد الصفحة وهوية المنصة
 # ==============================================================================
 st.set_page_config(
     page_title="مَقسوم جدة | قطة عطور درعة",
@@ -16,19 +16,60 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# تتبع الجلسات والخرائط الحرارية (Microsoft Clarity)
+# حقن مباشر في جذر الصفحة لتغيير هوية Streamlit وقتل اللون الأحمر تماماً + Clarity
 components.html("""
 <script type="text/javascript">
+    // 1. تتبع Clarity
     (function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
         t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window.parent, window.parent.document, "clarity", "script", "ytjnujh8td");
+
+    // 2. فرض اللون الأخضر على جذر محرك Streamlit بالكامل
+    try {
+        var doc = window.parent.document;
+        var styleEl = doc.getElementById('force-emerald-theme');
+        if (!styleEl) {
+            styleEl = doc.createElement('style');
+            styleEl.id = 'force-emerald-theme';
+            styleEl.innerHTML = `
+                :root {
+                    --primary-color: #10b981 !important;
+                }
+                /* استئصال الإطار الأحمر وظل التركيز من القوائم */
+                div[data-baseweb="select"] * {
+                    border-color: #334155 !important;
+                    box-shadow: none !important;
+                }
+                div[data-baseweb="select"]:focus-within *,
+                div[data-baseweb="select"]:hover *,
+                div[data-baseweb="select"][aria-expanded="true"] * {
+                    border-color: #10b981 !important;
+                    box-shadow: 0 0 0 1px #10b981 !important;
+                    outline: none !important;
+                }
+                /* أزرار الراديو */
+                div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
+                    border-color: #475569 !important;
+                }
+                div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] {
+                    border-color: #10b981 !important;
+                }
+                div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] div {
+                    background-color: #10b981 !important;
+                }
+            `;
+            doc.head.appendChild(styleEl);
+        }
+    } catch (e) {
+        console.error("Theme injection error:", e);
+    }
 </script>
 """, height=0, width=0)
 
 # ==============================================================================
-# 2. استئصال اللون الأحمر الجذري عبر Deep BaseWeb CSS
+# 2. أنماط CSS التكميلية
 # ==============================================================================
 st.markdown("""
 <style>
@@ -49,66 +90,21 @@ html, body, [class*="css"] {
     color: #f1f5f9;
 }
 
-/* -------------------------------------------------------------------------- */
-/* 1. إصلاح القائمة المنسدلة (Selectbox) ومنع الإطار الأحمر الظاهر بالصورة    */
-/* -------------------------------------------------------------------------- */
+/* القائمة المنسدلة (تنسيق مخصص ضد الأحمر) */
 div[data-baseweb="select"] > div {
-    border-color: #334155 !important;
     background-color: #111827 !important;
+    border-color: #334155 !important;
     color: #f1f5f9 !important;
     border-radius: 10px !important;
 }
 div[data-baseweb="select"]:focus-within > div,
-div[data-baseweb="select"] > div:focus,
-div[data-baseweb="select"] > div:hover,
-div[data-baseweb="select"][aria-expanded="true"] > div {
+div[data-baseweb="select"] > div:hover {
     border-color: #10b981 !important;
     box-shadow: 0 0 0 1px #10b981 !important;
-    outline: none !important;
 }
-/* أيقونة السهم داخل القائمة */
-div[data-baseweb="select"] svg {
-    fill: #10b981 !important;
-}
-/* خيارات القائمة عند فتحها */
-div[data-baseweb="popover"] ul {
-    background-color: #111827 !important;
-    border: 1px solid #1f2937 !important;
-}
-div[data-baseweb="popover"] li {
-    color: #f1f5f9 !important;
-}
-div[data-baseweb="popover"] li[aria-selected="true"] {
-    background-color: rgba(16, 185, 129, 0.2) !important;
-    color: #34d399 !important;
-}
+div[data-baseweb="select"] svg { fill: #10b981 !important; }
 
-/* -------------------------------------------------------------------------- */
-/* 2. إصلاح أزرار الراديو (Radio Buttons) واستبدال النقطة الحمراء بالأخضر     */
-/* -------------------------------------------------------------------------- */
-/* الدائرة الخارجية للراديو غير المحدد */
-div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
-    border-color: #475569 !important;
-    background-color: transparent !important;
-}
-/* الدائرة الخارجية والداخلية عند الاختيار (المحددة) */
-div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:first-child,
-div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] {
-    border-color: #10b981 !important;
-}
-div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child div,
-div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] div {
-    background-color: #10b981 !important;
-}
-/* استهداف مباشر لمدخلات الراديو القياسية */
-div[data-testid="stRadio"] input[type="radio"]:checked + div {
-    border-color: #10b981 !important;
-    background-color: #10b981 !important;
-}
-
-/* -------------------------------------------------------------------------- */
-/* 3. حقول الإدخال النصية (Inputs)                                             */
-/* -------------------------------------------------------------------------- */
+/* حقول الإدخال */
 input, textarea { 
     caret-color: #10b981 !important; 
 }
@@ -118,7 +114,7 @@ div[data-baseweb="input"]:focus-within {
     box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* الهيدر وشريط الأسعار */
+/* بطاقة الهيدر العلوية */
 .store-header {
     background: #111827;
     border: 1px solid #1f2937;
@@ -141,6 +137,7 @@ div[data-baseweb="input"]:focus-within {
 .store-title { font-size: 1.35em; font-weight: 900; color: #ffffff; margin: 4px 0; }
 .store-desc { font-size: 0.84em; color: #94a3b8; line-height: 1.5; margin-bottom: 10px; }
 
+/* شريط الأسعار الصريح */
 .price-strip {
     background: #0f172a;
     border: 1px solid #1e293b;
@@ -312,6 +309,7 @@ PERFUMES = {
         "rating": "4.7 ★ (620 تقييم)",
         "desc": "ثبات وفوحان عالي بلمسة بخور أنيقة للمجالس",
         "notes": "بخور خفيف، باتشولي دافئ، وعنبر",
+        "official_url": "https://deraahstore.com/ar-sa/khawater-unisex-edp/p-101110101010-415",
         "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=250&q=80"
     },
     "عطر سول (Soul) 100مل": {
@@ -319,6 +317,7 @@ PERFUMES = {
         "rating": "4.8 ★ (510 تقييم)",
         "desc": "عطر مناسب للطلعات واللقاءات المسائية",
         "notes": "هيل عطري، لافندر هادئ، وخشب الصندل",
+        "official_url": "https://deraahstore.com/ar-sa/soul-men-edp/p-101110101010-420",
         "img": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=250&q=80"
     },
     "عطر ميس درعة (Miss Deraah) 100مل": {
@@ -326,6 +325,7 @@ PERFUMES = {
         "rating": "4.9 ★ (740 تقييم)",
         "desc": "ناعم وأنيق ومثالي للإهداء للأهل",
         "notes": "زهور الياسمين، باودر ومسك مخملي",
+        "official_url": "https://deraahstore.com/ar-sa/miss-deraah-women-edp/p-101110101010-430",
         "img": "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=250&q=80"
     }
 }
@@ -349,7 +349,7 @@ taken_count = len(current_bookings)
 slots_left = max(0, BASKET_CAPACITY - taken_count)
 
 # ==============================================================================
-# 4. الواجهة البصرية المباشرة
+# 4. الواجهة البصرية
 # ==============================================================================
 st.markdown(f"""
 <div class="store-header">
@@ -373,7 +373,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# بطاقة الشفافية والتحقق المباشر
+# بطاقة الشفافية
 st.markdown("""
 <div class="official-verify">
     🔎 <b>للشفافية الكاملة وتأكيد الأسعار الأصلية والعرض:</b><br>
@@ -381,7 +381,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# مؤشر سعة السلة
+# مؤشر اكتمال السلة
 progress_percent = int((taken_count / BASKET_CAPACITY) * 100)
 status_badge = f"متبقي شخص واحد فقط وتكتمل القطة ونشتريها 🔥" if slots_left == 1 else f"متبقي {slots_left} أشخاص لاكتمال القطة"
 
@@ -459,7 +459,8 @@ else:
             <span class="rating-pill">{p['rating']}</span>
             <span style="color:#38bdf8; font-weight:700; margin-right:4px;">★ {p['tag']}</span><br>
             <b>الطابع:</b> {p['desc']}<br>
-            <span style="color:#94a3b8; font-size:0.9em;"><b>المكونات:</b> {p['notes']}</span>
+            <span style="color:#94a3b8; font-size:0.9em;"><b>المكونات:</b> {p['notes']}</span><br>
+            <a href="{p['official_url']}" target="_blank" style="color:#38bdf8; font-size:0.85em; text-decoration:underline;">عرض العطر في موقع درعة الرسمي ↗</a>
         </div>
     </div>
     """, unsafe_allow_html=True)
