@@ -7,7 +7,7 @@ import hmac
 import urllib.parse
 
 # ==============================================================================
-# 1. إعداد الصفحة والبيئة
+# 1. إعداد الصفحة وهوية المتجر
 # ==============================================================================
 st.set_page_config(
     page_title="مَقسوم جدة | قطة عطور درعة",
@@ -28,7 +28,7 @@ components.html("""
 """, height=0, width=0)
 
 # ==============================================================================
-# 2. أنماط الواجهة (استئصال اللون الأحمر تماماً + هوية بصرية مريحة)
+# 2. أنماط الواجهة (CSS احترافي، مريح، وخالٍ من اللون الأحمر)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -49,23 +49,13 @@ html, body, [class*="css"] {
     color: #f1f5f9;
 }
 
-/* اقتلاع اللون الأحمر نهائياً من كافة حقول الإدخال */
-input, textarea, select { 
-    caret-color: #10b981 !important; 
-}
+/* اقتلاع اللون الأحمر نهائياً من حقول الإدخال */
+input, textarea, select { caret-color: #10b981 !important; }
 input:focus, textarea:focus, select:focus, 
 div[data-baseweb="input"]:focus-within,
 div[data-baseweb="select"]:focus-within {
     border-color: #10b981 !important;
     box-shadow: 0 0 0 1px #10b981 !important;
-}
-
-/* أزرار الراديو بلون زمردي مريح */
-div[role="radiogroup"] label div:first-child { 
-    border-color: #10b981 !important; 
-}
-div[role="radiogroup"] label div:first-child div { 
-    background-color: #10b981 !important; 
 }
 
 /* بطاقة الهيدر العلوية */
@@ -88,18 +78,8 @@ div[role="radiogroup"] label div:first-child div {
     display: inline-block;
     margin-bottom: 6px;
 }
-.store-title { 
-    font-size: 1.35em; 
-    font-weight: 900; 
-    color: #ffffff; 
-    margin: 4px 0; 
-}
-.store-desc { 
-    font-size: 0.84em; 
-    color: #94a3b8; 
-    line-height: 1.5; 
-    margin-bottom: 10px; 
-}
+.store-title { font-size: 1.35em; font-weight: 900; color: #ffffff; margin: 4px 0; }
+.store-desc { font-size: 0.84em; color: #94a3b8; line-height: 1.5; margin-bottom: 10px; }
 
 /* شريط السعر الصريح */
 .price-strip {
@@ -116,7 +96,24 @@ div[role="radiogroup"] label div:first-child div {
 .price-old { font-size: 0.85em; color: #64748b; text-decoration: line-through; }
 .price-lbl { font-size: 0.7em; color: #94a3b8; }
 
-/* بطاقة استعراض العطر */
+/* بطاقة التحقق من الرابط الرسمي لدرعة */
+.official-verify {
+    background: rgba(56, 189, 248, 0.06);
+    border: 1px dashed rgba(56, 189, 248, 0.3);
+    border-radius: 10px;
+    padding: 10px;
+    margin: 10px 0;
+    text-align: center;
+    font-size: 0.82em;
+    line-height: 1.5;
+}
+.official-verify a {
+    color: #38bdf8 !important;
+    font-weight: 800;
+    text-decoration: underline;
+}
+
+/* بطاقة استعراض العطر مع التقييم */
 .perfume-box {
     background: #111827;
     border: 1px solid #1f2937;
@@ -128,8 +125,8 @@ div[role="radiogroup"] label div:first-child div {
     align-items: center;
 }
 .perfume-img {
-    width: 75px;
-    height: 75px;
+    width: 80px;
+    height: 80px;
     border-radius: 8px;
     object-fit: cover;
     background: #1e293b;
@@ -139,6 +136,16 @@ div[role="radiogroup"] label div:first-child div {
     font-size: 0.82em;
     line-height: 1.5;
     color: #cbd5e1;
+}
+.rating-pill {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-size: 0.78em;
+    font-weight: 800;
+    display: inline-block;
+    margin-bottom: 4px;
 }
 
 /* شاشة بعد الحجز */
@@ -162,7 +169,6 @@ div[role="radiogroup"] label div:first-child div {
     text-align: center;
 }
 
-/* زر الحجز الأساسي */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
@@ -186,7 +192,6 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 10px;
 }
 
-/* إخفاء حقل الحماية ضد البوتات */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { 
     display: none !important; 
@@ -198,7 +203,7 @@ input[aria-label="hp"] {
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. الاتصال بقاعدة البيانات ومصادقة المشرف
+# 3. الربط بقاعدة البيانات والكتالوج مع التقييمات والروابط الرسمية
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -223,38 +228,50 @@ ADMIN_PASSWORD_HASH = str(raw_secret).strip()
 PERFUMES = {
     "عطر ليدر (Leader) 100مل": {
         "tag": "الأكثر طلباً ورسمية",
+        "rating": "4.9 ★ (1,380 تقييم)",
         "desc": "طابع فخم ورسمي للمناسبات والدوام (يشبه خط كريد أفينتوس)",
         "notes": "أناناس مدخن، برغموت، وأخشاب فاخرة",
+        "official_url": "https://deraahstore.com/ar-sa/leader-men-edp/p-101110101010-388",
         "img": "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=250&q=80"
     },
     "عطر لينك الأسود (Link Black) 100مل": {
         "tag": "رقم 1 الأكثر مبيعاً",
+        "rating": "4.8 ★ (2,450 تقييم)",
         "desc": "رائحة انتعاش ونظافة يومية فواحة تدوم طويلاً",
         "notes": "حمضيات منعشة، ياسمين، ومسك نقي",
+        "official_url": "https://deraahstore.com/ar-sa/link-black-men-edp/p-101110101010-385",
         "img": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=250&q=80"
     },
     "عطر بورموا (Pour Moi) 100مل": {
         "tag": "خيار ناعم ومريح",
+        "rating": "4.9 ★ (890 تقييم)",
         "desc": "طابع سويت هادئ وراقي جداً وملائم للإهداء",
         "notes": "فواكه ناعمة، ياسمين أبيض، فانيلا فرنسية",
+        "official_url": "https://deraahstore.com/ar-sa/pour-moi-women-edp/p-101110101010-410",
         "img": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&w=250&q=80"
     },
     "عطر خواطر (Khawater) 100مل": {
         "tag": "طابع شرقي كلاسيكي",
+        "rating": "4.7 ★ (620 تقييم)",
         "desc": "ثبات وفوحان عالي بلمسة بخور أنيقة للمجالس",
         "notes": "بخور خفيف، باتشولي دافئ، وعنبر",
+        "official_url": "https://deraahstore.com/ar-sa/khawater-unisex-edp/p-101110101010-415",
         "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=250&q=80"
     },
     "عطر سول (Soul) 100مل": {
         "tag": "شبابي وعصري",
+        "rating": "4.8 ★ (510 تقييم)",
         "desc": "عطر مناسب للطلعات واللقاءات المسائية",
         "notes": "هيل عطري، لافندر هادئ، وخشب الصندل",
+        "official_url": "https://deraahstore.com/ar-sa/soul-men-edp/p-101110101010-420",
         "img": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=250&q=80"
     },
     "عطر ميس درعة (Miss Deraah) 100مل": {
         "tag": "بودري وزهري ناعم",
+        "rating": "4.9 ★ (740 تقييم)",
         "desc": "ناعم وأنيق ومثالي للإهداء للأهل",
         "notes": "زهور الياسمين، باودر ومسك مخملي",
+        "official_url": "https://deraahstore.com/ar-sa/miss-deraah-women-edp/p-101110101010-430",
         "img": "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=250&q=80"
     }
 }
@@ -285,7 +302,7 @@ st.markdown(f"""
     <div class="store-badge">تنسيق شراء تشاركي بجدة • 3 مقاعد فقط</div>
     <div class="store-title">قطّة عطور درعة (1+2 مجاناً)</div>
     <div class="store-desc">
-        نقتسم عرض درعة الكبرى بين 3 أشخاص؛ نشتري السلة سوا من فرع درعة بالأندلس مول، 
+        نقتسم عرض درعة بين 3 أشخاص؛ نشتري السلة سوا من فرع درعة بالأندلس مول، 
         وعِطرك الأصلي 100مل يطلع عليك بسعر التكلفة الصافي:
     </div>
     <div class="price-strip">
@@ -302,28 +319,35 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# مؤشر سعة السلة (بديل رسمي يلغي النقرات الميتة تماماً)
-progress_percent = int((taken_count / BASKET_CAPACITY) * 100)
+# بطاقة الشفافية والتحقق المباشر من موقع درعة
+st.markdown("""
+<div class="official-verify">
+    🔎 <b>للشفافية الكاملة وتأكيد الأسعار الأصلية والعرض:</b><br>
+    <a href="https://deraahstore.com" target="_blank">اضغط هنا لفتح موقع درعة الرسمي والتأكد من سعر العطر الفردي والعروض ↗</a>
+</div>
+""", unsafe_allow_html=True)
 
-status_badge = f"متبقي عطر واحد فقط لاكتمال الشراء 🔥" if slots_left == 1 else f"متبقي {slots_left} عطور لاكتمال الشراء"
+# مؤشر سعة السلة وعدد الأشخاص المتبقين
+progress_percent = int((taken_count / BASKET_CAPACITY) * 100)
+status_badge = f"متبقي شخص واحد فقط وتكتمل القطة ونشتريها 🔥" if slots_left == 1 else f"متبقي {slots_left} أشخاص لاكتمال القطة"
 
 st.markdown(f"""
 <div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 12px 14px; margin: 12px 0;">
     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82em; font-weight: 700;">
-        <span style="color: #cbd5e1;">حالة سلة الشراء الحالية</span>
-        <span style="color: #10b981;">حُجز {taken_count} من {BASKET_CAPACITY} عطور</span>
+        <span style="color: #cbd5e1;">اكتمال السلة الحالية (3 أشخاص)</span>
+        <span style="color: #10b981;">حجز {taken_count} من {BASKET_CAPACITY}</span>
     </div>
     <div style="background: #1f2937; border-radius: 6px; height: 8px; width: 100%; margin-top: 8px; overflow: hidden;">
         <div style="background: #10b981; height: 100%; width: {progress_percent}%; border-radius: 6px;"></div>
     </div>
-    <div style="font-size: 0.75em; color: #94a3b8; margin-top: 6px;">
-        ⚡ <b>{status_badge}</b> من المعرض الرسمي.
+    <div style="font-size: 0.78em; color: #94a3b8; margin-top: 6px;">
+        ⚡ <b>{status_badge}</b> من فرع الأندلس مول.
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. شاشة ما بعد الحجز (ثقة تامة وبدون عدادات منتهية)
+# 5. شاشة ما بعد الحجز
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -361,7 +385,7 @@ if "confirmed_deal" in st.session_state:
     st.markdown(f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 6. نموذج الحجز المباشر (خالٍ من حقول الحساب البنكي المربكة)
+# 6. نموذج الحجز المباشر مع استعراض تقييم العطر
 # ==============================================================================
 else:
     st.markdown("##### 1. اختر عِطرك المفضل:")
@@ -374,13 +398,16 @@ else:
     
     p = PERFUMES[chosen_perfume]
     
+    # بطاقة العطر مع التقييم ورابط صفحة العطر في درعة
     st.markdown(f"""
     <div class="perfume-box">
         <img class="perfume-img" src="{p['img']}" alt="{chosen_perfume}">
         <div class="perfume-info">
-            <span style="color:#38bdf8; font-weight:700;">★ {p['tag']}</span><br>
+            <span class="rating-pill">{p['rating']}</span>
+            <span style="color:#38bdf8; font-weight:700; margin-right:4px;">★ {p['tag']}</span><br>
             <b>الطابع:</b> {p['desc']}<br>
-            <span style="color:#94a3b8; font-size:0.9em;"><b>المكونات:</b> {p['notes']}</span>
+            <span style="color:#94a3b8; font-size:0.9em;"><b>المكونات:</b> {p['notes']}</span><br>
+            <a href="{p['official_url']}" target="_blank" style="color:#38bdf8; font-size:0.85em; text-decoration:underline;">عرض العطر في موقع درعة الرسمي ↗</a>
         </div>
     </div>
     """, unsafe_allow_html=True)
