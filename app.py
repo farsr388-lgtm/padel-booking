@@ -28,16 +28,21 @@ components.html("""
 """, height=0, width=0)
 
 # ==============================================================================
-# 2. أنماط الواجهة (استئصال اللون الأحمر تماماً + ثبات الحقول)
+# 2. أنماط الواجهة (CSS احترافي خالي من الأحمر + انتقال سلس للمقاعد)
 # ==============================================================================
 st.markdown("""
 <style>
-/* إخفاء القوائم الافتراضية */
+/* تفعيل النزول الانسيابي عند الضغط على المقاعد */
+html {
+    scroll-behavior: smooth;
+}
+
+/* إخفاء القوائم الافتراضية لستريمليت */
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 
 .block-container { 
     padding-top: 0.8rem !important; 
-    padding-bottom: 2rem !important; 
+    padding-bottom: 2.5rem !important; 
     max-width: 420px !important; 
     margin: 0 auto; 
 }
@@ -50,7 +55,7 @@ html, body, [class*="css"] {
     color: #f1f5f9;
 }
 
-/* اقتلاع اللون الأحمر نهائياً من كافة الحقول والتركيز */
+/* اقتلاع اللون الأحمر نهائياً من حقول الإدخال */
 input, textarea, select { 
     caret-color: #10b981 !important; 
 }
@@ -61,7 +66,7 @@ div[data-baseweb="select"]:focus-within {
     box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* ضبط أزرار الراديو بلون زمردي مريح */
+/* ضبط أزرار الراديو باللون الأخضر المريح */
 div[role="radiogroup"] label div:first-child { 
     border-color: #10b981 !important; 
 }
@@ -69,7 +74,7 @@ div[role="radiogroup"] label div:first-child div {
     background-color: #10b981 !important; 
 }
 
-/* الهيدر والعنوان */
+/* بطاقة الهيدر العلوية */
 .store-header {
     background: #111827;
     border: 1px solid #1f2937;
@@ -102,7 +107,7 @@ div[role="radiogroup"] label div:first-child div {
     margin-bottom: 10px; 
 }
 
-/* شريط الأسعار الصريح */
+/* شريط السعر الصريح */
 .price-strip {
     background: #0f172a;
     border: 1px solid #1e293b;
@@ -117,12 +122,11 @@ div[role="radiogroup"] label div:first-child div {
 .price-old { font-size: 0.85em; color: #64748b; text-decoration: line-through; }
 .price-lbl { font-size: 0.7em; color: #94a3b8; }
 
-/* كروت المقاعد (غير قابلة للنقر العشوائي لمنع التشتت) */
+/* كروت المقاعد الثلاثة */
 .seats-wrapper {
     display: flex;
     gap: 8px;
     margin: 12px 0;
-    pointer-events: none !important;
 }
 .seat-card {
     flex: 1;
@@ -131,19 +135,26 @@ div[role="radiogroup"] label div:first-child div {
     text-align: center;
     font-size: 0.78em;
     line-height: 1.4;
+    transition: transform 0.15s ease, border-color 0.15s ease;
 }
 .seat-occupied {
     background: rgba(16, 185, 129, 0.1);
     border: 1.5px solid #10b981;
     color: #f1f5f9;
+    pointer-events: none;
 }
 .seat-available {
     background: rgba(30, 41, 59, 0.5);
-    border: 1.5px dashed #475569;
+    border: 1.5px dashed #10b981;
     color: #94a3b8;
+    cursor: pointer;
+}
+.seat-available:hover {
+    transform: translateY(-2px);
+    background: rgba(16, 185, 129, 0.08);
 }
 
-/* كرت العطر المباشر */
+/* كرت العطر */
 .perfume-box {
     background: #111827;
     border: 1px solid #1f2937;
@@ -168,7 +179,7 @@ div[role="radiogroup"] label div:first-child div {
     color: #cbd5e1;
 }
 
-/* شاشة ما بعد الحجز */
+/* شاشة بعد الحجز */
 .success-card {
     background: rgba(16, 185, 129, 0.1);
     border: 1.5px solid #10b981;
@@ -189,7 +200,7 @@ div[role="radiogroup"] label div:first-child div {
     text-align: center;
 }
 
-/* أزرار الإرسال والتواصل */
+/* زر الحجز الأساسي */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
@@ -213,7 +224,7 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 10px;
 }
 
-/* فخ الحماية ضد البوتات */
+/* إخفاء حقل الحماية ضد البوتات */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { 
     display: none !important; 
@@ -225,7 +236,7 @@ input[aria-label="hp"] {
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. الربط الآمن بقاعدة البيانات (محصن ضد أي انهيار برمجي)
+# 3. الربط بقاعدة البيانات وتجهيز الكتالوج
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -244,7 +255,6 @@ BASKET_ID = "MAQSOOM-JEDDAH-BASKET-01"
 BASKET_CAPACITY = 3
 ADMIN_PHONE = "966566261868"
 
-# جلب آمن للرمز السري لتفادي أخطاء TypeError
 raw_secret = st.secrets.get("ADMIN_PASSWORD", "Mq99#Jeddah!2026")
 ADMIN_PASSWORD_HASH = str(raw_secret).strip()
 
@@ -306,7 +316,7 @@ taken_count = len(current_bookings)
 slots_left = max(0, BASKET_CAPACITY - taken_count)
 
 # ==============================================================================
-# 4. الواجهة البصرية المباشرة
+# 4. الواجهة الرئيسية
 # ==============================================================================
 st.markdown(f"""
 <div class="store-header">
@@ -330,7 +340,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# المقاعد الثلاثة بتسميات واقعية خالية من الندرة المصطنعة
+# المقاعد الثلاثة مع تحويل المقاعد المتاحة لأزرار انتقال فورية
 st.markdown(f"<div style='font-size:0.85em; font-weight:700; color:#cbd5e1; margin-bottom:4px;'>حالة السلة الحالية (متبقي {slots_left} مقاعد):</div>", unsafe_allow_html=True)
 
 slots_html = []
@@ -347,20 +357,21 @@ for i in range(BASKET_CAPACITY):
             f'</div>'
         )
     else:
-        # وسم المقعد الأخير يظهر فقط إذا تبقى مقعد فردي فعلاً
         label_text = "المقعد الأخير 🔥" if slots_left == 1 else f"مقعد متاح #{i+1}"
         slots_html.append(
-            f'<div class="seat-card seat-available">'
+            f'<a href="#order_section" style="text-decoration:none; flex:1; display:flex;">'
+            f'<div class="seat-card seat-available" style="width:100%;">'
             f'✨ <b>{label_text}</b><br>'
-            f'<span style="color:#64748b; font-size:0.85em;">شاغر للحجز</span><br>'
+            f'<span style="color:#10b981; font-weight:700; font-size:0.82em;">احجز الآن 👇</span><br>'
             f'<span style="color:#38bdf8; font-weight:700;">63 ر.س</span>'
             f'</div>'
+            f'</a>'
         )
 
 st.markdown(f'<div class="seats-wrapper">{"".join(slots_html)}</div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. شاشة ما بعد الحجز (ثقة تامة وبدون عدادات منتهية)
+# 5. شاشة ما بعد الحجز
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -398,148 +409,4 @@ if "confirmed_deal" in st.session_state:
     st.markdown(f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 6. نموذج الحجز المباشر (خالٍ من حقول الحساب البنكي المربكة)
-# ==============================================================================
-else:
-    st.markdown("<div style='height: 4px;'></div>", unsafe_allow_html=True)
-    st.markdown("##### 1. اختر عِطرك المفضل:")
-    
-    chosen_perfume = st.selectbox(
-        "اختر العطر:",
-        list(PERFUMES.keys()),
-        label_visibility="collapsed"
-    )
-    
-    p = PERFUMES[chosen_perfume]
-    
-    st.markdown(f"""
-    <div class="perfume-box">
-        <img class="perfume-img" src="{p['img']}" alt="{chosen_perfume}">
-        <div class="perfume-info">
-            <span style="color:#38bdf8; font-weight:700;">★ {p['tag']}</span><br>
-            <b>الطابع:</b> {p['desc']}<br>
-            <span style="color:#94a3b8; font-size:0.9em;"><b>المكونات:</b> {p['notes']}</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    with st.form("simple_checkout_form"):
-        st.markdown("##### 2. طريقة الاستلام وبياناتك:")
-        
-        delivery_mode = st.radio(
-            "طريقة الاستلام والدفع:",
-            [
-                "استلام يد بيد (الأندلس مول) — 63 ر.س عند الاستلام",
-                "خزانة RedBox بجدة (+25 ر.س) — 88 ر.س"
-            ]
-        )
-        
-        is_redbox = "RedBox" in delivery_mode
-        active_price = 88 if is_redbox else 63
-        
-        f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
-        f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
-        
-        f_district = ""
-        if is_redbox:
-            f_district = st.text_input("الحي لأقرب خزانة RedBox بجدة:", placeholder="مثال: الروضة، الزهراء، السامر...")
-            
-        hp = st.text_input("hp", label_visibility="collapsed")
-        submit_btn = st.form_submit_button(f"تثبيت المقعد (الدفع {active_price} ر.س عند الاستلام)", use_container_width=True)
-        
-        if submit_btn and not hp:
-            clean_name = f_name.strip()
-            raw_phone = f_phone.strip().translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
-            clean_phone = re.sub(r'[\s\-\+]', '', raw_phone)
-            if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
-            elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
-            
-            if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
-                st.error("يرجى إدخال اسم صحيح ورقم جوال سعودي يبدأ بـ 05.")
-            elif is_redbox and not f_district.strip():
-                st.error("فضلاً حدد اسم الحي لاستلام RedBox.")
-            elif slots_left == 0:
-                st.warning("السلة الحالية اكتملت تماماً، جاري فتح سلة جديدة قريباً.")
-            else:
-                try:
-                    delivery_str = f"RedBox ({f_district.strip()})" if is_redbox else "الأندلس مول (يد بيد)"
-                    note = f"PERFUME:{chosen_perfume} | METHOD:{delivery_str} | PRICE:{active_price} | PHONE:{clean_phone}"
-                    
-                    if supabase:
-                        supabase.table("bookings").insert({
-                            "name": clean_name,
-                            "phone": clean_phone,
-                            "session_day": BASKET_ID,
-                            "court": 1,
-                            "level": chosen_perfume,
-                            "status": "confirmed",
-                            "payment_status": "pending",
-                            "hear_about": delivery_str[:25],
-                            "player_note": note
-                        }).execute()
-                    
-                    st.cache_data.clear()
-                    
-                    st.session_state["confirmed_deal"] = {
-                        "name": clean_name,
-                        "phone": clean_phone,
-                        "perfume": chosen_perfume,
-                        "delivery": delivery_str,
-                        "price": active_price
-                    }
-                    st.rerun()
-                except Exception:
-                    st.error("تعذر إتمام الحجز حالياً، يرجى المحاولة لاحقاً.")
-
-# ==============================================================================
-# 7. بوابة الإدارة المعزولة بالكامل (سرية: تفتح فقط عبر ?manage=faris)
-# ==============================================================================
-# العميل العادي لا يرى أي أثر لهذه البوابة نهائياً في أسفل الصفحة
-query_params = st.query_params
-if query_params.get("manage") == "faris":
-    st.markdown("---")
-    st.subheader("⚙️ بوابة المشرف المعزولة")
-    admin_pin = st.text_input("رمز المرور:", type="password", key="admin_isolated_key")
-    
-    if admin_pin and hmac.compare_digest(admin_pin.strip(), ADMIN_PASSWORD_HASH):
-        st.success("تم تأكيد هوية المشرف.")
-        
-        with st.form("manual_add_admin_form"):
-            st.markdown("##### ➕ إضافة مقعد يدوياً:")
-            m_name = st.text_input("الاسم:")
-            m_phone = st.text_input("الجوال:")
-            m_perf = st.selectbox("العطر:", list(PERFUMES.keys()))
-            m_paid = st.checkbox("مدفوع ومؤكد ✅", value=True)
-            
-            if st.form_submit_button("تثبيت المقعد بالسلة"):
-                if m_name and m_phone and supabase:
-                    st_p = "paid" if m_paid else "pending"
-                    supabase.table("bookings").insert({
-                        "name": m_name.strip(),
-                        "phone": m_phone.strip(),
-                        "session_day": BASKET_ID,
-                        "court": 1,
-                        "level": m_perf,
-                        "status": "confirmed",
-                        "payment_status": st_p,
-                        "hear_about": "إضافة يدوية",
-                        "player_note": f"MANUAL | {m_perf}"
-                    }).execute()
-                    st.cache_data.clear()
-                    st.success("تم تثبيت المقعد!")
-                    st.rerun()
-        
-        st.markdown("##### 👥 مقاعد السلة المسجلة:")
-        bookings_list = get_confirmed_bookings(BASKET_ID)
-        for b in bookings_list:
-            col1, col2, col3 = st.columns([2.2, 1, 1])
-            col1.write(f"**{b.get('name')}** - `{b.get('level', '-')}`\n`{b.get('phone')}`")
-            if b.get('payment_status') == 'paid':
-                col2.markdown("<span style='color:#10b981; font-weight:700;'>مدفوع ✅</span>", unsafe_allow_html=True)
-            else:
-                col2.markdown("<span style='color:#38bdf8; font-weight:700;'>محجوز 🔒</span>", unsafe_allow_html=True)
-                if col3.button("اعتماد دفع", key=f"pay_adm_{b.get('id')}"):
-                    if supabase:
-                        supabase.table("bookings").update({"payment_status": "paid"}).eq("id", b.get('id')).execute()
-                    st.cache_data.clear()
-                    st.rerun()
+# 6. نموذج الحجز
