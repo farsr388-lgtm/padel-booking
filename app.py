@@ -35,7 +35,7 @@ def clean_html(raw: str) -> str:
 # ==============================================================================
 css_styles = clean_html("""
 <style>
-/* إخفاء الهيدر والفوتر وهوامش النظام */
+/* إخفاء الهيدر والفوتر وهوامش النظام الافتراضية */
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 
 .block-container { 
@@ -143,7 +143,7 @@ div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiog
     box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* استئصال دوائر التحديد الحمراء واستبدالها بالأخضر */
+/* استئصال أي نقط أو دوائر حمراء في Radio */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
     border-color: #475569 !important;
     background-color: transparent !important;
@@ -246,6 +246,11 @@ div[data-baseweb="input"]:focus-within {
     box-shadow: 0 0 0 1px #10b981 !important; 
 }
 
+/* منع أي إطار أحمر عند أخطاء المتصفح الافتراضية */
+div[data-baseweb="input"] {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
 /* زر التأكيد الأساسي */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
@@ -262,19 +267,8 @@ div[data-testid="stFormSubmitButton"] > button:hover {
     opacity: 0.95 !important;
 }
 
-/* رسائل التنبيه والنجاح المخصصة الخالية من الأحمر */
+/* التنبيهات المخصصة */
 .custom-alert {
-    background: rgba(239, 68, 68, 0.08);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-size: 0.82em;
-    font-weight: 600;
-    margin-bottom: 8px;
-    text-align: right;
-}
-.custom-warning {
     background: rgba(245, 158, 11, 0.08);
     border: 1px solid rgba(245, 158, 11, 0.3);
     color: #fcd34d;
@@ -283,6 +277,7 @@ div[data-testid="stFormSubmitButton"] > button:hover {
     font-size: 0.82em;
     font-weight: 600;
     margin-bottom: 8px;
+    text-align: right;
 }
 .success-card {
     background: rgba(16, 185, 129, 0.08);
@@ -316,7 +311,7 @@ div[data-testid="stFormSubmitButton"] > button:hover {
     margin-top: 6px;
 }
 
-/* إخفاء مصيدة البوتات */
+/* إخفاء مصيدة السبام */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { 
     display: none !important; 
@@ -329,7 +324,7 @@ input[aria-label="hp"] {
 st.markdown(css_styles, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. الربط بقاعدة البيانات والكتالوج التوصيفي المفصل
+# 3. قاعدة البيانات وكتالوج النصوص الوصفية
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -354,7 +349,6 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD_HASH = st.secrets.get("ADMIN_PASSWORD", "")
 
-# كتالوج نصوص حسية وتفصيلية بديلة للصور
 PERFUMES = {
     "عطر روميو (Romeo)": {
         "tag": "رجالي شرقي فاخر",
@@ -494,7 +488,6 @@ else:
         label_visibility="collapsed"
     )
     
-    # بطاقة معلومات تفصيلية دقيقة بدون الحاجة للصور
     p = PERFUMES[chosen_perfume]
     preview_html = clean_html(f"""
     <div class="perfume-details-card">
@@ -518,7 +511,6 @@ else:
     """)
     st.markdown(preview_html, unsafe_allow_html=True)
     
-    # نموذج البيانات
     with st.form("quick_order_form"):
         st.markdown("<div style='font-size:0.86em;font-weight:800;color:#ffffff;text-align:right;margin-bottom:6px;'>2. بيانات التأكيد والاستلام:</div>", unsafe_allow_html=True)
         
@@ -533,7 +525,6 @@ else:
             ]
         )
         
-        # مصيدة البوتات
         hp = st.text_input("hp", label_visibility="collapsed")
         submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
         
@@ -544,14 +535,12 @@ else:
             if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
             elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
             
-            # التحقق المبدئي
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
                 st.markdown('<div class="custom-alert">⚠️ يرجى التأكد من كتابة الاسم ورقم جوال سعودي يبدأ بـ 05 ويتكون من 10 أرقام.</div>', unsafe_allow_html=True)
             else:
-                # التحقق المباشر من قاعدة البيانات لمنع التضارب التزامني
                 fresh_bookings = get_confirmed_bookings(BASKET_ID)
                 if len(fresh_bookings) >= BASKET_CAPACITY:
-                    st.markdown('<div class="custom-warning">🔔 اكتملت هذه الباقة للتو، انتظر لحظات لفتح باقة جديدة.</div>', unsafe_allow_html=True)
+                    st.markdown('<div class="custom-alert">🔔 اكتملت هذه الباقة بالكامل، انتظر لحظات لفتح باقة جديدة.</div>', unsafe_allow_html=True)
                 else:
                     try:
                         client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
@@ -579,7 +568,7 @@ else:
                         }
                         st.rerun()
                     except Exception:
-                        st.markdown('<div class="custom-alert">⚠️ حدث تعذر تقني مؤقت في تثبيت الحجز، يرجى إعادة المحاولة.</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="custom-alert">⚠️ تعذر الاتصال بالنظام حالياً، يرجى المحاولة بعد لحظات.</div>', unsafe_allow_html=True)
 
 # ==============================================================================
 # 7. بوابة المشرف المعزولة
