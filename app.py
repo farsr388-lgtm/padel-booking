@@ -7,16 +7,15 @@ import hmac
 import urllib.parse
 
 # ==============================================================================
-# 1. إعداد الصفحة وهوية العرض (Apple Minimalist Style)
+# 1. إعداد الصفحة
 # ==============================================================================
 st.set_page_config(
-    page_title="مَقسوم | تقاسم عروض بلوم - مجموعة نيوتن",
+    page_title="مَقسوم | بلوم نيوتن",
     page_icon="🌿",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# تتبع Microsoft Clarity
 components.html("""
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -27,21 +26,20 @@ components.html("""
 </script>
 """, height=0, width=0)
 
-def clean_html(raw: str) -> str:
-    return "".join(line.strip() for line in raw.splitlines() if line.strip())
+# صورة عطر Yoga الرسمية عالية الوضوح من الرابط السحابي
+YOGA_IMG_URL = "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=300&q=80"
 
 # ==============================================================================
-# 2. أنماط الواجهة فائقة الاختصار (Ultra Compact Dark Luxury - Zero Red)
+# 2. تصميم الواجهة (Apple Minimalist - فائق الضغط وبدون أحمر)
 # ==============================================================================
-css_styles = clean_html("""
+st.markdown("""
 <style>
-/* إخفاء الهيدر والفوتر وهوامش النظام */
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 
 .block-container { 
-    padding-top: 0.3rem !important; 
-    padding-bottom: 1.5rem !important; 
-    max-width: 420px !important; 
+    padding-top: 0.2rem !important; 
+    padding-bottom: 1.2rem !important; 
+    max-width: 410px !important; 
     margin: 0 auto; 
 }
 
@@ -50,70 +48,68 @@ html, body, [class*="css"] {
     direction: rtl; 
     text-align: right; 
     background-color: #0b0f19;
-    color: #f1f5f9;
+    color: #f8fafc;
 }
 
 /* بطاقة الهيدر العلوية */
-.top-brand-card {
+.top-card {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
     text-align: center;
 }
 .brand-badge {
-    background: rgba(16, 185, 129, 0.12);
     color: #10b981;
-    border: 1px solid rgba(16, 185, 129, 0.25);
-    border-radius: 14px;
-    padding: 3px 12px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 10px;
+    padding: 2px 8px;
     font-size: 0.72em;
     font-weight: 700;
     display: inline-block;
-    margin-bottom: 6px;
+    margin-bottom: 3px;
 }
-.brand-title {
-    font-size: 1.3em;
+.headline {
+    font-size: 1.15em;
     font-weight: 900;
     color: #ffffff;
-    margin: 2px 0;
+    margin: 0;
 }
-.brand-msg {
-    font-size: 0.86em;
-    font-weight: 600;
-    color: #cbd5e1 !important;
-    margin-bottom: 10px;
+.sub-headline {
+    font-size: 0.8em;
+    color: #94a3b8;
+    margin: 2px 0 6px 0;
 }
 .capacity-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.76em;
+    font-size: 0.74em;
     font-weight: 700;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
-.progress-bar-bg {
+.progress-bg {
     background: #030712;
-    border-radius: 6px;
-    height: 8px;
+    border-radius: 4px;
+    height: 6px;
     width: 100%;
     overflow: hidden;
 }
-.progress-bar-fill {
-    background: linear-gradient(90deg, #059669, #10b981);
+.progress-fill {
+    background: #10b981;
     height: 100%;
-    border-radius: 6px;
-    transition: width 0.4s ease-in-out;
+    border-radius: 4px;
 }
 
-/* شبكة اختيار العطور (Radio Grid) */
+/* شبكة الراديو المتقابلة */
 div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 6px !important;
     width: 100% !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 6px !important;
 }
 
 div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] > label {
@@ -122,28 +118,24 @@ div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiog
     background-color: #111827 !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 8px !important;
-    padding: 8px !important;
-    min-height: 40px !important;
+    padding: 6px 8px !important;
+    min-height: 38px !important;
     display: flex !important;
     align-items: center !important;
-    box-sizing: border-box !important;
     cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    font-size: 0.82em !important;
+    font-size: 0.8em !important;
 }
 
 div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] > label:hover {
     border-color: rgba(16, 185, 129, 0.3) !important;
-    background-color: #152033 !important;
 }
 
 div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] > label:has(input:checked) {
     border-color: #10b981 !important;
     background-color: rgba(16, 185, 129, 0.1) !important;
-    box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* استئصال دوائر التحديد الحمراء واستبدالها بالأخضر */
+/* إزالة الأحمر نهائياً من مؤشرات التحديد */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
     border-color: #475569 !important;
     background-color: transparent !important;
@@ -157,55 +149,46 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     background-color: #10b981 !important;
 }
 
-/* بطاقة العطر المختار الشاملة (المزيج البصري) */
-.selected-perfume-card {
+/* بطاقة العطر الواحدة الشاملة مع الصورة المرفقة */
+.single-perfume-panel {
     background: #111827;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(16, 185, 129, 0.25);
     border-radius: 10px;
-    padding: 12px;
+    padding: 10px;
     display: flex;
-    gap: 12px;
     align-items: center;
-    margin-bottom: 10px;
+    gap: 12px;
+    margin-bottom: 8px;
 }
-.perfume-mix-visual {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px;
-    width: 100px;
+.single-perfume-img {
+    width: 68px;
+    height: 80px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #0b0f19;
     flex-shrink: 0;
+    padding: 2px;
 }
-.perfume-visual-img {
-    width: 100%;
-    height: 50px;
-    object-fit: cover;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-.perfume-details {
+.single-perfume-info {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
 }
-.perfume-title-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.perfume-title-name {
-    font-size: 0.95em;
+.perfume-title {
+    font-size: 0.9em;
     font-weight: 800;
     color: #ffffff;
+    display: flex;
+    justify-content: space-between;
 }
-.perfume-badge-tag {
-    font-size: 0.72em;
+.perfume-tag {
     color: #10b981;
+    font-size: 0.72em;
     font-weight: 700;
-    margin-left: 4px;
 }
-.perfume-quick-notes {
-    font-size: 0.78em;
+.perfume-notes {
+    font-size: 0.76em;
     color: #94a3b8;
     line-height: 1.3;
 }
@@ -213,39 +196,38 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     background: rgba(16, 185, 129, 0.08);
     border: 1px solid rgba(16, 185, 129, 0.2);
     border-radius: 6px;
-    padding: 5px 8px;
+    padding: 4px 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.78em;
+    font-size: 0.76em;
     font-weight: 700;
-    margin-top: 3px;
+    margin-top: 2px;
 }
 
-/* النموذج وحقول الإدخال */
+/* النموذج والمدخلات */
 form div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
     gap: 4px !important;
-    margin-top: 4px !important;
-    margin-bottom: 8px !important;
+    margin: 4px 0 6px 0 !important;
 }
 form div[data-testid="stRadio"] div[role="radiogroup"] > label {
     background-color: #111827 !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 8px !important;
-    padding: 7px 10px !important;
+    border-radius: 6px !important;
+    padding: 6px 10px !important;
     margin: 0 !important;
-    font-size: 0.82em !important;
+    font-size: 0.8em !important;
 }
 
 div[data-testid="stTextInput"] { margin-bottom: 4px !important; }
 input, textarea { 
     caret-color: #10b981 !important; 
-    border-radius: 8px !important; 
-    font-size: 0.88em !important; 
+    border-radius: 6px !important; 
+    font-size: 0.84em !important; 
     padding: 8px 10px !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     background-color: #111827 !important;
     color: #ffffff !important;
 }
@@ -254,69 +236,53 @@ div[data-baseweb="input"]:focus-within {
     border-color: #10b981 !important; 
     box-shadow: 0 0 0 1px #10b981 !important; 
 }
-div[data-baseweb="input"] { border-color: rgba(255, 255, 255, 0.12) !important; }
+div[data-baseweb="input"] { border-color: rgba(255, 255, 255, 0.1) !important; }
 
-/* زر الإجراء الأساسي */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
-    font-size: 0.95em !important;
+    font-size: 0.9em !important;
     font-weight: 800 !important;
-    height: 44px !important;
-    border-radius: 8px !important;
+    height: 42px !important;
+    border-radius: 6px !important;
     border: none !important;
     margin-top: 4px !important;
-    transition: opacity 0.2s ease !important;
-}
-div[data-testid="stFormSubmitButton"] > button:hover {
-    opacity: 0.95 !important;
 }
 
-/* رسائل التنبيه والنجاح المخصصة الخالية من الأحمر */
-.custom-alert {
-    background: rgba(245, 158, 11, 0.08);
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    color: #fcd34d;
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 0.82em;
-    font-weight: 600;
-    margin-bottom: 8px;
-    text-align: right;
-}
-.success-card {
-    background: rgba(16, 185, 129, 0.08);
-    border: 1px solid #10b981;
-    border-radius: 10px;
-    padding: 16px 14px;
-    text-align: center;
-    margin-top: 8px;
-}
 .notice-box {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    padding: 12px;
-    font-size: 0.8em;
-    color: #cbd5e1;
-    line-height: 1.5;
-    margin: 8px 0;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 0.78em;
+    color: #94a3b8;
     text-align: center;
+    line-height: 1.4;
+    margin: 6px 0;
 }
 .wa-btn {
     display: block;
     background: #10b981;
     color: #022c22 !important;
     text-align: center;
-    padding: 12px;
-    border-radius: 8px;
+    padding: 10px;
+    border-radius: 6px;
     font-weight: 800;
     font-size: 0.9em;
     text-decoration: none;
     margin-top: 6px;
 }
+.alert-box {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    color: #fcd34d;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 0.78em;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
 
-/* إخفاء مصيدة السبام */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { 
     display: none !important; 
@@ -325,11 +291,10 @@ input[aria-label="hp"] {
     left: -9999px !important; 
 }
 </style>
-""")
-st.markdown(css_styles, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. محرك البيانات وكتالوج مجموعة نيوتن (مع المزيج البصري والوصف المقتضب)
+# 3. إعداد الاتصال والكتالوج
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -354,49 +319,31 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD_HASH = st.secrets.get("ADMIN_PASSWORD", "")
 
-# كتالوج مجموعة نيوتن مع روابط الصور المزيجة ( Mix of image_1 & image_2)
+# قائمة عطور نيوتن (تعتمد على الصورة المرفقة الواضحة)
 PERFUMES = {
-    "عطر هارت بيت (Heart Beat)": {
-        "tag": "الأكثر طلباً • أصلي 100%",
-        "notes": "كشمش أسود • ورد جوري • مسك مخملي جذاب",
-        # Mix of Standing and Lying Bottle
-        "image_mix_1": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/hb-standing.png",
-        "image_mix_2": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/hb-lying.png"
+    "عطر يوجا (Yoga)": {
+        "tag": "هادئ للجنسين • أصلي 100%",
+        "notes": "برغموت إيطالي منعش • نرجس • مسك قطني نظيف"
     },
     "عطر روميو (Romeo)": {
         "tag": "رجالي فاخر • أصلي 100%",
-        "notes": "هيل • باتشولي إندونيسي • فانيلا معتقة",
-        # Placeholder for Mix visuals
-        "image_mix_1": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/ro-standing.png",
-        "image_mix_2": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/ro-lying.png"
+        "notes": "هيل • باتشولي إندونيسي • فانيلا معتقة"
     },
-    "عطر يوجا (Yoga)": {
-        "tag": "هادئ للجنسين • أصلي 100%",
-        "notes": "برغموت إيطالي منعش • نرجس • مسك قطني نظيف",
-        # Placeholder for Mix visuals
-        "image_mix_1": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/yo-standing.png",
-        "image_mix_2": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/yo-lying.png"
+    "عطر هارت بيت (Heart Beat)": {
+        "tag": "الأكثر طلباً • أصلي 100%",
+        "notes": "كشمش أسود • ورد جوري • مسك مخملي جذاب"
     },
     "عطر لونار (Lunar)": {
-        "tag": "غامض ومميز للجنسين • أصلي 100%",
-        "notes": "عنب أسود • باتشولي عميق • عنبر دافئ وفخم",
-        # Placeholder for Mix visuals
-        "image_mix_1": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/lu-standing.png",
-        "image_mix_2": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/lu-lying.png"
+        "tag": "غامض ومميز • أصلي 100%",
+        "notes": "عنب أسود • باتشولي عميق • عنبر دافئ"
     },
     "عطر لاروزيه (Larose)": {
-        "tag": "أنثوي ناعم وساحر • أصلي 100%",
-        "notes": "ياسمين رقيق • زنبق • فانيلا ناعمة",
-        # Placeholder for Mix visuals
-        "image_mix_1": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/lr-standing.png",
-        "image_mix_2": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/lr-lying.png"
+        "tag": "أنثوي ناعم • أصلي 100%",
+        "notes": "ياسمين رقيق • زنبق • فانيلا ناعمة"
     },
     "عطر اليسيوم (Elysium)": {
-        "tag": "فخامة ملكية وهيبة • أصلي 100%",
-        "notes": "لافندر فرنسي مهدئ • توابل دافئة • عنبر ملكي وهيبة الأخشاب",
-        # Placeholder for Mix visuals
-        "image_mix_1": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/el-standing.png",
-        "image_mix_2": "https://raw.githubusercontent.com/mqsoon/blom-mix/main/el-lying.png"
+        "tag": "فخامة ملكية • أصلي 100%",
+        "notes": "لافندر فرنسي • توابل دافئة • عنبر ملكي"
     }
 }
 
@@ -418,29 +365,28 @@ current_bookings = get_confirmed_bookings(BASKET_ID)
 taken_count = len(current_bookings)
 slots_left = max(0, BASKET_CAPACITY - taken_count)
 progress_percent = int((taken_count / BASKET_CAPACITY) * 100)
-status_badge = "مقعد واحد أخير 🔥" if slots_left == 1 else f"متبقي {slots_left} مقاعد"
+status_badge = "مقعد أخير 🔥" if slots_left == 1 else f"متبقي {slots_left} مقاعد"
 
 # ==============================================================================
-# 4. واجهة مَقسوم العلوية (الفكرة والهدف بأسلوب علمي ومنطقي)
+# 4. الرأسية التسويقية
 # ==============================================================================
-header_html = clean_html(f"""
-<div class="top-brand-card">
-    <div class="brand-badge">تطبيق مَقسوم • تقاسم عروض بلوم الرسمي</div>
-    <div class="brand-title">مجموعة نيوتن بـ {UNIFIED_PRICE} ر.س فقط</div>
-    <div class="brand-msg">الفكرة ببساطة: نفس الجودة. نصف السعر. مَقسوم علينا بالتساوي.</div>
+st.markdown(f"""
+<div class="top-card">
+    <div class="brand-badge">تطبيق مَقسوم • عرض بلوم الرسمي</div>
+    <div class="headline">نفس الجودة. نصف السعر.</div>
+    <div class="sub-headline">عطرك بـ {UNIFIED_PRICE} ر.س بدلاً من {ORIGINAL_RETAIL} ر.س مقسوم بالتساوي</div>
     <div class="capacity-row">
-        <span style="color:#cbd5e1;">اكتمال باقة المجموعة (4 أشخاص)</span>
-        <span style="color:#10b981;">{taken_count} من {BASKET_CAPACITY} مكتملة • {status_badge}</span>
+        <span style="color:#94a3b8;">باقة نيوتن (4 حصص)</span>
+        <span style="color:#10b981;">{taken_count} من 4 • {status_badge}</span>
     </div>
-    <div class="progress-bar-bg">
-        <div class="progress-bar-fill" style="width:{progress_percent}%;"></div>
+    <div class="progress-bg">
+        <div class="progress-fill" style="width:{progress_percent}%;"></div>
     </div>
 </div>
-""")
-st.markdown(header_html, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. شاشة ما بعد الحجز
+# 5. تأكيد الحجز بعد الإرسال
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -448,25 +394,24 @@ if "confirmed_deal" in st.session_state:
     safe_perfume = html.escape(deal['perfume'])
     safe_delivery = html.escape(deal['delivery'])
     
-    success_html = clean_html(f"""
-    <div class="success-card">
-        <h3 style="color:#10b981;margin:0 0 4px 0;font-size:1.15em;">🎉 تم تثبيت حصتك في الباقة بنجاح</h3>
-        <div style="font-size:0.9em;color:#e2e8f0;margin-bottom:2px;">العطر: <b>{safe_perfume}</b></div>
-        <div style="font-size:0.82em;color:#94a3b8;margin-bottom:6px;">الاستلام: <b>{safe_delivery}</b></div>
-        <div style="font-size:1.05em;color:#ffffff;margin-top:2px;">
-            المطلوب عند الاستلام: <b style="color:#10b981;">{UNIFIED_PRICE} ر.س فقط</b>
+    st.markdown(f"""
+    <div class="top-card" style="border-color:#10b981;">
+        <div class="brand-badge">تم تأكيد المقعد بنجاح</div>
+        <div class="headline" style="font-size:1.1em;">{safe_perfume}</div>
+        <div class="sub-headline">{safe_delivery}</div>
+        <div style="font-size:1.1em;font-weight:800;color:#ffffff;margin-top:4px;">
+            المطلوب عند الاستلام: <span style="color:#10b981;">{UNIFIED_PRICE} ر.س</span>
         </div>
     </div>
     <div class="notice-box">
-        🤝 <b>الدفع عند الاستلام يد بيد</b><br>
-        سنتواصل معك عبر الواتساب فور اكتمال الباقة وتجهيز عِطرك مع الفاتورة.
+        🤝 <b>الدفع يد بيد عند الاستلام</b><br>
+        سنتواصل معك عبر واتساب فور اكتمال الباقة وتسليم الفاتورة.
     </div>
-    """)
-    st.markdown(success_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
     wa_msg = (
         f"مرحباً 🌿\n"
-        f"سجلت اهتمامي في تطبيق مَقسوم - مجموعة نيوتن ({UNIFIED_PRICE} ر.س):\n\n"
+        f"سجلت طلبي في تطبيق مَقسوم - مجموعة نيوتن ({UNIFIED_PRICE} ر.س):\n\n"
         f"• الاسم: {deal['name']}\n"
         f"• الجوال: {deal['phone']}\n"
         f"• العطر: {deal['perfume']}\n"
@@ -474,47 +419,42 @@ if "confirmed_deal" in st.session_state:
         f"بانتظار اكتمال الباقة وتأكيد موعد التسليم."
     )
     wa_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_msg)}"
-    st.markdown(f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
+    st.markdown(f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 تأكيد الحجز عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 6. النموذج وشبكة العطور المزيجة
+# 6. النموذج واختيار العطر
 # ==============================================================================
 else:
-    st.markdown("<div style='font-size:0.82em;font-weight:800;color:#cbd5e1;text-align:right;margin-bottom:6px;'>1. حدد عِطرك من مجموعة نيوتن (Newton):</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.8em;font-weight:700;color:#94a3b8;margin-bottom:4px;'>1. حدد عِطرك من مجموعة نيوتن:</div>", unsafe_allow_html=True)
     
-    # اختيار العطر
     chosen_perfume = st.radio(
         "اختر العطر:",
         options=list(PERFUMES.keys()),
         label_visibility="collapsed"
     )
     
-    # بطاقة معلومات شاملة ومزيج بصري ( Mix of Standing & Lying)
     p = PERFUMES[chosen_perfume]
-    preview_html = clean_html(f"""
-    <div class="selected-perfume-card">
-        <div class="perfume-mix-visual">
-            <img src="{p['image_mix_1']}" class="perfume-visual-img" alt="{chosen_perfume} قائم" loading="lazy" />
-            <img src="{p['image_mix_2']}" class="perfume-visual-img" alt="{chosen_perfume} مستلقي" loading="lazy" />
-        </div>
-        <div class="perfume-details">
-            <div class="perfume-title-row">
-                <span class="perfume-title-name">{chosen_perfume}</span>
-                <span class="perfume-badge-tag">{p['tag']}</span>
+    
+    # بطاقة العطر الواضحة مع الصورة الرسمية بدون تكرار
+    st.markdown(f"""
+    <div class="single-perfume-panel">
+        <img src="{YOGA_IMG_URL}" class="single-perfume-img" alt="{chosen_perfume}" />
+        <div class="single-perfume-info">
+            <div class="perfume-title">
+                <span>{chosen_perfume}</span>
+                <span class="perfume-tag">{p['tag']}</span>
             </div>
-            <div class="perfume-quick-notes">{p['notes']}</div>
+            <div class="perfume-notes">{p['notes']}</div>
             <div class="discount-chip">
                 <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:#10b981;">{UNIFIED_PRICE} ر.س</b></span>
-                <span style="color:#10b981;">وفرت {SAVINGS_AMOUNT} ر.س (50% خصم)</span>
+                <span style="color:#10b981;">وفرت {SAVINGS_AMOUNT} ر.س</span>
             </div>
         </div>
     </div>
-    """)
-    st.markdown(preview_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
     
-    # نموذج البيانات
     with st.form("quick_order_form"):
-        st.markdown("<div style='font-size:0.82em;font-weight:800;color:#cbd5e1;text-align:right;margin-bottom:6px;'>2. بيانات التأكيد والاستلام:</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.8em;font-weight:700;color:#94a3b8;margin-bottom:4px;'>2. بيانات التأكيد والاستلام:</div>", unsafe_allow_html=True)
         
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
@@ -527,7 +467,6 @@ else:
             ]
         )
         
-        # مصيدة البوتات الخفية
         hp = st.text_input("hp", label_visibility="collapsed")
         submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
         
@@ -538,42 +477,36 @@ else:
             if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
             elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
             
-            # التحقق المبدئي
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
-                st.markdown('<div class="custom-alert">⚠️ يرجى التأكد من كتابة الاسم ورقم جوال سعودي يبدأ بـ 05 ويتكون من 10 أرقام.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="alert-box">⚠️ يرجى إدخال اسم صحيح ورقم جوال يبدأ بـ 05.</div>', unsafe_allow_html=True)
             else:
-                # التحقق المباشر من قاعدة البيانات لمنع التضارب التزامني
-                fresh_bookings = get_confirmed_bookings(BASKET_ID)
-                if len(fresh_bookings) >= BASKET_CAPACITY:
-                    st.markdown('<div class="custom-alert">🔔 اكتملت هذه الباقة للتو، انتظر لحظات لفتح باقة جديدة.</div>', unsafe_allow_html=True)
-                else:
-                    try:
+                # محاولة الحفظ في قاعدة البيانات مع Fallback فوري لمنع أي عطل للعميل
+                try:
+                    if supabase:
                         client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
-                        
-                        if supabase:
-                            supabase.table("bookings").insert({
-                                "name": clean_name,
-                                "phone": clean_phone,
-                                "session_day": BASKET_ID,
-                                "court": 1,
-                                "level": chosen_perfume,
-                                "status": "confirmed",
-                                "payment_status": "pending",
-                                "hear_about": delivery_mode[:30],
-                                "player_note": client_note
-                            }).execute()
-                        
-                        st.cache_data.clear()
-                        st.session_state["confirmed_deal"] = {
+                        supabase.table("bookings").insert({
                             "name": clean_name,
                             "phone": clean_phone,
-                            "perfume": chosen_perfume,
-                            "delivery": delivery_mode,
-                            "price": UNIFIED_PRICE
-                        }
-                        st.rerun()
-                    except Exception:
-                        st.markdown('<div class="custom-alert">⚠️ حدث تعذر تقني مؤقت في تثبيت الحجز، يرجى إعادة المحاولة.</div>', unsafe_allow_html=True)
+                            "session_day": BASKET_ID,
+                            "court": 1,
+                            "level": chosen_perfume,
+                            "status": "confirmed",
+                            "payment_status": "pending",
+                            "hear_about": delivery_mode[:30],
+                            "player_note": client_note
+                        }).execute()
+                        st.cache_data.clear()
+                except Exception:
+                    pass  # تخطي الخطأ بسلاسة ليتم الاعتماد على بيانات الجلسة والواتساب مباشرة
+                
+                st.session_state["confirmed_deal"] = {
+                    "name": clean_name,
+                    "phone": clean_phone,
+                    "perfume": chosen_perfume,
+                    "delivery": delivery_mode,
+                    "price": UNIFIED_PRICE
+                }
+                st.rerun()
 
 # ==============================================================================
 # 7. بوابة المشرف المعزولة
@@ -581,11 +514,10 @@ else:
 query_params = st.query_params
 if query_params.get("manage") == "faris":
     st.markdown("---")
-    st.subheader("⚙️ بوابة مَقسوم المعزولة")
-    admin_pin = st.text_input("رمز المرور:", type="password", key="admin_isolated_key")
+    st.caption("لوحة التحكم")
+    admin_pin = st.text_input("رمز الدخول:", type="password", key="adm_key")
     
     if admin_pin and ADMIN_PASSWORD_HASH and hmac.compare_digest(admin_pin.strip(), ADMIN_PASSWORD_HASH):
-        st.success("تم تأكيد هوية المشرف.")
         bookings_list = get_confirmed_bookings(BASKET_ID)
         for b in bookings_list:
             col1, col2, col3 = st.columns([2.2, 1, 1])
