@@ -27,9 +27,9 @@ components.html("""
 </script>
 """, height=0, width=0)
 
-# دالة هندسية لتجريد الـ HTML من المسافات البادئة ومنع تحولها إلى كود خام في ستريمليت
+# دالة هندسية لحماية الـ HTML من خطأ المسافات البادئة في ستريمليت
 def clean_html(raw: str) -> str:
-    return "\n".join(line.strip() for line in raw.strip().splitlines() if line.strip())
+    return "".join(line.strip() for line in raw.splitlines() if line.strip())
 
 # ==============================================================================
 # 2. تحديد اللغة (العربية / English)
@@ -54,7 +54,7 @@ dir_css = "rtl" if is_ar else "ltr"
 align_css = "right" if is_ar else "left"
 
 # ==============================================================================
-# 3. أنماط الواجهة الثنائية (شبكة 3 ضد 3 واستئصال الأحمر تماماً)
+# 3. أنماط الواجهة الثنائية (Two-Tone System & 3v3 Grid)
 # ==============================================================================
 css_styles = clean_html(f"""
 <style>
@@ -97,8 +97,10 @@ div[data-testid="stRadio"]:has(input[name*="lang_toggle_btn"]) label:has(input:c
     font-weight: 800 !important;
 }}
 
-/* الصندوق العلوي الموحد والمدمج */
-.compact-header {{
+/* -------------------------------------------------------------------------- */
+/* الصندوق العلوي المدمج (العنوان + سعة السلة بالأعلى بدون صندوق السعر القديم)   */
+/* -------------------------------------------------------------------------- */
+.top-brand-card {{
     background: #111827;
     border: 1px solid #1f2937;
     border-radius: 12px;
@@ -106,7 +108,7 @@ div[data-testid="stRadio"]:has(input[name*="lang_toggle_btn"]) label:has(input:c
     margin-bottom: 8px;
     text-align: center;
 }}
-.header-badge {{
+.brand-badge {{
     background: rgba(16, 185, 129, 0.12);
     color: #10b981;
     border: 1px solid rgba(16, 185, 129, 0.3);
@@ -117,17 +119,17 @@ div[data-testid="stRadio"]:has(input[name*="lang_toggle_btn"]) label:has(input:c
     display: inline-block;
     margin-bottom: 4px;
 }}
-.header-title {{
-    font-size: 1.2em;
+.brand-title {{
+    font-size: 1.22em;
     font-weight: 900;
     color: #ffffff;
     margin: 2px 0;
 }}
-.header-msg {{
-    font-size: 0.84em;
+.brand-msg {{
+    font-size: 0.86em;
     font-weight: 700;
     color: #ffffff !important;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }}
 .capacity-row {{
     display: flex;
@@ -144,31 +146,18 @@ div[data-testid="stRadio"]:has(input[name*="lang_toggle_btn"]) label:has(input:c
     height: 7px;
     width: 100%;
     overflow: hidden;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }}
 .progress-bar-fill {{
     background: #10b981;
     height: 100%;
     border-radius: 6px;
 }}
-.integrated-price {{
-    background: #0b0f19;
-    border: 1px solid #1f2937;
-    border-radius: 8px;
-    padding: 6px 10px;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-}}
-.price-box-item {{ text-align: center; }}
-.price-val-now {{ font-size: 1.25em; font-weight: 900; color: #10b981; }}
-.price-val-old {{ font-size: 0.8em; color: #64748b; text-decoration: line-through; }}
-.price-tag-lbl {{ font-size: 0.68em; color: #94a3b8; }}
 
 /* -------------------------------------------------------------------------- */
-/* شبكة العطور الستة: عمودان متقابلان (3 ضد 3) دون الاعتماد على أسماء الحقول   */
+/* شبكة العطور الستة: عمودان متقابلان (3 ضد 3) جنباً إلى جنب                    */
 /* -------------------------------------------------------------------------- */
-div[data-testid="stRadio"]:not(div[data-testid="stForm"] div[data-testid="stRadio"]):not(:has(input[name*="lang_toggle_btn"])) div[role="radiogroup"] {{
+div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]):not(:has(input[name*="lang_toggle_btn"])) div[role="radiogroup"] {{
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 6px !important;
@@ -176,7 +165,7 @@ div[data-testid="stRadio"]:not(div[data-testid="stForm"] div[data-testid="stRadi
     margin-bottom: 6px !important;
 }}
 
-div[data-testid="stRadio"]:not(div[data-testid="stForm"] div[data-testid="stRadio"]):not(:has(input[name*="lang_toggle_btn"])) div[role="radiogroup"] > label {{
+div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]):not(:has(input[name*="lang_toggle_btn"])) div[role="radiogroup"] > label {{
     width: 100% !important;
     margin: 0 !important;
     background-color: #111827 !important;
@@ -191,12 +180,12 @@ div[data-testid="stRadio"]:not(div[data-testid="stForm"] div[data-testid="stRadi
     transition: all 0.15s ease-in-out !important;
 }}
 
-div[data-testid="stRadio"]:not(div[data-testid="stForm"] div[data-testid="stRadio"]):not(:has(input[name*="lang_toggle_btn"])) div[role="radiogroup"] > label:hover {{
+div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]):not(:has(input[name*="lang_toggle_btn"])) div[role="radiogroup"] > label:hover {{
     border-color: #334155 !important;
     background-color: #141e33 !important;
 }}
 
-div[data-testid="stRadio"]:not(div[data-testid="stForm"] div[data-testid="stRadio"]):not(:has(input[name*="lang_toggle_btn"])) div[role="radiogroup"] > label:has(input:checked) {{
+div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]):not(:has(input[name*="lang_toggle_btn"])) div[role="radiogroup"] > label:has(input:checked) {{
     border-color: #10b981 !important;
     background-color: rgba(16, 185, 129, 0.12) !important;
     box-shadow: 0 0 0 1px #10b981 !important;
@@ -216,7 +205,9 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     background-color: #10b981 !important;
 }}
 
-/* كرت تفاصيل وصورة العطر مع التوفير المباشر */
+/* -------------------------------------------------------------------------- */
+/* كرت العطر المختار مع السعر المباشر والخصم                                  */
+/* -------------------------------------------------------------------------- */
 .selected-perfume-panel {{
     background: #111827;
     border: 1px solid #1f2937;
@@ -353,7 +344,7 @@ def get_supabase_client() -> Client:
 
 supabase = get_supabase_client()
 
-BASKET_ID = "BLOM-NEWTON-JEDDAH-V7"
+BASKET_ID = "BLOM-NEWTON-JEDDAH-V8"
 BASKET_CAPACITY = 4
 UNIFIED_PRICE = 132
 ORIGINAL_RETAIL = 265
@@ -372,10 +363,8 @@ TEXTS = {
         "left_single": "متبقي مقعد 1 وتكتمل الباقة 🔥",
         "left_multi": "متبقي {n} مقاعد لاكتمال الباقة",
         "currency": "ر.س",
-        "price_now_lbl": "سعر حصتك بالعرض",
-        "price_old_lbl": "السعر الفردي ببلوم",
-        "step1": "1. المس العطر لاختياره مباشرة:",
-        "step2": "2. طريقة الاستلام والبيانات:",
+        "step1": "1. اختر عِطرك من مجموعة نيوتن (Newton):",
+        "step2": "2. طريقة الاستلام وبياناتك:",
         "opt_mall": f"استلام يد بيد (السلام مول) — {UNIFIED_PRICE} ر.س عند الاستلام",
         "opt_deliv": f"توصيل مجاني داخل جدة — {UNIFIED_PRICE} ر.س عند الاستلام",
         "name_lbl": "الاسم الكريم:",
@@ -403,9 +392,7 @@ TEXTS = {
         "left_single": "1 spot remaining to complete bundle 🔥",
         "left_multi": "{n} spots remaining to complete bundle",
         "currency": "SAR",
-        "price_now_lbl": "Your Share in Deal",
-        "price_old_lbl": "Retail Price at Blom",
-        "step1": "1. Tap to select your fragrance directly:",
+        "step1": "1. Select your Newton fragrance directly:",
         "step2": "2. Delivery & Contact Details:",
         "opt_mall": f"Handover at Al Salam Mall — {UNIFIED_PRICE} SAR on Delivery",
         "opt_deliv": f"Free Delivery in Jeddah — {UNIFIED_PRICE} SAR on Delivery",
@@ -430,14 +417,14 @@ TEXTS = {
 
 t = TEXTS["ar"] if is_ar else TEXTS["en"]
 
-# ترتيب العطور الستة لتكون متقابلة 3 في العمود A مقابل 3 في العمود B
+# ترتيب العطور الستة لتظهر متقابلة 3 في اليمين و 3 في اليسار
 PERFUMES = {
-    # صف 1
+    # صف 1: روميو (يمين) مقابل يوجا (يسار)
     "عطر روميو (Romeo)": {
         "name": "عطر روميو (Romeo)" if is_ar else "Romeo Perfume",
         "tag": "رجالي فاخر" if is_ar else "Luxury Men's",
         "rating": "4.8 ★",
-        "desc": "جاذبية وأناقة رجولية فاخرة" if is_ar else "Luxurious masculine elegance",
+        "desc": "جاذبية وأناقة رجولية فاخرة" if is_ar else "Masculine luxury allure",
         "notes": "باتشولي، فانيلا، ومسك" if is_ar else "Patchouli, Vanilla, Musk",
         "img": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=260&q=80"
     },
@@ -449,7 +436,7 @@ PERFUMES = {
         "notes": "برغموت، مسك نقي، ونرجس" if is_ar else "Bergamot, Pure Musk, Narcissus",
         "img": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=260&q=80"
     },
-    # صف 2
+    # صف 2: لونار (يمين) مقابل لاروزيه (يسار)
     "عطر لونار (Lunar)": {
         "name": "عطر لونار (Lunar)" if is_ar else "Lunar Perfume",
         "tag": "أناقة للجنسين" if is_ar else "Unisex Mystique",
@@ -466,7 +453,7 @@ PERFUMES = {
         "notes": "فانيلا، زنبق أبيض، وياسمين" if is_ar else "Vanilla, White Lily, Jasmine",
         "img": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&w=260&q=80"
     },
-    # صف 3
+    # صف 3: اليسيوم (يمين) مقابل هارت بيت (يسار)
     "عطر اليسيوم (Elysium)": {
         "name": "عطر اليسيوم (Elysium)" if is_ar else "Elysium Perfume",
         "tag": "فخامة أنثوية" if is_ar else "Feminine Luxury",
@@ -510,30 +497,19 @@ else:
     status_badge = t["left_multi"].format(n=slots_left)
 
 # ==============================================================================
-# 5. الصندوق العلوي الموحد (بناء آمن ومحصن بنسبة 100%)
+# 5. الصندوق العلوي: سعة السلة بالأعلى وحذف صندوق الأسعار
 # ==============================================================================
 header_html = clean_html(f"""
-<div class="compact-header">
-    <div class="header-badge">{t["badge"]}</div>
-    <div class="header-title">{t["title"]}</div>
-    <div class="header-msg">{t["msg"]}</div>
+<div class="top-brand-card">
+    <div class="brand-badge">{t["badge"]}</div>
+    <div class="brand-title">{t["title"]}</div>
+    <div class="brand-msg">{t["msg"]}</div>
     <div class="capacity-row">
         <span style="color:#cbd5e1;">{t["capacity_title"]}</span>
         <span style="color:#10b981;">{taken_count}/{BASKET_CAPACITY} ({status_badge})</span>
     </div>
     <div class="progress-bar-bg">
         <div class="progress-bar-fill" style="width:{progress_percent}%;"></div>
-    </div>
-    <div class="integrated-price">
-        <div class="price-box-item">
-            <div class="price-val-now">{UNIFIED_PRICE} {t["currency"]}</div>
-            <div class="price-tag-lbl">{t["price_now_lbl"]}</div>
-        </div>
-        <div style="color:#1f2937;font-size:1.1em;">|</div>
-        <div class="price-box-item">
-            <div class="price-val-old">{ORIGINAL_RETAIL} {t["currency"]}</div>
-            <div class="price-tag-lbl">{t["price_old_lbl"]}</div>
-        </div>
     </div>
 </div>
 """)
@@ -569,7 +545,7 @@ if "confirmed_deal" in st.session_state:
     st.markdown(f'<a href="{wa_link}" target="_blank" class="wa-btn">{t["wa_btn"]}</a>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 7. النموذج وشبكة العطور المتقابلة (3 ضد 3)
+# 7. النموذج وشبكة العطور المتقابلة (3 ضد 3) والأسعار مع العطر
 # ==============================================================================
 else:
     st.markdown(f"<div style='font-size:0.86em;font-weight:800;color:#ffffff;text-align:{align_css};margin-bottom:5px;'>{t['step1']}</div>", unsafe_allow_html=True)
@@ -584,6 +560,7 @@ else:
         label_visibility="collapsed"
     )
     
+    # بطاقة العطر متضمنة السعر الفردي، سعر العرض، وشارة الخصم
     p = PERFUMES[chosen_key]
     preview_html = clean_html(f"""
     <div class="selected-perfume-panel">
@@ -596,7 +573,7 @@ else:
             </div>
         </div>
         <div class="discount-chip">
-            <span style="color:#cbd5e1;">{t["val_txt"]} <s style="color:#64748b;">{ORIGINAL_RETAIL} {t["currency"]}</s> ➔ <b style="color:#ffffff;">{UNIFIED_PRICE} {t["currency"]}</b></span>
+            <span style="color:#cbd5e1;">{t["val_txt"]} <s style="color:#64748b;">{ORIGINAL_RETAIL} {t["currency"]}</s> ➔ <b style="color:#10b981;font-size:1.15em;">{UNIFIED_PRICE} {t["currency"]}</b></span>
             <span style="color:#10b981;">{t["saved_txt"]}</span>
         </div>
     </div>
@@ -709,3 +686,4 @@ if query_params.get("manage") == "faris":
                         supabase.table("bookings").update({"payment_status": "paid"}).eq("id", b.get('id')).execute()
                     st.cache_data.clear()
                     st.rerun()
+
