@@ -686,4 +686,3 @@ if query_params.get("manage") == "faris":
                         supabase.table("bookings").update({"payment_status": "paid"}).eq("id", b.get('id')).execute()
                     st.cache_data.clear()
                     st.rerun()
-
