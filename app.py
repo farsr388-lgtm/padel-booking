@@ -28,7 +28,7 @@ components.html("""
 """, height=0, width=0)
 
 # ==============================================================================
-# 2. أنماط الواجهة الثنائية (Two-Color Strict Design: أسود كربوني + زمردي)
+# 2. أنماط الواجهة الثنائية (Two-Tone: أسود كربوني + زمردي فقط)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -41,7 +41,6 @@ header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
     margin: 0 auto; 
 }
 
-/* قاعدة لونين فقط: خلفيات كربونية ونصوص بيضاء هادئة */
 html, body, [class*="css"] { 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif; 
     direction: rtl; 
@@ -50,7 +49,7 @@ html, body, [class*="css"] {
     color: #f1f5f9;
 }
 
-/* القضاء التام على اللون الأحمر في القوائم */
+/* القضاء الجذري على أي إطار أو ظل أحمر */
 div[data-baseweb="select"] {
     border-radius: 10px !important;
 }
@@ -72,7 +71,7 @@ div[data-baseweb="select"] svg {
     fill: #10b981 !important; 
 }
 
-/* أزرار الراديو بلون زمردي حصري */
+/* أزرار الراديو */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
     border-color: #334155 !important;
     background-color: transparent !important;
@@ -95,7 +94,7 @@ div[data-baseweb="input"]:focus-within {
     box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* الهيدر المطور */
+/* بطاقة الهيدر */
 .store-header {
     background: #111827;
     border: 1px solid #1f2937;
@@ -128,7 +127,7 @@ div[data-baseweb="input"]:focus-within {
     margin-bottom: 12px; 
 }
 
-/* شريط السعر بلونين */
+/* شريط السعر الديناميكي */
 .price-strip {
     background: #0b0f19;
     border: 1px solid #1f2937;
@@ -143,7 +142,19 @@ div[data-baseweb="input"]:focus-within {
 .price-old { font-size: 0.85em; color: #64748b; text-decoration: line-through; }
 .price-lbl { font-size: 0.72em; color: #94a3b8; }
 
-/* بطاقة العطر */
+.fair-pricing-badge {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.76em;
+    color: #a7f3d0;
+    line-height: 1.5;
+    margin: 8px 0;
+    text-align: center;
+}
+
+/* بطاقة استعراض العطر */
 .perfume-box {
     background: #111827;
     border: 1px solid #1f2937;
@@ -199,7 +210,7 @@ div[data-baseweb="input"]:focus-within {
     text-align: center;
 }
 
-/* الزر الأساسي */
+/* أزرار الإرسال */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
@@ -234,7 +245,7 @@ input[aria-label="hp"] {
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. الربط بقاعدة البيانات وتجهيز كتالوج عطور بلوم (Blom)
+# 3. الربط بقاعدة البيانات والكتالوج مع أسعار التجزئة
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -250,15 +261,16 @@ def get_supabase_client() -> Client:
 supabase = get_supabase_client()
 
 BASKET_ID = "BLOM-JEDDAH-BASKET-01"
-BASKET_CAPACITY = 4  # سلة عروض بلوم (2+2 مجاناً = 4 عطور)
+BASKET_CAPACITY = 3  # سلة الـ 3 عطور (196 ر.س)
+BUNDLE_TARGET_COST = 196
 ADMIN_PHONE = "966566261868"
 
 raw_secret = st.secrets.get("ADMIN_PASSWORD", "Mq99#Jeddah!2026")
 ADMIN_PASSWORD_HASH = str(raw_secret).strip()
 
-# كتالوج عطور بلوم الأكثر مبيعاً
 PERFUMES = {
     "عطر بلوم ليذر (Blom Leather) 100مل": {
+        "retail_price": 220,
         "tag": "الأكثر طلباً وفخامة",
         "rating": "4.9 ★ (الأعلى تقييماً)",
         "desc": "طابع جلدي فاخر مع لمسات عنبرية سويت للمناسبات",
@@ -266,37 +278,34 @@ PERFUMES = {
         "img": "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=250&q=80"
     },
     "عطر بلوم توباكو (Blom Tobacco) 100مل": {
-        "tag": "رقم 1 الأكثر مبيعاً شتاءً",
+        "retail_price": 180,
+        "tag": "رقم 1 الأكثر مبيعاً",
         "rating": "4.8 ★ (الأكثر شهرة)",
         "desc": "رائحة دافئة وفواحة تجمع التبغ الفرنسي بالفانيلا",
         "notes": "تبغ فاخر، فانيلا مدخنة، توابل دافئة، وكاكاو",
         "img": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=250&q=80"
     },
     "عطر بلوم باتشولي (Blom Patchouli) 100مل": {
+        "retail_price": 180,
         "tag": "طابع رسمي راقي",
-        "rating": "4.8 ★ (خيار المناسبات)",
+        "rating": "4.8 ★ (المناسبات والعمل)",
         "desc": "ثبات وفوحان عالي بطابع أرضي شرقي فخم",
         "notes": "باتشولي طبيعي، برغموت نقي، وخشب الأرز",
         "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=250&q=80"
     },
     "عطر بلوم بلو (Blom Blue) 100مل": {
+        "retail_price": 150,
         "tag": "انتعاش يومي صيفي",
         "rating": "4.9 ★ (يومي وللعمل)",
         "desc": "طابع نظافة وحيوية منعشة تدوم طوال النهار",
         "notes": "حمضيات إيطالية، نسيم بحري، ومسك أبيض",
         "img": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=250&q=80"
     },
-    "عطر بلوم كراون (Blom Crown) 100مل": {
-        "tag": "ملكي ومميز",
-        "rating": "4.7 ★ (ثبات استثنائي)",
-        "desc": "مزيج شرقي عصري بفوحان يلفت الانتباه",
-        "notes": "هيل ملكي، لافندر ناعم، ونجيل الهند",
-        "img": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&w=250&q=80"
-    },
     "عطر بلوم مسك (Blom Musk) 100مل": {
+        "retail_price": 140,
         "tag": "ناعم ومريح جداً",
-        "rating": "4.9 ★ (للإهداء والاستخدام الهادئ)",
-        "desc": "رائحة باودر ونظافة نقية مناسبة لكلا الجنسين",
+        "rating": "4.9 ★ (هادئ وراقي)",
+        "desc": "رائحة باودر ونظافة نقية ومناسبة للاستخدام اليومي",
         "notes": "مسك أبيض مخملي، قطن، وزهور السوسن",
         "img": "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=250&q=80"
     }
@@ -321,38 +330,48 @@ taken_count = len(current_bookings)
 slots_left = max(0, BASKET_CAPACITY - taken_count)
 
 # ==============================================================================
-# 4. الواجهة البصرية المباشرة (قسم مشترياتك • تقاسم العرض معنا)
+# 4. محرك الحساب الرياضي الديناميكي (Proportional Allocation Engine)
 # ==============================================================================
-st.markdown(f"""
+def calculate_dynamic_price(chosen_name: str, existing_bookings: list) -> int:
+    chosen_retail = PERFUMES[chosen_name]["retail_price"]
+    basket_retails = []
+    for b in existing_bookings:
+        lvl = b.get("level", "")
+        if lvl in PERFUMES:
+            basket_retails.append(PERFUMES[lvl]["retail_price"])
+    basket_retails.append(chosen_retail)
+    
+    # محاكاة المقاعد الشاغرة بمتوسط سعر المعرض (180 ر.س)
+    while len(basket_retails) < BASKET_CAPACITY:
+        basket_retails.append(180)
+    
+    basket_retails = basket_retails[:BASKET_CAPACITY]
+    total_retail = sum(basket_retails)
+    multiplier = BUNDLE_TARGET_COST / total_retail
+    return round(chosen_retail * multiplier)
+
+# ==============================================================================
+# 5. الواجهة البصرية المباشرة
+# ==============================================================================
+st.markdown("""
 <div class="store-header">
     <div class="store-badge">قسم مشترياتك • تقاسم العرض معنا</div>
-    <div class="store-title">تقاسم عروض بلوم Blom (2+2 مجاناً)</div>
+    <div class="store-title">تقاسم عروض بلوم Blom (3 عطور بـ 196 ر.س)</div>
     <div class="store-desc">
-        نحن نجمع لكم اهتماماتكم في نفس العرض مع أشخاص مختلفين؛ نتقاسم باقة الـ 4 عطور سوا، 
-        وعِطرك الأصلي 100مل يطلع عليك بسعر التكلفة الصافي وبأقل من نصف قيمته:
-    </div>
-    <div class="price-strip">
-        <div class="price-col">
-            <div class="price-now">69 ر.س</div>
-            <div class="price-lbl">حصتك في العرض</div>
-        </div>
-        <div style="color:#1f2937; font-size:1.2em;">|</div>
-        <div class="price-col">
-            <div class="price-old">180 ر.س</div>
-            <div class="price-lbl">سعر العطر منفرداً</div>
-        </div>
+        نحن نجمع لكم اهتماماتكم في نفس العرض مع أشخاص مختلفين؛ نتقاسم السلة سوا بسعر التكلفة الصافي، 
+        ويحاسب كل مشترك بنسبة وتناسب عادلة حسب سعر عِطره الفردي.
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# شريط التقدم لسلة بلوم (4 عطور)
+# مؤشر التقدم
 progress_percent = int((taken_count / BASKET_CAPACITY) * 100)
 status_badge = f"متبقي عطر واحد وتكتمل الباقة ونطلبها فوراً 🔥" if slots_left == 1 else f"متبقي {slots_left} عطور لاكتمال الباقة"
 
 st.markdown(f"""
 <div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 12px 14px; margin: 12px 0;">
     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82em; font-weight: 700;">
-        <span style="color: #cbd5e1;">اكتمال باقة العرض الحالية (4 أشخاص)</span>
+        <span style="color: #cbd5e1;">اكتمال باقة العرض الحالية (3 أشخاص)</span>
         <span style="color: #10b981;">حجز {taken_count} من {BASKET_CAPACITY}</span>
     </div>
     <div style="background: #0b0f19; border-radius: 6px; height: 8px; width: 100%; margin-top: 8px; overflow: hidden; border: 1px solid #1f2937;">
@@ -365,7 +384,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. شاشة ما بعد الحجز
+# 6. شاشة ما بعد الحجز
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -379,23 +398,24 @@ if "confirmed_deal" in st.session_state:
         <div style="font-size:0.88em; color:#94a3b8; margin:2px 0;">
             طريقة الاستلام: <b>{deal['delivery']}</b>
         </div>
-        <div style="font-size:1.2em; color:#ffffff; margin-top:8px;">
-            المبلغ المطلوب عند الاستلام: <b style="color:#10b981;">69 ر.س فقط</b>
+        <div style="font-size:1.25em; color:#ffffff; margin-top:8px;">
+            المبلغ المطلوب عند الاستلام: <b style="color:#10b981;">{deal['price']} ر.س فقط</b>
         </div>
     </div>
     
     <div class="notice-box">
         🤝 <b>الدفع عند الاستلام يد بيد</b><br>
-        لا يلزمك تحويل أي مبلغ مسبقاً. سنتواصل معك عبر الواتساب فور اكتمال الباقة وتجهيز عِطرك مع الفاتورة.
+        لا يلزمك تحويل أي مبلغ مسبقاً. سنتواصل معك عبر الواتساب فور اكتمال الباقة وتجهيز عِطرك مع الفاتورة الرسمية.
     </div>
     """, unsafe_allow_html=True)
     
     wa_msg = (
         f"مرحباً يا غالي 🌿\n"
-        f"سجلت اهتمامي في تقاسم عرض بلوم Blom (69 ر.س):\n\n"
+        f"سجلت اهتمامي في تقاسم عرض بلوم Blom:\n\n"
         f"• الاسم: {deal['name']}\n"
         f"• الجوال: {deal['phone']}\n"
         f"• العطر: {deal['perfume']}\n"
+        f"• الحصة المحسوبة: {deal['price']} ر.س\n"
         f"• الاستلام: {deal['delivery']}\n\n"
         f"أرسل هذه الرسالة لتأكيد التواصل عبر الواتساب!"
     )
@@ -403,7 +423,7 @@ if "confirmed_deal" in st.session_state:
     st.markdown(f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 6. نموذج الحجز المباشر (خالٍ من RedBox ومحدد بالسلام مول أو التوصيل المجاني)
+# 7. نموذج الحجز المباشر مع الحساب التناسبي اللحظي
 # ==============================================================================
 else:
     st.markdown("##### 1. اختر عِطرك من عروض بلوم Blom:")
@@ -415,6 +435,26 @@ else:
     )
     
     p = PERFUMES[chosen_perfume]
+    calculated_price = calculate_dynamic_price(chosen_perfume, current_bookings)
+    savings = p["retail_price"] - calculated_price
+    
+    # بطاقة السعر المحسوبة رياضياً
+    st.markdown(f"""
+    <div class="price-strip">
+        <div class="price-col">
+            <div class="price-now">{calculated_price} ر.س</div>
+            <div class="price-lbl">حصتك العادلة بالعرض</div>
+        </div>
+        <div style="color:#1f2937; font-size:1.2em;">|</div>
+        <div class="price-col">
+            <div class="price-old">{p['retail_price']} ر.س</div>
+            <div class="price-lbl">سعره الفردي بالمعرض</div>
+        </div>
+    </div>
+    <div class="fair-pricing-badge">
+        ⚖️ <b>توفير صافي {savings} ر.س:</b> التسعير محسوب بنسبة وتناسب عادلة (خصم ~64% موحد للجميع) لضمان عدم تحمل أحد فارق عطر غيره.
+    </div>
+    """, unsafe_allow_html=True)
     
     st.markdown(f"""
     <div class="perfume-box">
@@ -432,7 +472,7 @@ else:
         st.markdown("##### 2. طريقة الاستلام وبياناتك:")
         
         delivery_mode = st.radio(
-            "طريقة الاستلام (الدفع 69 ر.س عند الاستلام):",
+            "طريقة الاستلام والدفع:",
             [
                 "استلام يد بيد (السلام مول) — مجاناً",
                 "توصيل مجاني داخل جدة"
@@ -443,7 +483,7 @@ else:
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
         
         hp = st.text_input("hp", label_visibility="collapsed")
-        submit_btn = st.form_submit_button("تثبيت حصتك في العرض (الدفع 69 ر.س عند الاستلام)", use_container_width=True)
+        submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض (الدفع {calculated_price} ر.س عند الاستلام)", use_container_width=True)
         
         if submit_btn and not hp:
             clean_name = f_name.strip()
@@ -458,7 +498,7 @@ else:
                 st.warning("الباقة الحالية اكتملت تماماً، جاري فتح باقة جديدة قريباً.")
             else:
                 try:
-                    note = f"PERFUME:{chosen_perfume} | METHOD:{delivery_mode} | PRICE:69 | PHONE:{clean_phone}"
+                    note = f"PERFUME:{chosen_perfume} | METHOD:{delivery_mode} | PRICE:{calculated_price} | PHONE:{clean_phone}"
                     
                     if supabase:
                         supabase.table("bookings").insert({
@@ -480,14 +520,14 @@ else:
                         "phone": clean_phone,
                         "perfume": chosen_perfume,
                         "delivery": delivery_mode,
-                        "price": 69
+                        "price": calculated_price
                     }
                     st.rerun()
                 except Exception:
                     st.error("تعذر إتمام الحجز حالياً، يرجى المحاولة لاحقاً.")
 
 # ==============================================================================
-# 7. بوابة الإدارة المعزولة كلياً (سرية: ?manage=faris فقط)
+# 8. بوابة الإدارة المعزولة كلياً (سرية: ?manage=faris فقط)
 # ==============================================================================
 query_params = st.query_params
 if query_params.get("manage") == "faris":
@@ -507,6 +547,7 @@ if query_params.get("manage") == "faris":
             
             if st.form_submit_button("تثبيت الحصة بالباقة"):
                 if m_name and m_phone and supabase:
+                    m_price = calculate_dynamic_price(m_perf, current_bookings)
                     st_p = "paid" if m_paid else "pending"
                     supabase.table("bookings").insert({
                         "name": m_name.strip(),
@@ -517,7 +558,7 @@ if query_params.get("manage") == "faris":
                         "status": "confirmed",
                         "payment_status": st_p,
                         "hear_about": "إضافة يدوية",
-                        "player_note": f"MANUAL | {m_perf}"
+                        "player_note": f"MANUAL | {m_perf} | PRICE:{m_price}"
                     }).execute()
                     st.cache_data.clear()
                     st.success("تم تثبيت الحصة!")
