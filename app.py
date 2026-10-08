@@ -28,19 +28,20 @@ components.html("""
 """, height=0, width=0)
 
 # ==============================================================================
-# 2. أنماط الواجهة فائقة الدمج (Two-Tone System & Zero Margins)
+# 2. أنماط الواجهة الثنائية فائقة الخفة (Zero-Red & Clean CSS)
 # ==============================================================================
 st.markdown("""
 <style>
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 
 .block-container { 
-    padding-top: 0.5rem !important; 
-    padding-bottom: 1.5rem !important; 
+    padding-top: 0.8rem !important; 
+    padding-bottom: 2.5rem !important; 
     max-width: 420px !important; 
     margin: 0 auto; 
 }
 
+/* نمط ألوان هادئ وخفيف على الأجهزة: أسود كربوني + زمردي */
 html, body, [class*="css"] { 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif; 
     direction: rtl; 
@@ -49,200 +50,44 @@ html, body, [class*="css"] {
     color: #f1f5f9;
 }
 
-/* -------------------------------------------------------------------------- */
-/* الصندوق العلوي المدمج (العنوان + العداد + السعر في مربع واحد)              */
-/* -------------------------------------------------------------------------- */
-.compact-header {
-    background: #111827;
-    border: 1px solid #1f2937;
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    text-align: center;
+/* القضاء الصارم على أي ظل أو إطار أحمر في القوائم */
+div[data-baseweb="select"] {
+    border-radius: 10px !important;
 }
-.header-badge {
-    background: rgba(16, 185, 129, 0.12);
-    color: #10b981;
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    border-radius: 14px;
-    padding: 2px 10px;
-    font-size: 0.72em;
-    font-weight: 700;
-    display: inline-block;
-    margin-bottom: 4px;
-}
-.header-title {
-    font-size: 1.22em;
-    font-weight: 900;
-    color: #ffffff;
-    margin: 2px 0;
-}
-.header-msg {
-    font-size: 0.85em;
-    font-weight: 700;
-    color: #ffffff !important;
-    margin-bottom: 8px;
-}
-
-/* شريط السعة الداخلي */
-.capacity-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.76em;
-    font-weight: 700;
-    margin-bottom: 4px;
-}
-.progress-bar-bg {
-    background: #0b0f19;
-    border: 1px solid #1f2937;
-    border-radius: 6px;
-    height: 7px;
-    width: 100%;
-    overflow: hidden;
-    margin-bottom: 8px;
-}
-.progress-bar-fill {
-    background: #10b981;
-    height: 100%;
-    border-radius: 6px;
-}
-
-/* شريط الأسعار داخل المربع نفسه */
-.integrated-price {
-    background: #0b0f19;
-    border: 1px solid #1f2937;
-    border-radius: 8px;
-    padding: 6px 10px;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-}
-.price-box-item { text-align: center; }
-.price-val-now { font-size: 1.25em; font-weight: 900; color: #10b981; }
-.price-val-old { font-size: 0.8em; color: #64748b; text-decoration: line-through; }
-.price-tag-lbl { font-size: 0.68em; color: #94a3b8; }
-
-/* -------------------------------------------------------------------------- */
-/* شبكة العطور الستة: جهتان متقابلتان (3 ضد 3)                                 */
-/* -------------------------------------------------------------------------- */
-div[data-testid="stRadio"]:has(input[name*="perfume_picker"]) > div[role="radiogroup"] {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 6px !important;
-    margin-bottom: 6px !important;
-}
-
-div[data-testid="stRadio"]:has(input[name*="perfume_picker"]) > div[role="radiogroup"] > label {
+div[data-baseweb="select"] > div {
     background-color: #111827 !important;
     border: 1px solid #1f2937 !important;
-    border-radius: 8px !important;
-    padding: 8px 6px !important;
-    margin: 0 !important;
-    cursor: pointer !important;
-    transition: all 0.15s ease-in-out !important;
-    display: flex !important;
-    align-items: center !important;
-    min-height: 40px !important;
+    color: #f1f5f9 !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
 }
-
-div[data-testid="stRadio"]:has(input[name*="perfume_picker"]) > div[role="radiogroup"] > label:hover {
-    border-color: #334155 !important;
-    background-color: #141e33 !important;
-}
-
-div[data-testid="stRadio"]:has(input[name*="perfume_picker"]) > div[role="radiogroup"] > label:has(input:checked) {
+div[data-baseweb="select"]:focus-within > div,
+div[data-baseweb="select"] > div:hover,
+div[data-baseweb="select"] > div:focus {
     border-color: #10b981 !important;
-    background-color: rgba(16, 185, 129, 0.12) !important;
     box-shadow: 0 0 0 1px #10b981 !important;
+    outline: none !important;
+}
+div[data-baseweb="select"] svg { 
+    fill: #10b981 !important; 
 }
 
-/* التحديد الزمردي الصافي ضد الأحمر */
+/* خيارات أزرار الراديو */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
-    border-color: #475569 !important;
+    border-color: #334155 !important;
     background-color: transparent !important;
 }
 div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:first-child,
 div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] {
     border-color: #10b981 !important;
 }
-div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] div,
-div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:first-child div {
+div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] div {
     background-color: #10b981 !important;
 }
 
-/* -------------------------------------------------------------------------- */
-/* كرت تفاصيل وصورة العطر مع خانة الخصم المباشر                               */
-/* -------------------------------------------------------------------------- */
-.selected-perfume-panel {
-    background: #111827;
-    border: 1px solid #1f2937;
-    border-radius: 10px;
-    padding: 8px 10px;
-    margin-bottom: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-.perfume-flex-row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-.perfume-thumb {
-    width: 62px;
-    height: 62px;
-    border-radius: 8px;
-    background: #0f172a;
-    border: 1px solid #1e293b;
-    object-fit: cover;
-    flex-shrink: 0;
-}
-.perfume-meta {
-    flex: 1;
-    font-size: 0.78em;
-    line-height: 1.4;
-    color: #cbd5e1;
-}
-
-/* كرت الخصم والتوفير تحت الصورة */
-.discount-chip {
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.25);
-    border-radius: 6px;
-    padding: 5px 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.74em;
-    font-weight: 700;
-}
-
-/* -------------------------------------------------------------------------- */
-/* خيارات الاستلام ونموذج الطلب بمسافات مضغوطة للغاية                         */
-/* -------------------------------------------------------------------------- */
-div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) > div[role="radiogroup"] {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 5px !important;
-    margin-bottom: 6px !important;
-}
-div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) > div[role="radiogroup"] > label {
-    background-color: #111827 !important;
-    border: 1px solid #1f2937 !important;
-    border-radius: 8px !important;
-    padding: 7px 10px !important;
-    margin: 0 !important;
-    font-size: 0.82em !important;
-}
-
-div[data-testid="stTextInput"] {
-    margin-bottom: 5px !important;
-}
+/* حقول الإدخال */
 input, textarea { 
     caret-color: #10b981 !important; 
-    border-radius: 8px !important;
-    font-size: 0.88em !important;
 }
 input:focus, textarea:focus, 
 div[data-baseweb="input"]:focus-within {
@@ -250,49 +95,132 @@ div[data-baseweb="input"]:focus-within {
     box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* زر الحجز الرئيسي */
-div[data-testid="stFormSubmitButton"] > button {
-    background: #10b981 !important;
-    color: #022c22 !important;
-    font-size: 1em !important;
-    font-weight: 800 !important;
-    height: 45px !important;
-    border-radius: 8px !important;
-    border: none !important;
-    margin-top: 2px !important;
+/* كرت المتجر الرئيسي */
+.store-header {
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    text-align: center;
+}
+.store-badge {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 0.78em;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 8px;
+}
+.store-title { 
+    font-size: 1.3em; 
+    font-weight: 900; 
+    color: #ffffff; 
+    margin: 4px 0; 
+}
+.store-desc { 
+    font-size: 0.84em; 
+    color: #94a3b8; 
+    line-height: 1.6; 
+    margin-bottom: 12px; 
 }
 
-/* كرت التأكيد بعد الحجز */
+/* شريط السعر الموحد المستوحى من تطبيقات المتاجر الكبرى */
+.price-strip {
+    background: #0b0f19;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+.price-col { text-align: center; }
+.price-now { font-size: 1.45em; font-weight: 900; color: #10b981; }
+.price-old { font-size: 0.85em; color: #64748b; text-decoration: line-through; }
+.price-lbl { font-size: 0.72em; color: #94a3b8; }
+
+/* بطاقة استعراض عطر نيوتن */
+.perfume-box {
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 12px;
+    margin: 8px 0 14px 0;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+.perfume-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #1e293b;
+}
+.perfume-info {
+    flex: 1;
+    font-size: 0.82em;
+    line-height: 1.5;
+    color: #cbd5e1;
+}
+.rating-pill {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.78em;
+    font-weight: 800;
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+/* شاشة بعد تأكيد الحجز */
 .success-card {
     background: rgba(16, 185, 129, 0.1);
     border: 1.5px solid #10b981;
-    border-radius: 12px;
-    padding: 16px 12px;
+    border-radius: 14px;
+    padding: 18px 14px;
     text-align: center;
-    margin-top: 8px;
+    margin-top: 10px;
 }
 .notice-box {
     background: #111827;
     border: 1px solid #1f2937;
-    border-radius: 8px;
-    padding: 10px;
-    font-size: 0.8em;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 0.85em;
     color: #94a3b8;
-    line-height: 1.5;
-    margin: 8px 0;
+    line-height: 1.6;
+    margin: 12px 0;
     text-align: center;
+}
+
+/* زر الحجز السريع */
+div[data-testid="stFormSubmitButton"] > button {
+    background: #10b981 !important;
+    color: #022c22 !important;
+    font-size: 1.05em !important;
+    font-weight: 800 !important;
+    height: 50px !important;
+    border-radius: 10px !important;
+    border: none !important;
+    margin-top: 4px !important;
 }
 .wa-btn {
     display: block;
     background: #10b981;
     color: #022c22 !important;
     text-align: center;
-    padding: 12px;
-    border-radius: 8px;
+    padding: 14px;
+    border-radius: 10px;
     font-weight: 800;
-    font-size: 0.95em;
+    font-size: 1em;
     text-decoration: none;
-    margin-top: 6px;
+    margin-top: 10px;
 }
 
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
@@ -306,7 +234,7 @@ input[aria-label="hp"] {
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. الربط بقاعدة البيانات وتجهيز الكتالوج
+# 3. الربط بقاعدة البيانات وتجهيز كتالوج مجموعة نيوتن (Newton)
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -321,65 +249,43 @@ def get_supabase_client() -> Client:
 
 supabase = get_supabase_client()
 
-BASKET_ID = "BLOM-NEWTON-JEDDAH-V5"
-BASKET_CAPACITY = 4      # سلة 4 عطور لاقتسام عرض (2+2 مجاناً)
-UNIFIED_PRICE = 132      # السعر الموحد بعد تقاسم عرض بلوم
-ORIGINAL_RETAIL = 265    # السعر الفردي بموقع بلوم
-SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE  # 133 ر.س
+BASKET_ID = "BLOM-NEWTON-JEDDAH-01"
+BASKET_CAPACITY = 3
+UNIFIED_PRICE = 65  # السعر الموحد المعتمد
 ADMIN_PHONE = "966566261868"
 
 raw_secret = st.secrets.get("ADMIN_PASSWORD", "Mq99#Jeddah!2026")
 ADMIN_PASSWORD_HASH = str(raw_secret).strip()
 
-# الستة عطور مرتبة بدقة: 3 في الجهة A مقابل 3 في الجهة B
+# كتالوج مجموعة نيوتن الرسمية من بلوم (Newton by Bloom)
 PERFUMES = {
-    # الجهة A
-    "عطر روميو (Romeo)": {
-        "tag": "رجالي فاخر",
-        "rating": "4.8 ★",
-        "desc": "جاذبية وأناقة رجولية فاخرة",
-        "notes": "باتشولي، فانيلا، ومسك",
-        "img": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=260&q=80"
+    "عطر نيوتن جرافيتي (Newton Gravity) 100مل": {
+        "tag": "الأكثر طلباً ومبيعاً",
+        "rating": "4.9 ★ (الأعلى تقييماً)",
+        "desc": "طابع فخم وجذاب يجمع الأخشاب والعنبر والروائح الجلدية الدافئة",
+        "notes": "عنبر ملكي، أخشاب الأرز، توابل دافئة، ولمسة جلدية",
+        "img": "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=250&q=80"
     },
-    # الجهة B
-    "عطر يوجا (Yoga)": {
-        "tag": "هدوء وانسيابية",
-        "rating": "4.8 ★",
-        "desc": "رائحة هادئة تمنحك استرخاءً وأناقة",
-        "notes": "برغموت، مسك نقي، ونرجس",
-        "img": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=260&q=80"
+    "عطر نيوتن إلكتريك (Newton Electric) 100مل": {
+        "tag": "انتعاش يومي فوّاح",
+        "rating": "4.8 ★ (خيار الدوام والصيف)",
+        "desc": "انتعاش عصري بطابع حمضي منعش يمنح حضوراً ونظافة طوال اليوم",
+        "notes": "برغموت إيطالي، لافندر ناعم، ونسيم بحري منعش",
+        "img": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=250&q=80"
     },
-    # الجهة A
-    "عطر لونار (Lunar)": {
-        "tag": "أناقة للجنسين",
-        "rating": "4.9 ★",
-        "desc": "رائحة فاخرة بطابع غامض وجذاب",
-        "notes": "باتشولي، عنب أسود، وعنبر",
-        "img": "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=260&q=80"
+    "عطر نيوتن كوانتم (Newton Quantum) 100مل": {
+        "tag": "راقي وهادئ (سويت ناعم)",
+        "rating": "4.9 ★ (ملائم للإهداء)",
+        "desc": "طابع مخملي ناعم يجمع الفواكه الفاخرة مع المسك والفانيلا الفرنسية",
+        "notes": "فواكه ناعمة، ياسمين أبيض، فانيلا، ومسك نقي",
+        "img": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&w=250&q=80"
     },
-    # الجهة B
-    "عطر لاروزيه (Larose)": {
-        "tag": "الأعلى تقييماً",
-        "rating": "5.0 ★",
-        "desc": "أنوثة ساحرة تدوم طويلاً",
-        "notes": "فانيلا، زنبق أبيض، وياسمين",
-        "img": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&w=260&q=80"
-    },
-    # الجهة A
-    "عطر اليسيوم (Elysium)": {
-        "tag": "فخامة أنثوية",
-        "rating": "4.9 ★",
-        "desc": "رائحة راقية تمنحك حضوراً ملكياً",
-        "notes": "عنبر ملكي، فانيلا، ولافندر",
-        "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=260&q=80"
-    },
-    # الجهة B
-    "عطر هارت بيت (Heart Beat)": {
-        "tag": "حيوية ورومانسية",
-        "rating": "4.8 ★",
-        "desc": "رائحة رومانسية تنبض بالبهجة",
-        "notes": "كشمش أسود، مسك، وورد",
-        "img": "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=260&q=80"
+    "عطر نيوتن موشن (Newton Motion) 100مل": {
+        "tag": "طابع شرقي كلاسيكي",
+        "rating": "4.7 ★ (ثبات وفوحان عالي)",
+        "desc": "عطر شرقي دافئ ومثالي للطلعات والمناسبات المسائية الفخمة",
+        "notes": "باتشولي، هيل عطري، بخور ناعم، وخشب الصندل",
+        "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=250&q=80"
     }
 }
 
@@ -400,36 +306,47 @@ def get_confirmed_bookings(basket_key: str):
 current_bookings = get_confirmed_bookings(BASKET_ID)
 taken_count = len(current_bookings)
 slots_left = max(0, BASKET_CAPACITY - taken_count)
-progress_percent = int((taken_count / BASKET_CAPACITY) * 100)
-status_badge = f"متبقي مقعد 1 وتكتمل الباقة 🔥" if slots_left == 1 else f"متبقي {slots_left} مقاعد لاكتمال الباقة"
 
 # ==============================================================================
-# 4. الصندوق العلوي الموحد (العنوان + العداد + السعر معاً)
+# 4. الواجهة البصرية المباشرة
 # ==============================================================================
 st.markdown(f"""
-<div class="compact-header">
-    <div class="header-badge">قسم مشترياتك • تقاسم العرض معنا</div>
-    <div class="header-title">تقاسم عروض بلوم (2+2 مجاناً)</div>
-    <div class="header-msg">تقاسم السعر أنت و 4 أشخاص</div>
-    
-    <div class="capacity-row">
-        <span style="color: #cbd5e1;">اكتمال باقة نيوتن (4 أشخاص)</span>
-        <span style="color: #10b981;">حجز {taken_count} من {BASKET_CAPACITY} ({status_badge})</span>
+<div class="store-header">
+    <div class="store-badge">قسم مشترياتك • تقاسم العرض معنا</div>
+    <div class="store-title">تقاسم عروض بلوم Blom (مجموعة نيوتن)</div>
+    <div class="store-desc">
+        نحن نجمع لكم اهتماماتكم في نفس العرض مع أشخاص مختلفين؛ نتقاسم باقة نيوتن سوا بسعر التكلفة، 
+        وعِطرك الأصلي 100مل يطلع عليك بسعر موحد وثابت:
     </div>
-    <div class="progress-bar-bg">
-        <div class="progress-bar-fill" style="width: {progress_percent}%;"></div>
+    <div class="price-strip">
+        <div class="price-col">
+            <div class="price-now">{UNIFIED_PRICE} ر.س</div>
+            <div class="price-lbl">سعر حصتك الموحد</div>
+        </div>
+        <div style="color:#1f2937; font-size:1.2em;">|</div>
+        <div class="price-col">
+            <div class="price-old">195 ر.س</div>
+            <div class="price-lbl">سعر العطر منفرداً</div>
+        </div>
     </div>
-    
-    <div class="integrated-price">
-        <div class="price-box-item">
-            <div class="price-val-now">{UNIFIED_PRICE} ر.س</div>
-            <div class="price-tag-lbl">سعر حصتك بالعرض</div>
-        </div>
-        <div style="color: #1f2937; font-size: 1.1em;">|</div>
-        <div class="price-box-item">
-            <div class="price-val-old">{ORIGINAL_RETAIL} ر.س</div>
-            <div class="price-tag-lbl">السعر الفردي ببلوم</div>
-        </div>
+</div>
+""", unsafe_allow_html=True)
+
+# مؤشر سعة السلة
+progress_percent = int((taken_count / BASKET_CAPACITY) * 100)
+status_badge = f"متبقي عطر واحد وتكتمل الباقة ونطلبها فوراً 🔥" if slots_left == 1 else f"متبقي {slots_left} عطور لاكتمال الباقة"
+
+st.markdown(f"""
+<div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 12px 14px; margin: 12px 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82em; font-weight: 700;">
+        <span style="color: #cbd5e1;">اكتمال باقة نيوتن الحالية (3 أشخاص)</span>
+        <span style="color: #10b981;">حجز {taken_count} من {BASKET_CAPACITY}</span>
+    </div>
+    <div style="background: #0b0f19; border-radius: 6px; height: 8px; width: 100%; margin-top: 8px; overflow: hidden; border: 1px solid #1f2937;">
+        <div style="background: #10b981; height: 100%; width: {progress_percent}%; border-radius: 6px;"></div>
+    </div>
+    <div style="font-size: 0.78em; color: #94a3b8; margin-top: 6px;">
+        🌿 <b>{status_badge}</b>.
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -439,24 +356,30 @@ st.markdown(f"""
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
+    
     st.markdown(f"""
     <div class="success-card">
-        <h3 style="color:#10b981; margin:0 0 4px 0; font-size:1.2em;">🎉 تم تثبيت حصتك بنجاح!</h3>
-        <div style="font-size:0.9em; color:#e2e8f0;">العطر: <b>{deal['perfume']}</b></div>
-        <div style="font-size:0.84em; color:#94a3b8;">الاستلام: <b>{deal['delivery']}</b></div>
-        <div style="font-size:1.15em; color:#ffffff; margin-top:4px;">
-            المطلوب عند الاستلام: <b style="color:#10b981;">{UNIFIED_PRICE} ر.س فقط</b>
+        <h3 style="color:#10b981; margin:0 0 6px 0; font-size:1.3em;">🎉 تم تثبيت حصتك في العرض بنجاح!</h3>
+        <div style="font-size:0.95em; color:#e2e8f0; margin:4px 0;">
+            العطر المختار: <b>{deal['perfume']}</b>
+        </div>
+        <div style="font-size:0.88em; color:#94a3b8; margin:2px 0;">
+            طريقة الاستلام: <b>{deal['delivery']}</b>
+        </div>
+        <div style="font-size:1.25em; color:#ffffff; margin-top:8px;">
+            المبلغ المطلوب عند الاستلام: <b style="color:#10b981;">{UNIFIED_PRICE} ر.س فقط</b>
         </div>
     </div>
+    
     <div class="notice-box">
         🤝 <b>الدفع عند الاستلام يد بيد</b><br>
-        سنتواصل معك عبر الواتساب فور اكتمال الباقة وتجهيز عِطرك مع الفاتورة.
+        لا يلزمك تحويل أي مبلغ مسبقاً. سنتواصل معك عبر الواتساب فور اكتمال الباقة لتنسيق الاستلام مع الفاتورة.
     </div>
     """, unsafe_allow_html=True)
     
     wa_msg = (
         f"مرحباً يا غالي 🌿\n"
-        f"سجلت اهتمامي في تقاسم عرض بلوم - مجموعة نيوتن ({UNIFIED_PRICE} ر.س):\n\n"
+        f"سجلت اهتمامي في تقاسم عروض بلوم - مجموعة نيوتن ({UNIFIED_PRICE} ر.س):\n\n"
         f"• الاسم: {deal['name']}\n"
         f"• الجوال: {deal['phone']}\n"
         f"• العطر: {deal['perfume']}\n"
@@ -467,57 +390,47 @@ if "confirmed_deal" in st.session_state:
     st.markdown(f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 6. النموذج السريع وشبكة العطور المتقابلة
+# 6. نموذج الحجز المباشر (سريع وخفيف)
 # ==============================================================================
 else:
-    # عنوان الاختيار على اليمين مباشرة
-    st.markdown("<div style='font-size:0.86em; font-weight:800; color:#ffffff; text-align:right; margin-bottom:5px;'>1. المس العطر لاختياره مباشرة:</div>", unsafe_allow_html=True)
+    st.markdown("##### 1. اختر عِطرك من مجموعة نيوتن (Newton):")
     
-    # شبكة العطور الستة (3 في الجهة A مقابل 3 في الجهة B)
-    chosen_perfume = st.radio(
+    chosen_perfume = st.selectbox(
         "اختر العطر:",
-        options=list(PERFUMES.keys()),
-        label_visibility="collapsed",
-        key="perfume_picker"
+        list(PERFUMES.keys()),
+        label_visibility="collapsed"
     )
     
-    # بطاقة تفاصيل العطر المختار مع عرض الخصم تحت الصورة مباشرة
     p = PERFUMES[chosen_perfume]
+    
     st.markdown(f"""
-    <div class="selected-perfume-panel">
-        <div class="perfume-flex-row">
-            <img class="perfume-thumb" src="{p['img']}" alt="{chosen_perfume}">
-            <div class="perfume-meta">
-                <span style="color:#10b981; font-weight:800;">{p['rating']} • {p['tag']}</span><br>
-                <b>الطابع:</b> {p['desc']}<br>
-                <span style="color:#94a3b8;"><b>المكونات:</b> {p['notes']}</span>
-            </div>
-        </div>
-        <div class="discount-chip">
-            <span style="color:#cbd5e1;">قيمة العطر: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:#ffffff;">{UNIFIED_PRICE} ر.س</b></span>
-            <span style="color:#10b981;">وفرت {SAVINGS_AMOUNT} ر.س (خصم 50%)</span>
+    <div class="perfume-box">
+        <img class="perfume-img" src="{p['img']}" alt="{chosen_perfume}">
+        <div class="perfume-info">
+            <span class="rating-pill">{p['rating']}</span>
+            <span style="color:#10b981; font-weight:700; margin-right:4px;">★ {p['tag']}</span><br>
+            <b>الطابع:</b> {p['desc']}<br>
+            <span style="color:#94a3b8; font-size:0.9em;"><b>المكونات:</b> {p['notes']}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # نموذج البيانات مدمج ومضغوط المسافات
-    with st.form("quick_order_form"):
-        st.markdown("<div style='font-size:0.86em; font-weight:800; color:#ffffff; text-align:right; margin-bottom:4px;'>2. طريقة الاستلام والبيانات:</div>", unsafe_allow_html=True)
+    with st.form("simple_checkout_form"):
+        st.markdown("##### 2. طريقة الاستلام وبياناتك:")
         
         delivery_mode = st.radio(
-            "طريقة الاستلام والدفع:",
+            f"طريقة الاستلام والدفع ({UNIFIED_PRICE} ر.س عند الاستلام):",
             [
-                f"استلام يد بيد (السلام مول) — {UNIFIED_PRICE} ر.س عند الاستلام",
-                f"توصيل مجاني داخل جدة — {UNIFIED_PRICE} ر.س عند الاستلام"
-            ],
-            key="delivery_choice"
+                "استلام يد بيد (السلام مول) — مجاناً",
+                "توصيل مجاني داخل جدة"
+            ]
         )
         
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
         
         hp = st.text_input("hp", label_visibility="collapsed")
-        submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
+        submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض (الدفع {UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
         
         if submit_btn and not hp:
             clean_name = f_name.strip()
@@ -527,12 +440,12 @@ else:
             elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
             
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
-                st.error("يرجى إدخال اسم صحيح ورقم جوال يبدأ بـ 05.")
+                st.error("يرجى إدخال اسم صحيح ورقم جوال سعودي يبدأ بـ 05.")
             elif slots_left == 0:
-                st.warning("اكتملت الباقة الحالية تماماً، جاري فتح باقة جديدة.")
+                st.warning("الباقة الحالية اكتملت تماماً، جاري فتح باقة جديدة قريباً.")
             else:
                 try:
-                    client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
+                    note = f"PERFUME:{chosen_perfume} | METHOD:{delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
                     
                     if supabase:
                         supabase.table("bookings").insert({
@@ -544,10 +457,11 @@ else:
                             "status": "confirmed",
                             "payment_status": "pending",
                             "hear_about": delivery_mode[:25],
-                            "player_note": client_note
+                            "player_note": note
                         }).execute()
                     
                     st.cache_data.clear()
+                    
                     st.session_state["confirmed_deal"] = {
                         "name": clean_name,
                         "phone": clean_phone,
@@ -560,7 +474,7 @@ else:
                     st.error("تعذر إتمام الحجز حالياً، يرجى المحاولة لاحقاً.")
 
 # ==============================================================================
-# 7. بوابة المشرف المعزولة كلياً (سرية: ?manage=faris فقط)
+# 7. بوابة الإدارة المعزولة كلياً (سرية: ?manage=faris فقط)
 # ==============================================================================
 query_params = st.query_params
 if query_params.get("manage") == "faris":
