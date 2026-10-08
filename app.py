@@ -28,7 +28,7 @@ components.html("""
 """, height=0, width=0)
 
 # ==============================================================================
-# 2. أنماط الواجهة الثنائية فائقة الخفة (Zero-Red & Clean CSS)
+# 2. أنماط الواجهة الثنائية فائقة الخفة والتفاعل النشط (Two-Tone Design)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -41,7 +41,6 @@ header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
     margin: 0 auto; 
 }
 
-/* نمط ألوان هادئ وخفيف على الأجهزة: أسود كربوني + زمردي */
 html, body, [class*="css"] { 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif; 
     direction: rtl; 
@@ -50,42 +49,48 @@ html, body, [class*="css"] {
     color: #f1f5f9;
 }
 
-/* القضاء الصارم على أي ظل أو إطار أحمر في القوائم */
-div[data-baseweb="select"] {
-    border-radius: 10px !important;
+/* إخفاء دوائر الراديو التقليدية وتحويل الخيارات لكروت تفاعلية نشطة */
+div[data-testid="stRadio"] > div[role="radiogroup"] {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
-div[data-baseweb="select"] > div {
+div[data-testid="stRadio"] > div[role="radiogroup"] > label {
     background-color: #111827 !important;
-    border: 1px solid #1f2937 !important;
-    color: #f1f5f9 !important;
-    border-radius: 10px !important;
-    box-shadow: none !important;
+    border: 1.5px solid #1f2937 !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out !important;
+    display: flex !important;
+    align-items: center !important;
 }
-div[data-baseweb="select"]:focus-within > div,
-div[data-baseweb="select"] > div:hover,
-div[data-baseweb="select"] > div:focus {
+div[data-testid="stRadio"] > div[role="radiogroup"] > label:hover {
+    border-color: #334155 !important;
+    background-color: #141e33 !important;
+}
+div[data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) {
     border-color: #10b981 !important;
+    background-color: rgba(16, 185, 129, 0.08) !important;
     box-shadow: 0 0 0 1px #10b981 !important;
-    outline: none !important;
-}
-div[data-baseweb="select"] svg { 
-    fill: #10b981 !important; 
 }
 
-/* خيارات أزرار الراديو */
+/* تخصيص نقطة التحديد داخل الكرت بلون زمردي مريح وتجاوز الأحمر */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
-    border-color: #334155 !important;
+    border-color: #475569 !important;
     background-color: transparent !important;
 }
 div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:first-child,
 div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] {
     border-color: #10b981 !important;
 }
-div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] div {
+div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] div,
+div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:first-child div {
     background-color: #10b981 !important;
 }
 
-/* حقول الإدخال */
+/* حقول الإدخال بدون أي أثر للأحمر */
 input, textarea { 
     caret-color: #10b981 !important; 
 }
@@ -95,7 +100,7 @@ div[data-baseweb="input"]:focus-within {
     box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* كرت المتجر الرئيسي */
+/* الهيدر والشريط العلوي */
 .store-header {
     background: #111827;
     border: 1px solid #1f2937;
@@ -128,7 +133,7 @@ div[data-baseweb="input"]:focus-within {
     margin-bottom: 12px; 
 }
 
-/* شريط السعر الموحد المستوحى من تطبيقات المتاجر الكبرى */
+/* شريط السعر الموحد */
 .price-strip {
     background: #0b0f19;
     border: 1px solid #1f2937;
@@ -143,8 +148,8 @@ div[data-baseweb="input"]:focus-within {
 .price-old { font-size: 0.85em; color: #64748b; text-decoration: line-through; }
 .price-lbl { font-size: 0.72em; color: #94a3b8; }
 
-/* بطاقة استعراض عطر نيوتن */
-.perfume-box {
+/* بطاقة تفاصيل العطر النشط المختار */
+.active-perfume-details {
     background: #111827;
     border: 1px solid #1f2937;
     border-radius: 12px;
@@ -155,8 +160,8 @@ div[data-baseweb="input"]:focus-within {
     align-items: center;
 }
 .perfume-img {
-    width: 80px;
-    height: 80px;
+    width: 75px;
+    height: 75px;
     border-radius: 8px;
     object-fit: cover;
     background: #1e293b;
@@ -167,18 +172,8 @@ div[data-baseweb="input"]:focus-within {
     line-height: 1.5;
     color: #cbd5e1;
 }
-.rating-pill {
-    background: rgba(16, 185, 129, 0.12);
-    color: #10b981;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 0.78em;
-    font-weight: 800;
-    display: inline-block;
-    margin-bottom: 4px;
-}
 
-/* شاشة بعد تأكيد الحجز */
+/* بطاقة ما بعد الحجز */
 .success-card {
     background: rgba(16, 185, 129, 0.1);
     border: 1.5px solid #10b981;
@@ -199,7 +194,7 @@ div[data-baseweb="input"]:focus-within {
     text-align: center;
 }
 
-/* زر الحجز السريع */
+/* الأزرار الأساسية */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
@@ -234,7 +229,7 @@ input[aria-label="hp"] {
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. الربط بقاعدة البيانات وتجهيز كتالوج مجموعة نيوتن (Newton)
+# 3. الربط بقاعدة البيانات والكتالوج
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -251,38 +246,38 @@ supabase = get_supabase_client()
 
 BASKET_ID = "BLOM-NEWTON-JEDDAH-01"
 BASKET_CAPACITY = 3
-UNIFIED_PRICE = 65  # السعر الموحد المعتمد
+UNIFIED_PRICE = 65
 ADMIN_PHONE = "966566261868"
 
 raw_secret = st.secrets.get("ADMIN_PASSWORD", "Mq99#Jeddah!2026")
 ADMIN_PASSWORD_HASH = str(raw_secret).strip()
 
-# كتالوج مجموعة نيوتن الرسمية من بلوم (Newton by Bloom)
+# كتالوج مجموعة نيوتن
 PERFUMES = {
-    "عطر نيوتن جرافيتي (Newton Gravity) 100مل": {
+    "نيوتن جرافيتي (Newton Gravity)": {
         "tag": "الأكثر طلباً ومبيعاً",
-        "rating": "4.9 ★ (الأعلى تقييماً)",
-        "desc": "طابع فخم وجذاب يجمع الأخشاب والعنبر والروائح الجلدية الدافئة",
+        "rating": "4.9 ★",
+        "desc": "طابع فخم وجذاب يجمع الأخشاب والعنبر والجلود الدافئة",
         "notes": "عنبر ملكي، أخشاب الأرز، توابل دافئة، ولمسة جلدية",
         "img": "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=250&q=80"
     },
-    "عطر نيوتن إلكتريك (Newton Electric) 100مل": {
-        "tag": "انتعاش يومي فوّاح",
-        "rating": "4.8 ★ (خيار الدوام والصيف)",
+    "نيوتن إلكتريك (Newton Electric)": {
+        "tag": "انتعاش يومي صيفي",
+        "rating": "4.8 ★",
         "desc": "انتعاش عصري بطابع حمضي منعش يمنح حضوراً ونظافة طوال اليوم",
         "notes": "برغموت إيطالي، لافندر ناعم، ونسيم بحري منعش",
         "img": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=250&q=80"
     },
-    "عطر نيوتن كوانتم (Newton Quantum) 100مل": {
-        "tag": "راقي وهادئ (سويت ناعم)",
-        "rating": "4.9 ★ (ملائم للإهداء)",
-        "desc": "طابع مخملي ناعم يجمع الفواكه الفاخرة مع المسك والفانيلا الفرنسية",
+    "نيوتن كوانتم (Newton Quantum)": {
+        "tag": "سويت ناعم وهادئ",
+        "rating": "4.9 ★",
+        "desc": "طابع مخملي ناعم يجمع الفواكه الفاخرة مع المسك والفانيلا",
         "notes": "فواكه ناعمة، ياسمين أبيض، فانيلا، ومسك نقي",
         "img": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&w=250&q=80"
     },
-    "عطر نيوتن موشن (Newton Motion) 100مل": {
+    "نيوتن موشن (Newton Motion)": {
         "tag": "طابع شرقي كلاسيكي",
-        "rating": "4.7 ★ (ثبات وفوحان عالي)",
+        "rating": "4.7 ★",
         "desc": "عطر شرقي دافئ ومثالي للطلعات والمناسبات المسائية الفخمة",
         "notes": "باتشولي، هيل عطري، بخور ناعم، وخشب الصندل",
         "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=250&q=80"
@@ -315,7 +310,7 @@ st.markdown(f"""
     <div class="store-badge">قسم مشترياتك • تقاسم العرض معنا</div>
     <div class="store-title">تقاسم عروض بلوم Blom (مجموعة نيوتن)</div>
     <div class="store-desc">
-        نحن نجمع لكم اهتماماتكم في نفس العرض مع أشخاص مختلفين؛ نتقاسم باقة نيوتن سوا بسعر التكلفة، 
+        نجمع اهتماماتكم في نفس العرض مع أشخاص مختلفين؛ نتقاسم باقة نيوتن بسعر التكلفة، 
         وعِطرك الأصلي 100مل يطلع عليك بسعر موحد وثابت:
     </div>
     <div class="price-strip">
@@ -326,14 +321,201 @@ st.markdown(f"""
         <div style="color:#1f2937; font-size:1.2em;">|</div>
         <div class="price-col">
             <div class="price-old">195 ر.س</div>
-            <div class="price-lbl">سعر العطر منفرداً</div>
+            <div class="price-lbl">سعره الفردي بالمعرض</div>
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# مؤشر سعة السلة
+# مؤشر اكتمال السلة
 progress_percent = int((taken_count / BASKET_CAPACITY) * 100)
 status_badge = f"متبقي عطر واحد وتكتمل الباقة ونطلبها فوراً 🔥" if slots_left == 1 else f"متبقي {slots_left} عطور لاكتمال الباقة"
 
 st.markdown(f"""
+<div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 12px 14px; margin: 12px 0;">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82em; font-weight: 700;">
+        <span style="color: #cbd5e1;">اكتمال باقة نيوتن الحالية (3 أشخاص)</span>
+        <span style="color: #10b981;">حجز {taken_count} من {BASKET_CAPACITY}</span>
+    </div>
+    <div style="background: #0b0f19; border-radius: 6px; height: 8px; width: 100%; margin-top: 8px; overflow: hidden; border: 1px solid #1f2937;">
+        <div style="background: #10b981; height: 100%; width: {progress_percent}%; border-radius: 6px;"></div>
+    </div>
+    <div style="font-size: 0.78em; color: #94a3b8; margin-top: 6px;">
+        🌿 <b>{status_badge}</b>.
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ==============================================================================
+# 5. شاشة ما بعد الحجز
+# ==============================================================================
+if "confirmed_deal" in st.session_state:
+    deal = st.session_state["confirmed_deal"]
+    
+    st.markdown(f"""
+    <div class="success-card">
+        <h3 style="color:#10b981; margin:0 0 6px 0; font-size:1.3em;">🎉 تم تثبيت حصتك في العرض بنجاح!</h3>
+        <div style="font-size:0.95em; color:#e2e8f0; margin:4px 0;">
+            العطر المختار: <b>{deal['perfume']}</b>
+        </div>
+        <div style="font-size:0.88em; color:#94a3b8; margin:2px 0;">
+            طريقة الاستلام: <b>{deal['delivery']}</b>
+        </div>
+        <div style="font-size:1.25em; color:#ffffff; margin-top:8px;">
+            المبلغ المطلوب عند الاستلام: <b style="color:#10b981;">{UNIFIED_PRICE} ر.س فقط</b>
+        </div>
+    </div>
+    
+    <div class="notice-box">
+        🤝 <b>الدفع عند الاستلام يد بيد</b><br>
+        لا يلزمك تحويل أي مبلغ مسبقاً. سنتواصل معك عبر الواتساب فور اكتمال الباقة لتنسيق الاستلام مع الفاتورة.
+    </div>
+    """, unsafe_allow_html=True)
+    
+    wa_msg = (
+        f"مرحباً يا غالي 🌿\n"
+        f"سجلت اهتمامي في تقاسم عروض بلوم - مجموعة نيوتن ({UNIFIED_PRICE} ر.س):\n\n"
+        f"• الاسم: {deal['name']}\n"
+        f"• الجوال: {deal['phone']}\n"
+        f"• العطر: {deal['perfume']}\n"
+        f"• الاستلام: {deal['delivery']}\n\n"
+        f"أرسل هذه الرسالة لتأكيد التواصل عبر الواتساب!"
+    )
+    wa_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_msg)}"
+    st.markdown(f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
+
+# ==============================================================================
+# 6. مسار الاختيار النشط والطلب فائق السرعة
+# ==============================================================================
+else:
+    st.markdown("##### 1. المس العطر لاختياره مباشرة:")
+    
+    # تحويل الاختيار إلى كروت نشطة باللمس المباشر بنقرة واحدة
+    chosen_perfume = st.radio(
+        "اختر العطر:",
+        options=list(PERFUMES.keys()),
+        label_visibility="collapsed"
+    )
+    
+    # إظهار بطاقة تفاصيل ومكونات العطر المختار فورياً
+    p = PERFUMES[chosen_perfume]
+    st.markdown(f"""
+    <div class="active-perfume-details">
+        <img class="perfume-img" src="{p['img']}" alt="{chosen_perfume}">
+        <div class="perfume-info">
+            <span style="color:#10b981; font-weight:800;">{p['rating']} • {p['tag']}</span><br>
+            <b>الطابع:</b> {p['desc']}<br>
+            <span style="color:#94a3b8; font-size:0.9em;"><b>المكونات:</b> {p['notes']}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.form("simple_checkout_form"):
+        st.markdown("##### 2. طريقة الاستلام والبيانات:")
+        
+        delivery_mode = st.radio(
+            "طريقة الاستلام والدفع:",
+            [
+                "استلام يد بيد (السلام مول) — مجاناً",
+                "توصيل مجاني داخل جدة"
+            ]
+        )
+        
+        f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
+        f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
+        
+        hp = st.text_input("hp", label_visibility="collapsed")
+        submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
+        
+        if submit_btn and not hp:
+            clean_name = f_name.strip()
+            raw_phone = f_phone.strip().translate(str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789"))
+            clean_phone = re.sub(r'[\s\-\+]', '', raw_phone)
+            if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
+            elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
+            
+            if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
+                st.error("يرجى إدخال اسم صحيح ورقم جوال سعودي يبدأ بـ 05.")
+            elif slots_left == 0:
+                st.warning("الباقة الحالية اكتملت تماماً، جاري فتح باقة جديدة قريباً.")
+            else:
+                try:
+                    note = f"PERFUME:{chosen_perfume} | METHOD:{delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
+                    
+                    if supabase:
+                        supabase.table("bookings").insert({
+                            "name": clean_name,
+                            "phone": clean_phone,
+                            "session_day": BASKET_ID,
+                            "court": 1,
+                            "level": chosen_perfume,
+                            "status": "confirmed",
+                            "payment_status": "pending",
+                            "hear_about": delivery_mode[:25],
+                            "player_note": note
+                        }).execute()
+                    
+                    st.cache_data.clear()
+                    
+                    st.session_state["confirmed_deal"] = {
+                        "name": clean_name,
+                        "phone": clean_phone,
+                        "perfume": chosen_perfume,
+                        "delivery": delivery_mode,
+                        "price": UNIFIED_PRICE
+                    }
+                    st.rerun()
+                except Exception:
+                    st.error("تعذر إتمام الحجز حالياً، يرجى المحاولة لاحقاً.")
+
+# ==============================================================================
+# 7. بوابة الإدارة المعزولة كلياً (سرية: ?manage=faris فقط)
+# ==============================================================================
+query_params = st.query_params
+if query_params.get("manage") == "faris":
+    st.markdown("---")
+    st.subheader("⚙️ بوابة المشرف المعزولة")
+    admin_pin = st.text_input("رمز المرور:", type="password", key="admin_isolated_key")
+    
+    if admin_pin and hmac.compare_digest(admin_pin.strip(), ADMIN_PASSWORD_HASH):
+        st.success("تم تأكيد هوية المشرف.")
+        
+        with st.form("manual_add_admin_form"):
+            st.markdown("##### ➕ إضافة حصة يدوياً:")
+            m_name = st.text_input("الاسم:")
+            m_phone = st.text_input("الجوال:")
+            m_perf = st.selectbox("العطر:", list(PERFUMES.keys()))
+            m_paid = st.checkbox("مدفوع ومؤكد ✅", value=True)
+            
+            if st.form_submit_button("تثبيت الحصة بالباقة"):
+                if m_name and m_phone and supabase:
+                    st_p = "paid" if m_paid else "pending"
+                    supabase.table("bookings").insert({
+                        "name": m_name.strip(),
+                        "phone": m_phone.strip(),
+                        "session_day": BASKET_ID,
+                        "court": 1,
+                        "level": m_perf,
+                        "status": "confirmed",
+                        "payment_status": st_p,
+                        "hear_about": "إضافة يدوية",
+                        "player_note": f"MANUAL | {m_perf} | PRICE:{UNIFIED_PRICE}"
+                    }).execute()
+                    st.cache_data.clear()
+                    st.success("تم تثبيت الحصة!")
+                    st.rerun()
+        
+        st.markdown("##### 👥 حصص الباقة المسجلة:")
+        bookings_list = get_confirmed_bookings(BASKET_ID)
+        for b in bookings_list:
+            col1, col2, col3 = st.columns([2.2, 1, 1])
+            col1.write(f"**{b.get('name')}** - `{b.get('level', '-')}`\n`{b.get('phone')}`")
+            if b.get('payment_status') == 'paid':
+                col2.markdown("<span style='color:#10b981; font-weight:700;'>مدفوع ✅</span>", unsafe_allow_html=True)
+            else:
+                col2.markdown("<span style='color:#38bdf8; font-weight:700;'>محجوز 🔒</span>", unsafe_allow_html=True)
+                if col3.button("اعتماد دفع", key=f"pay_adm_{b.get('id')}"):
+                    if supabase:
+                        supabase.table("bookings").update({"payment_status": "paid"}).eq("id", b.get('id')).execute()
+                    st.cache_data.clear()
+                    st.rerun()
