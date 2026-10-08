@@ -7,16 +7,16 @@ import hmac
 import urllib.parse
 
 # ==============================================================================
-# 1. إعداد الصفحة
+# 1. إعداد الصفحة وهوية المنصة
 # ==============================================================================
 st.set_page_config(
-    page_title="مَقسوم جدة | قطة عروض درعة",
-    page_icon="🧴",
+    page_title="مَقسوم | تقاسم عروض بلوم Blom",
+    page_icon="🌿",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# تتبع Microsoft Clarity
+# تتبع الجلسات Microsoft Clarity
 components.html("""
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -28,11 +28,10 @@ components.html("""
 """, height=0, width=0)
 
 # ==============================================================================
-# 2. أنماط CSS الموجهة (استئصال اللون الأحمر وفرض الأخضر الزمردي)
+# 2. أنماط الواجهة الثنائية (Two-Color Strict Design: أسود كربوني + زمردي)
 # ==============================================================================
 st.markdown("""
 <style>
-/* إخفاء الهيدر الافتراضي */
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 
 .block-container { 
@@ -42,6 +41,7 @@ header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
     margin: 0 auto; 
 }
 
+/* قاعدة لونين فقط: خلفيات كربونية ونصوص بيضاء هادئة */
 html, body, [class*="css"] { 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif; 
     direction: rtl; 
@@ -50,23 +50,20 @@ html, body, [class*="css"] {
     color: #f1f5f9;
 }
 
-/* --------------------------------------------------------- */
-/* استئصال اللون الأحمر من قائمة العطور (Selectbox)         */
-/* --------------------------------------------------------- */
+/* القضاء التام على اللون الأحمر في القوائم */
 div[data-baseweb="select"] {
     border-radius: 10px !important;
 }
 div[data-baseweb="select"] > div {
     background-color: #111827 !important;
-    border: 1px solid #334155 !important;
+    border: 1px solid #1f2937 !important;
     color: #f1f5f9 !important;
     border-radius: 10px !important;
     box-shadow: none !important;
 }
 div[data-baseweb="select"]:focus-within > div,
 div[data-baseweb="select"] > div:hover,
-div[data-baseweb="select"] > div:focus,
-div[data-baseweb="select"][aria-expanded="true"] > div {
+div[data-baseweb="select"] > div:focus {
     border-color: #10b981 !important;
     box-shadow: 0 0 0 1px #10b981 !important;
     outline: none !important;
@@ -75,24 +72,9 @@ div[data-baseweb="select"] svg {
     fill: #10b981 !important; 
 }
 
-/* خيارات القائمة المنسدلة عند فتحها */
-ul[data-baseweb="menu"] {
-    background-color: #111827 !important;
-    border: 1px solid #1f2937 !important;
-}
-li[data-baseweb="menu-item"] {
-    color: #f1f5f9 !important;
-}
-li[data-baseweb="menu-item"][aria-selected="true"] {
-    background-color: rgba(16, 185, 129, 0.15) !important;
-    color: #34d399 !important;
-}
-
-/* --------------------------------------------------------- */
-/* استئصال اللون الأحمر من أزرار الراديو وحقول الإدخال      */
-/* --------------------------------------------------------- */
+/* أزرار الراديو بلون زمردي حصري */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
-    border-color: #475569 !important;
+    border-color: #334155 !important;
     background-color: transparent !important;
 }
 div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:first-child,
@@ -102,10 +84,8 @@ div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"]
 div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] div {
     background-color: #10b981 !important;
 }
-div[data-testid="stRadio"] label:hover div {
-    border-color: #10b981 !important;
-}
 
+/* حقول الإدخال */
 input, textarea { 
     caret-color: #10b981 !important; 
 }
@@ -115,7 +95,7 @@ div[data-baseweb="input"]:focus-within {
     box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* الهيدر وبطاقات العرض */
+/* الهيدر المطور */
 .store-header {
     background: #111827;
     border: 1px solid #1f2937;
@@ -126,54 +106,32 @@ div[data-baseweb="input"]:focus-within {
 }
 .store-badge {
     background: rgba(16, 185, 129, 0.12);
-    color: #34d399;
+    color: #10b981;
     border: 1px solid rgba(16, 185, 129, 0.3);
     border-radius: 20px;
     padding: 3px 12px;
     font-size: 0.78em;
     font-weight: 700;
     display: inline-block;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
-.store-title { font-size: 1.35em; font-weight: 900; color: #ffffff; margin: 4px 0; }
-.store-desc { font-size: 0.84em; color: #94a3b8; line-height: 1.5; margin-bottom: 10px; }
+.store-title { 
+    font-size: 1.35em; 
+    font-weight: 900; 
+    color: #ffffff; 
+    margin: 4px 0; 
+}
+.store-desc { 
+    font-size: 0.84em; 
+    color: #94a3b8; 
+    line-height: 1.6; 
+    margin-bottom: 12px; 
+}
 
-/* بانر الهدف والعرض الرسمي لدرعة */
-.target-banner {
-    background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
-    border: 1.5px solid #059669;
-    border-radius: 12px;
-    padding: 14px;
-    margin-bottom: 12px;
-    text-align: center;
-    color: #ecfdf5;
-}
-.target-title { font-size: 1.05em; font-weight: 900; color: #34d399; margin-bottom: 4px; }
-.target-desc { font-size: 0.8em; color: #a7f3d0; line-height: 1.4; margin-bottom: 8px; }
-
-/* مؤقت العرض */
-.timer-container {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 6px;
-    direction: ltr;
-}
-.timer-block {
-    background: rgba(6, 78, 59, 0.85);
-    border: 1px solid #10b981;
-    border-radius: 8px;
-    padding: 4px 8px;
-    min-width: 48px;
-    text-align: center;
-}
-.timer-val { font-size: 1.05em; font-weight: 900; color: #ffffff; }
-.timer-lbl { font-size: 0.62em; color: #6ee7b7; text-transform: uppercase; }
-
-/* شريط السعر */
+/* شريط السعر بلونين */
 .price-strip {
-    background: #0f172a;
-    border: 1px solid #1e293b;
+    background: #0b0f19;
+    border: 1px solid #1f2937;
     border-radius: 10px;
     padding: 10px 14px;
     display: flex;
@@ -183,24 +141,9 @@ div[data-baseweb="input"]:focus-within {
 .price-col { text-align: center; }
 .price-now { font-size: 1.4em; font-weight: 900; color: #10b981; }
 .price-old { font-size: 0.85em; color: #64748b; text-decoration: line-through; }
-.price-lbl { font-size: 0.7em; color: #94a3b8; }
+.price-lbl { font-size: 0.72em; color: #94a3b8; }
 
-.official-verify {
-    background: rgba(56, 189, 248, 0.06);
-    border: 1px dashed rgba(56, 189, 248, 0.3);
-    border-radius: 10px;
-    padding: 10px;
-    margin: 10px 0;
-    text-align: center;
-    font-size: 0.82em;
-    line-height: 1.5;
-}
-.official-verify a {
-    color: #38bdf8 !important;
-    font-weight: 800;
-    text-decoration: underline;
-}
-
+/* بطاقة العطر */
 .perfume-box {
     background: #111827;
     border: 1px solid #1f2937;
@@ -225,9 +168,9 @@ div[data-baseweb="input"]:focus-within {
     color: #cbd5e1;
 }
 .rating-pill {
-    background: rgba(245, 158, 11, 0.15);
-    color: #fbbf24;
-    padding: 2px 7px;
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    padding: 2px 8px;
     border-radius: 6px;
     font-size: 0.78em;
     font-weight: 800;
@@ -235,6 +178,7 @@ div[data-baseweb="input"]:focus-within {
     margin-bottom: 4px;
 }
 
+/* شاشة بعد الحجز */
 .success-card {
     background: rgba(16, 185, 129, 0.1);
     border: 1.5px solid #10b981;
@@ -244,8 +188,8 @@ div[data-baseweb="input"]:focus-within {
     margin-top: 10px;
 }
 .notice-box {
-    background: #0f172a;
-    border: 1px solid #1e293b;
+    background: #111827;
+    border: 1px solid #1f2937;
     border-radius: 10px;
     padding: 12px;
     font-size: 0.85em;
@@ -255,6 +199,7 @@ div[data-baseweb="input"]:focus-within {
     text-align: center;
 }
 
+/* الزر الأساسي */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
@@ -267,8 +212,8 @@ div[data-testid="stFormSubmitButton"] > button {
 }
 .wa-btn {
     display: block;
-    background: #25D366;
-    color: #ffffff !important;
+    background: #10b981;
+    color: #022c22 !important;
     text-align: center;
     padding: 14px;
     border-radius: 10px;
@@ -289,7 +234,7 @@ input[aria-label="hp"] {
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. الربط بقاعدة البيانات والكتالوج
+# 3. الربط بقاعدة البيانات وتجهيز كتالوج عطور بلوم (Blom)
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -304,60 +249,55 @@ def get_supabase_client() -> Client:
 
 supabase = get_supabase_client()
 
-BASKET_ID = "MAQSOOM-JEDDAH-BASKET-01"
-BASKET_CAPACITY = 3
+BASKET_ID = "BLOM-JEDDAH-BASKET-01"
+BASKET_CAPACITY = 4  # سلة عروض بلوم (2+2 مجاناً = 4 عطور)
 ADMIN_PHONE = "966566261868"
 
 raw_secret = st.secrets.get("ADMIN_PASSWORD", "Mq99#Jeddah!2026")
 ADMIN_PASSWORD_HASH = str(raw_secret).strip()
 
+# كتالوج عطور بلوم الأكثر مبيعاً
 PERFUMES = {
-    "عطر ليدر (Leader) 100مل": {
-        "tag": "الأكثر طلباً ورسمية",
-        "rating": "4.9 ★ (1,380 تقييم)",
-        "desc": "طابع فخم ورسمي للمناسبات والدوام (يشبه خط كريد أفينتوس)",
-        "notes": "أناناس مدخن، برغموت، وأخشاب فاخرة",
-        "official_url": "https://deraahstore.com/ar-sa/leader-men-edp/p-101110101010-388",
+    "عطر بلوم ليذر (Blom Leather) 100مل": {
+        "tag": "الأكثر طلباً وفخامة",
+        "rating": "4.9 ★ (الأعلى تقييماً)",
+        "desc": "طابع جلدي فاخر مع لمسات عنبرية سويت للمناسبات",
+        "notes": "جلود راقية، توت بري، عنبر دافئ، وخشب الصندل",
         "img": "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=250&q=80"
     },
-    "عطر لينك الأسود (Link Black) 100مل": {
-        "tag": "رقم 1 الأكثر مبيعاً",
-        "rating": "4.8 ★ (2,450 تقييم)",
-        "desc": "رائحة انتعاش ونظافة يومية فواحة تدوم طويلاً",
-        "notes": "حمضيات منعشة، ياسمين، ومسك نقي",
-        "official_url": "https://deraahstore.com/ar-sa/link-black-men-edp/p-101110101010-385",
+    "عطر بلوم توباكو (Blom Tobacco) 100مل": {
+        "tag": "رقم 1 الأكثر مبيعاً شتاءً",
+        "rating": "4.8 ★ (الأكثر شهرة)",
+        "desc": "رائحة دافئة وفواحة تجمع التبغ الفرنسي بالفانيلا",
+        "notes": "تبغ فاخر، فانيلا مدخنة، توابل دافئة، وكاكاو",
         "img": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=250&q=80"
     },
-    "عطر بورموا (Pour Moi) 100مل": {
-        "tag": "خيار ناعم ومريح",
-        "rating": "4.9 ★ (890 تقييم)",
-        "desc": "طابع سويت هادئ وراقي جداً وملائم للإهداء",
-        "notes": "فواكه ناعمة، ياسمين أبيض، فانيلا فرنسية",
-        "official_url": "https://deraahstore.com/ar-sa/pour-moi-women-edp/p-101110101010-410",
-        "img": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&w=250&q=80"
-    },
-    "عطر خواطر (Khawater) 100مل": {
-        "tag": "طابع شرقي كلاسيكي",
-        "rating": "4.7 ★ (620 تقييم)",
-        "desc": "ثبات وفوحان عالي بلمسة بخور أنيقة للمجالس",
-        "notes": "بخور خفيف، باتشولي دافئ، وعنبر",
-        "official_url": "https://deraahstore.com/ar-sa/khawater-unisex-edp/p-101110101010-415",
+    "عطر بلوم باتشولي (Blom Patchouli) 100مل": {
+        "tag": "طابع رسمي راقي",
+        "rating": "4.8 ★ (خيار المناسبات)",
+        "desc": "ثبات وفوحان عالي بطابع أرضي شرقي فخم",
+        "notes": "باتشولي طبيعي، برغموت نقي، وخشب الأرز",
         "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=250&q=80"
     },
-    "عطر سول (Soul) 100مل": {
-        "tag": "شبابي وعصري",
-        "rating": "4.8 ★ (510 تقييم)",
-        "desc": "عطر مناسب للطلعات واللقاءات المسائية",
-        "notes": "هيل عطري، لافندر هادئ، وخشب الصندل",
-        "official_url": "https://deraahstore.com/ar-sa/soul-men-edp/p-101110101010-420",
+    "عطر بلوم بلو (Blom Blue) 100مل": {
+        "tag": "انتعاش يومي صيفي",
+        "rating": "4.9 ★ (يومي وللعمل)",
+        "desc": "طابع نظافة وحيوية منعشة تدوم طوال النهار",
+        "notes": "حمضيات إيطالية، نسيم بحري، ومسك أبيض",
         "img": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=250&q=80"
     },
-    "عطر ميس درعة (Miss Deraah) 100مل": {
-        "tag": "بودري وزهري ناعم",
-        "rating": "4.9 ★ (740 تقييم)",
-        "desc": "ناعم وأنيق ومثالي للإهداء للأهل",
-        "notes": "زهور الياسمين، باودر ومسك مخملي",
-        "official_url": "https://deraahstore.com/ar-sa/miss-deraah-women-edp/p-101110101010-430",
+    "عطر بلوم كراون (Blom Crown) 100مل": {
+        "tag": "ملكي ومميز",
+        "rating": "4.7 ★ (ثبات استثنائي)",
+        "desc": "مزيج شرقي عصري بفوحان يلفت الانتباه",
+        "notes": "هيل ملكي، لافندر ناعم، ونجيل الهند",
+        "img": "https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&w=250&q=80"
+    },
+    "عطر بلوم مسك (Blom Musk) 100مل": {
+        "tag": "ناعم ومريح جداً",
+        "rating": "4.9 ★ (للإهداء والاستخدام الهادئ)",
+        "desc": "رائحة باودر ونظافة نقية مناسبة لكلا الجنسين",
+        "notes": "مسك أبيض مخملي، قطن، وزهور السوسن",
         "img": "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=250&q=80"
     }
 }
@@ -381,90 +321,45 @@ taken_count = len(current_bookings)
 slots_left = max(0, BASKET_CAPACITY - taken_count)
 
 # ==============================================================================
-# 4. الواجهة البصرية المباشرة
+# 4. الواجهة البصرية المباشرة (قسم مشترياتك • تقاسم العرض معنا)
 # ==============================================================================
 st.markdown(f"""
 <div class="store-header">
-    <div class="store-badge">تنسيق شراء تشاركي بجدة • 3 مقاعد فقط</div>
-    <div class="store-title">قطّة عطور درعة (1+2 مجاناً)</div>
+    <div class="store-badge">قسم مشترياتك • تقاسم العرض معنا</div>
+    <div class="store-title">تقاسم عروض بلوم Blom (2+2 مجاناً)</div>
     <div class="store-desc">
-        نقتسم عرض درعة الرسمي بين 3 أشخاص؛ نشتري السلة سوا من فرع درعة بالأندلس مول، 
-        وعِطرك الأصلي 100مل يطلع عليك بسعر التكلفة الصافي:
+        نحن نجمع لكم اهتماماتكم في نفس العرض مع أشخاص مختلفين؛ نتقاسم باقة الـ 4 عطور سوا، 
+        وعِطرك الأصلي 100مل يطلع عليك بسعر التكلفة الصافي وبأقل من نصف قيمته:
     </div>
     <div class="price-strip">
         <div class="price-col">
-            <div class="price-now">63 ر.س</div>
-            <div class="price-lbl">سعر حصتك بالقطة</div>
+            <div class="price-now">69 ر.س</div>
+            <div class="price-lbl">حصتك في العرض</div>
         </div>
-        <div style="color:#334155; font-size:1.2em;">|</div>
+        <div style="color:#1f2937; font-size:1.2em;">|</div>
         <div class="price-col">
-            <div class="price-old">210 ر.س</div>
-            <div class="price-lbl">سعره الفردي بالمعرض</div>
+            <div class="price-old">180 ر.س</div>
+            <div class="price-lbl">سعر العطر منفرداً</div>
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# بانر عرض درعة الرسمي (Target) والمؤقت
-st.markdown("""
-<div class="target-banner">
-    <div class="target-title">🎁 عرض درعة الرسمي: 3 هدايا إضافية + توصيل مجاني</div>
-    <div class="target-desc">العرض ينتهي رسمياً من متجر درعة خلال:</div>
-    <div class="timer-container">
-        <div class="timer-block"><div class="timer-val" id="d-days">03</div><div class="timer-lbl">Days</div></div>
-        <div class="timer-block"><div class="timer-val" id="d-hours">08</div><div class="timer-lbl">Hours</div></div>
-        <div class="timer-block"><div class="timer-val" id="d-mins">30</div><div class="timer-lbl">Minutes</div></div>
-        <div class="timer-block"><div class="timer-val" id="d-secs">15</div><div class="timer-lbl">Seconds</div></div>
-    </div>
-</div>
-
-<script>
-    var totalSeconds = (3 * 86400) + (8 * 3600) + (30 * 60) + 15;
-    setInterval(function() {
-        if (totalSeconds > 0) {
-            totalSeconds--;
-            var d = Math.floor(totalSeconds / 86400);
-            var h = Math.floor((totalSeconds % 86400) / 3600);
-            var m = Math.floor((totalSeconds % 3600) / 60);
-            var s = totalSeconds % 60;
-            
-            var elD = document.getElementById("d-days");
-            var elH = document.getElementById("d-hours");
-            var elM = document.getElementById("d-mins");
-            var elS = document.getElementById("d-secs");
-            
-            if(elD) elD.innerText = d < 10 ? "0"+d : d;
-            if(elH) elH.innerText = h < 10 ? "0"+h : h;
-            if(elM) elM.innerText = m < 10 ? "0"+m : m;
-            if(elS) elS.innerText = s < 10 ? "0"+s : s;
-        }
-    }, 1000);
-</script>
-""", unsafe_allow_html=True)
-
-# بطاقة التحقق من درعة
-st.markdown("""
-<div class="official-verify">
-    🔎 <b>للشفافية وتأكيد الأسعار الرسمية والعرض:</b><br>
-    <a href="https://deraahstore.com" target="_blank">اضغط هنا لفتح موقع درعة الرسمي والتأكد من سعر العطر الفردي والعروض ↗</a>
-</div>
-""", unsafe_allow_html=True)
-
-# مؤشر اكتمال السلة
+# شريط التقدم لسلة بلوم (4 عطور)
 progress_percent = int((taken_count / BASKET_CAPACITY) * 100)
-status_badge = f"متبقي شخص واحد فقط وتكتمل القطة ونشتريها 🔥" if slots_left == 1 else f"متبقي {slots_left} أشخاص لاكتمال القطة"
+status_badge = f"متبقي عطر واحد وتكتمل الباقة ونطلبها فوراً 🔥" if slots_left == 1 else f"متبقي {slots_left} عطور لاكتمال الباقة"
 
 st.markdown(f"""
 <div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 12px 14px; margin: 12px 0;">
     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82em; font-weight: 700;">
-        <span style="color: #cbd5e1;">اكتمال السلة الحالية (3 أشخاص)</span>
+        <span style="color: #cbd5e1;">اكتمال باقة العرض الحالية (4 أشخاص)</span>
         <span style="color: #10b981;">حجز {taken_count} من {BASKET_CAPACITY}</span>
     </div>
-    <div style="background: #1f2937; border-radius: 6px; height: 8px; width: 100%; margin-top: 8px; overflow: hidden;">
+    <div style="background: #0b0f19; border-radius: 6px; height: 8px; width: 100%; margin-top: 8px; overflow: hidden; border: 1px solid #1f2937;">
         <div style="background: #10b981; height: 100%; width: {progress_percent}%; border-radius: 6px;"></div>
     </div>
     <div style="font-size: 0.78em; color: #94a3b8; margin-top: 6px;">
-        ⚡ <b>{status_badge}</b> من فرع الأندلس مول.
+        🌿 <b>{status_badge}</b>.
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -477,27 +372,27 @@ if "confirmed_deal" in st.session_state:
     
     st.markdown(f"""
     <div class="success-card">
-        <h3 style="color:#10b981; margin:0 0 6px 0; font-size:1.3em;">🎉 تم تثبيت مقعدك بنجاح!</h3>
+        <h3 style="color:#10b981; margin:0 0 6px 0; font-size:1.3em;">🎉 تم تثبيت حصتك في العرض بنجاح!</h3>
         <div style="font-size:0.95em; color:#e2e8f0; margin:4px 0;">
-            العطر: <b>{deal['perfume']}</b>
+            العطر المختار: <b>{deal['perfume']}</b>
         </div>
         <div style="font-size:0.88em; color:#94a3b8; margin:2px 0;">
             طريقة الاستلام: <b>{deal['delivery']}</b>
         </div>
         <div style="font-size:1.2em; color:#ffffff; margin-top:8px;">
-            المبلغ المطلوب عند الاستلام: <b style="color:#10b981;">{deal['price']} ر.س فقط</b>
+            المبلغ المطلوب عند الاستلام: <b style="color:#10b981;">69 ر.س فقط</b>
         </div>
     </div>
     
     <div class="notice-box">
-        🤝 <b>الدفع عند الاستلام يد بيد بالأندلس مول</b><br>
-        لا يلزمك تحويل أي مبلغ الآن. سنتواصل معك عبر الواتساب فور شراء السلة لتنسيق اللقاء واستلام عِطرك مع الفاتورة الرسمية.
+        🤝 <b>الدفع عند الاستلام يد بيد</b><br>
+        لا يلزمك تحويل أي مبلغ مسبقاً. سنتواصل معك عبر الواتساب فور اكتمال الباقة وتجهيز عِطرك مع الفاتورة.
     </div>
     """, unsafe_allow_html=True)
     
     wa_msg = (
-        f"مرحباً يا غالي 🛍️\n"
-        f"حجزت مقعدي في سلة درعة ({deal['price']} ر.س):\n\n"
+        f"مرحباً يا غالي 🌿\n"
+        f"سجلت اهتمامي في تقاسم عرض بلوم Blom (69 ر.س):\n\n"
         f"• الاسم: {deal['name']}\n"
         f"• الجوال: {deal['phone']}\n"
         f"• العطر: {deal['perfume']}\n"
@@ -508,10 +403,10 @@ if "confirmed_deal" in st.session_state:
     st.markdown(f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
 
 # ==============================================================================
-# 6. نموذج الحجز
+# 6. نموذج الحجز المباشر (خالٍ من RedBox ومحدد بالسلام مول أو التوصيل المجاني)
 # ==============================================================================
 else:
-    st.markdown("##### 1. اختر عِطرك المفضل:")
+    st.markdown("##### 1. اختر عِطرك من عروض بلوم Blom:")
     
     chosen_perfume = st.selectbox(
         "اختر العطر:",
@@ -526,10 +421,9 @@ else:
         <img class="perfume-img" src="{p['img']}" alt="{chosen_perfume}">
         <div class="perfume-info">
             <span class="rating-pill">{p['rating']}</span>
-            <span style="color:#38bdf8; font-weight:700; margin-right:4px;">★ {p['tag']}</span><br>
+            <span style="color:#10b981; font-weight:700; margin-right:4px;">★ {p['tag']}</span><br>
             <b>الطابع:</b> {p['desc']}<br>
-            <span style="color:#94a3b8; font-size:0.9em;"><b>المكونات:</b> {p['notes']}</span><br>
-            <a href="{p['official_url']}" target="_blank" style="color:#38bdf8; font-size:0.85em; text-decoration:underline;">عرض العطر في موقع درعة الرسمي ↗</a>
+            <span style="color:#94a3b8; font-size:0.9em;"><b>المكونات:</b> {p['notes']}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -538,25 +432,18 @@ else:
         st.markdown("##### 2. طريقة الاستلام وبياناتك:")
         
         delivery_mode = st.radio(
-            "طريقة الاستلام والدفع:",
+            "طريقة الاستلام (الدفع 69 ر.س عند الاستلام):",
             [
-                "استلام يد بيد (الأندلس مول) — 63 ر.س عند الاستلام",
-                "خزانة RedBox بجدة (+25 ر.س) — 88 ر.س"
+                "استلام يد بيد (السلام مول) — مجاناً",
+                "توصيل مجاني داخل جدة"
             ]
         )
-        
-        is_redbox = "RedBox" in delivery_mode
-        active_price = 88 if is_redbox else 63
         
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
         
-        f_district = ""
-        if is_redbox:
-            f_district = st.text_input("الحي لأقرب خزانة RedBox بجدة:", placeholder="مثال: الروضة، الزهراء، السامر...")
-            
         hp = st.text_input("hp", label_visibility="collapsed")
-        submit_btn = st.form_submit_button(f"تثبيت المقعد (الدفع {active_price} ر.س عند الاستلام)", use_container_width=True)
+        submit_btn = st.form_submit_button("تثبيت حصتك في العرض (الدفع 69 ر.س عند الاستلام)", use_container_width=True)
         
         if submit_btn and not hp:
             clean_name = f_name.strip()
@@ -567,14 +454,11 @@ else:
             
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
                 st.error("يرجى إدخال اسم صحيح ورقم جوال سعودي يبدأ بـ 05.")
-            elif is_redbox and not f_district.strip():
-                st.error("فضلاً حدد اسم الحي لاستلام RedBox.")
             elif slots_left == 0:
-                st.warning("السلة الحالية اكتملت تماماً، جاري فتح سلة جديدة قريباً.")
+                st.warning("الباقة الحالية اكتملت تماماً، جاري فتح باقة جديدة قريباً.")
             else:
                 try:
-                    delivery_str = f"RedBox ({f_district.strip()})" if is_redbox else "الأندلس مول (يد بيد)"
-                    note = f"PERFUME:{chosen_perfume} | METHOD:{delivery_str} | PRICE:{active_price} | PHONE:{clean_phone}"
+                    note = f"PERFUME:{chosen_perfume} | METHOD:{delivery_mode} | PRICE:69 | PHONE:{clean_phone}"
                     
                     if supabase:
                         supabase.table("bookings").insert({
@@ -585,7 +469,7 @@ else:
                             "level": chosen_perfume,
                             "status": "confirmed",
                             "payment_status": "pending",
-                            "hear_about": delivery_str[:25],
+                            "hear_about": delivery_mode[:25],
                             "player_note": note
                         }).execute()
                     
@@ -595,8 +479,8 @@ else:
                         "name": clean_name,
                         "phone": clean_phone,
                         "perfume": chosen_perfume,
-                        "delivery": delivery_str,
-                        "price": active_price
+                        "delivery": delivery_mode,
+                        "price": 69
                     }
                     st.rerun()
                 except Exception:
@@ -615,13 +499,13 @@ if query_params.get("manage") == "faris":
         st.success("تم تأكيد هوية المشرف.")
         
         with st.form("manual_add_admin_form"):
-            st.markdown("##### ➕ إضافة مقعد يدوياً:")
+            st.markdown("##### ➕ إضافة حصة يدوياً:")
             m_name = st.text_input("الاسم:")
             m_phone = st.text_input("الجوال:")
             m_perf = st.selectbox("العطر:", list(PERFUMES.keys()))
             m_paid = st.checkbox("مدفوع ومؤكد ✅", value=True)
             
-            if st.form_submit_button("تثبيت المقعد بالسلة"):
+            if st.form_submit_button("تثبيت الحصة بالباقة"):
                 if m_name and m_phone and supabase:
                     st_p = "paid" if m_paid else "pending"
                     supabase.table("bookings").insert({
@@ -636,10 +520,10 @@ if query_params.get("manage") == "faris":
                         "player_note": f"MANUAL | {m_perf}"
                     }).execute()
                     st.cache_data.clear()
-                    st.success("تم تثبيت المقعد!")
+                    st.success("تم تثبيت الحصة!")
                     st.rerun()
         
-        st.markdown("##### 👥 مقاعد السلة المسجلة:")
+        st.markdown("##### 👥 حصص الباقة المسجلة:")
         bookings_list = get_confirmed_bookings(BASKET_ID)
         for b in bookings_list:
             col1, col2, col3 = st.columns([2.2, 1, 1])
