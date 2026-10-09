@@ -5,7 +5,6 @@ import re
 import html
 import hmac
 import urllib.parse
-import os
 
 # ==============================================================================
 # 1. إعداد الصفحة وهوية المنصة
@@ -28,15 +27,19 @@ components.html("""
 </script>
 """, height=0, width=0)
 
+def clean_html(raw: str) -> str:
+    """تنظيف تام للنصوص البرمجية لمنع ثغرة الـ Markdown Indentation."""
+    return "".join(line.strip() for line in raw.splitlines() if line.strip())
+
 # ==============================================================================
-# 2. أنماط الواجهة (Minimal Dark Luxury - خالية تماماً من أي أحمر)
+# 2. أنماط الواجهة (Minimal Dark Luxury - بدون أي لون أحمر)
 # ==============================================================================
-st.markdown("""
+css_styles = clean_html("""
 <style>
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 
 .block-container { 
-    padding-top: 0.2rem !important; 
+    padding-top: 0.3rem !important; 
     padding-bottom: 1.5rem !important; 
     max-width: 410px !important; 
     margin: 0 auto; 
@@ -82,7 +85,7 @@ html, body, [class*="css"] {
     margin: 2px 0 8px 0;
 }
 
-/* شبكة الحصص */
+/* شبكة الحصص الأربعة */
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -108,7 +111,7 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
-/* شبكة أزرار الاختيار */
+/* شبكة أزرار الاختيار المتقابلة */
 div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -140,7 +143,7 @@ div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiog
     background-color: rgba(16, 185, 129, 0.1) !important;
 }
 
-/* إزالة الأحمر نهائياً */
+/* إزالة اللون الأحمر تماماً من دوائر الراديو */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
     border-color: #475569 !important;
     background-color: transparent !important;
@@ -154,18 +157,66 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     background-color: #10b981 !important;
 }
 
-/* شريحة السعر */
-.price-chip {
-    background: rgba(16, 185, 129, 0.08);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-    border-radius: 8px;
-    padding: 8px 12px;
+/* بطاقة استعراض العطر الحسي الفاخر */
+.sensory-card {
+    background: #111827;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.sensory-badge-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8em;
+    background: #030712;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+.sensory-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.sensory-title-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.8em;
+}
+.sensory-name {
+    font-size: 0.9em;
+    font-weight: 800;
+    color: #ffffff;
+}
+.sensory-tag {
+    font-size: 0.72em;
+    color: #10b981;
     font-weight: 700;
-    margin: 8px 0;
+}
+.sensory-notes {
+    font-size: 0.76em;
+    color: #94a3b8;
+    line-height: 1.3;
+}
+.price-chip {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 6px;
+    padding: 5px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.76em;
+    font-weight: 700;
+    margin-top: 4px;
 }
 
 /* النموذج والمدخلات */
@@ -254,10 +305,11 @@ input[aria-label="hp"] {
     left: -9999px !important; 
 }
 </style>
-""", unsafe_allow_html=True)
+""")
+st.markdown(css_styles, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. محرك البيانات وإعداد الصور التبادلية
+# 3. إدارة قاعدة البيانات والكتالوج الحسي
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -282,46 +334,37 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD_HASH = st.secrets.get("ADMIN_PASSWORD", "")
 
-# فحص وجود الملفات محلياً؛ وإذا لم تكن موجودة يتم استخدام مسار خارجي مفتوح لا يحظر العرض
-LOCAL_BOTTLE_1 = "bottle_1.png"
-LOCAL_BOTTLE_2 = "bottle_2.png"
-
-FALLBACK_IMG_1 = "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=400&q=80"
-FALLBACK_IMG_2 = "https://images.unsplash.com/photo-1583445013765-46c20c4a6772?auto=format&fit=crop&w=400&q=80"
-
-img_src_1 = LOCAL_BOTTLE_1 if os.path.exists(LOCAL_BOTTLE_1) else FALLBACK_IMG_1
-img_src_2 = LOCAL_BOTTLE_2 if os.path.exists(LOCAL_BOTTLE_2) else FALLBACK_IMG_2
-
+# كتالوج العطور الحسي المعزول عن مشاكل الشبكات وروابط الصور الخارجية
 PERFUMES = {
     "عطر يوجا (Yoga)": {
         "tag": "هادئ ومنعش • أصلي",
-        "notes": "برغموت إيطالي • نرجس • مسك قطني نظيف",
-        "image": img_src_1
+        "icon": "🍋",
+        "notes": "برغموت إيطالي • نرجس ندي • مسك قطني نظيف"
     },
     "عطر هارت بيت (Heart Beat)": {
         "tag": "الأكثر طلباً • أصلي",
-        "notes": "كشمش أسود • ورد جوري • مسك مخملي",
-        "image": img_src_2
+        "icon": "🌹",
+        "notes": "كشمش أسود • ورد جوري مخملي • مسك جذاب"
     },
     "عطر روميو (Romeo)": {
         "tag": "رجالي فاخر • أصلي",
-        "notes": "هيل • باتشولي إندونيسي • فانيلا معتقة",
-        "image": img_src_1
+        "icon": "🪵",
+        "notes": "حبوب هيل • باتشولي إندونيسي • فانيلا معتقة"
     },
     "عطر لونار (Lunar)": {
         "tag": "غامض ومميز • أصلي",
-        "notes": "عنب أسود • باتشولي عميق • عنبر دافئ",
-        "image": img_src_2
+        "icon": "🌊",
+        "notes": "عنب أسود • عنبر بحري عميق • لمسات خشبية"
     },
     "عطر لاروزيه (Larose)": {
         "tag": "أنثوي ساحر • أصلي",
-        "notes": "ياسمين رقيق • زنبق • لمسة صندل",
-        "image": img_src_1
+        "icon": "🌸",
+        "notes": "ياسمين رقيق • زنبق أبيض • أخشاب صندل ناعمة"
     },
     "عطر اليسيوم (Elysium)": {
         "tag": "فخامة ملكية • أصلي",
-        "notes": "لافندر فرنسي • توابل دافئة • عنبر ملكي",
-        "image": img_src_2
+        "icon": "👑",
+        "notes": "لافندر فرنسي • توابل دافئة • عنبر ملكي فاخر"
     }
 }
 
@@ -342,19 +385,18 @@ def get_confirmed_bookings(basket_key: str):
 current_bookings = get_confirmed_bookings(BASKET_ID)
 taken_count = len(current_bookings)
 
-slots_html = ""
-for i in range(1, BASKET_CAPACITY + 1):
-    if i <= taken_count:
-        slots_html += f'<div class="slot-pill taken">حصة {i} مكتملة ✓</div>'
-    elif i == taken_count + 1:
-        slots_html += '<div class="slot-pill" style="border-color:#10b981; color:#10b981; background:rgba(16,185,129,0.05);">حصتك الآن 🔥</div>'
-    else:
-        slots_html += f'<div class="slot-pill available">متاح {i}</div>'
+# شريط مقاعد الحصص التفاعلي
+slots_html = "".join([
+    f'<div class="slot-pill taken">حصة {i} مكتملة ✓</div>' if i <= taken_count else
+    '<div class="slot-pill" style="border-color:#10b981; color:#10b981; background:rgba(16,185,129,0.05);">حصتك الآن 🔥</div>' if i == taken_count + 1 else
+    f'<div class="slot-pill available">متاح {i}</div>'
+    for i in range(1, BASKET_CAPACITY + 1)
+])
 
 # ==============================================================================
 # 4. الرأسية التسويقية
 # ==============================================================================
-st.markdown(f"""
+header_markup = clean_html(f"""
 <div class="top-card">
     <div class="brand-badge">تطبيق مَقسوم • عرض بلوم (2+2 مجاناً)</div>
     <div class="headline">نفس الجودة. نصف السعر.</div>
@@ -363,7 +405,8 @@ st.markdown(f"""
         {slots_html}
     </div>
 </div>
-""", unsafe_allow_html=True)
+""")
+st.markdown(header_markup, unsafe_allow_html=True)
 
 # ==============================================================================
 # 5. شاشة تأكيد الحصة
@@ -374,7 +417,7 @@ if "confirmed_deal" in st.session_state:
     safe_perfume = html.escape(deal['perfume'])
     safe_delivery = html.escape(deal['delivery'])
     
-    st.markdown(f"""
+    confirm_markup = clean_html(f"""
     <div class="top-card" style="border-color:#10b981;">
         <div class="brand-badge">تم تأكيد حصتك في الباقة</div>
         <div class="headline" style="font-size:1.1em;">{safe_perfume}</div>
@@ -387,7 +430,8 @@ if "confirmed_deal" in st.session_state:
         🤝 <b>الدفع عند الاستلام يد بيد</b><br>
         سنتواصل معك عبر الواتساب فور اكتمال الباقة وتجهيز طلبك مع الفاتورة.
     </div>
-    """, unsafe_allow_html=True)
+    """)
+    st.markdown(confirm_markup, unsafe_allow_html=True)
     
     wa_msg = (
         f"مرحباً 🌿\n"
@@ -415,19 +459,23 @@ else:
     
     p = PERFUMES[chosen_perfume]
     
-    col_img, col_txt = st.columns([1, 2])
-    with col_img:
-        st.image(p["image"], use_container_width=True)
-    with col_txt:
-        st.markdown(f"**{chosen_perfume}**")
-        st.caption(f"{p['tag']}\n\n{p['notes']}")
-        
-    st.markdown(f"""
-    <div class="price-chip">
-        <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:#10b981;">{UNIFIED_PRICE} ر.س</b></span>
-        <span style="color:#10b981;">وفرت {SAVINGS_AMOUNT} ر.س</span>
+    sensory_markup = clean_html(f"""
+    <div class="sensory-card">
+        <div class="sensory-badge-icon">{p['icon']}</div>
+        <div class="sensory-content">
+            <div class="sensory-title-row">
+                <span class="sensory-name">{chosen_perfume}</span>
+                <span class="sensory-tag">{p['tag']}</span>
+            </div>
+            <div class="sensory-notes">{p['notes']}</div>
+            <div class="price-chip">
+                <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:#10b981;">{UNIFIED_PRICE} ر.س</b></span>
+                <span style="color:#10b981;">وفرت {SAVINGS_AMOUNT} ر.س</span>
+            </div>
+        </div>
     </div>
-    """, unsafe_allow_html=True)
+    """)
+    st.markdown(sensory_markup, unsafe_allow_html=True)
     
     with st.form("quick_order_form"):
         st.markdown("<div style='font-size:0.8em;font-weight:700;color:#94a3b8;margin-bottom:4px;'>2. بيانات التأكيد والاستلام:</div>", unsafe_allow_html=True)
