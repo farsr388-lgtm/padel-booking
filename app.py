@@ -1,14 +1,13 @@
 import streamlit as st
 import streamlit.components.v1 as components
 from supabase import create_client, Client
-import textwrap
 import re
 import html
 import hmac
 import urllib.parse
 
 # ==============================================================================
-# 1. إعداد الصفحة والتهيئة الأساسية
+# 1. إعداد الصفحة ودوال التنظيف الصارمة
 # ==============================================================================
 st.set_page_config(
     page_title="مَقسوم | تقاسم عروض بلوم - نيوتن",
@@ -18,8 +17,13 @@ st.set_page_config(
 )
 
 def clean_html(raw_html: str) -> str:
-    """تجريد المسافات البادئة والأسطر الزائدة لمنع انهيار الماركداون أو تسرب الأكواد."""
-    return textwrap.dedent(raw_html).strip()
+    """
+    تجريد صارم للمسافات البادئة والأسطر الفارغة لكل سطر على حدة.
+    يمنع نهائياً قراءة نصوص HTML/CSS ككتل برمجية (Code Blocks) بواسطة محرك الماركداون.
+    """
+    if not raw_html:
+        return ""
+    return "\n".join(line.strip() for line in raw_html.strip().splitlines() if line.strip())
 
 def sanitize_phone_number(raw_input: str) -> str:
     """تنظيف وتوحيد أرقام الجوال ومعالجة الأرقام العربية والرموز ومفتاح الدولة."""
@@ -178,7 +182,7 @@ html, body, [class*="css"] {
 }
 
 /* ==========================================================================
-   شبكة العطور (3 يمين و 3 يسار) مع استئصال الأحمر واستبداله بنقاط كربونية
+   شبكة العطور (3 يمين و 3 يسار) بنقاط كربونية محايدة تتحول للزمردي عند التحديد
    ========================================================================== */
 div[data-testid="stRadio"] { width: 100% !important; }
 
@@ -566,9 +570,9 @@ def get_confirmed_bookings(basket_key: str):
         return []
 
 # ==============================================================================
-# 4. الرأسية التسويقية
+# 4. الرأسية التسويقية (تحديث كل 15 ثانية لحماية حصة السيرفر)
 # ==============================================================================
-@st.fragment(run_every="6s")
+@st.fragment(run_every="15s")
 def render_live_slots():
     current_bookings = get_confirmed_bookings(BASKET_ID)
     taken_count = len(current_bookings)
@@ -768,7 +772,7 @@ else:
                 }
                 st.rerun()
 
-            # 3. في حال اكتمال الباقة: رسالة التقدير المهذبة وقائمة الانتظار
+            # 3. في حال اكتمال الباقة: رسالة التقدير وقائمة الانتظار
             elif len(fresh_bookings) >= BASKET_CAPACITY:
                 alert_placeholder.markdown(clean_html("""
                     <div class="waitlist-card">
@@ -836,7 +840,6 @@ if st.query_params.get("manage") == "faris":
     is_authenticated = False
     if input_pin_str and target_pwd_str:
         try:
-            # حماية صارمة بنظام UTF-8 تمنع انهيار الدالة مع الحروف العربية أو الرموز
             is_authenticated = hmac.compare_digest(
                 input_pin_str.encode("utf-8"),
                 target_pwd_str.encode("utf-8")
