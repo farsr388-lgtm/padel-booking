@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# تتبع Microsoft Clarity
+# تتبع Microsoft Clarity الأساسي
 components.html("""
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -28,7 +28,7 @@ components.html("""
 """, height=0, width=0)
 
 def sanitize_phone_number(raw_input: str) -> str:
-    """تنظيف وتحويل أرقام الجوال بدقة عالية."""
+    """تنظيف وتحويل أرقام الجوال بدقة عالية مع معالجة الأرقام العربية."""
     if not raw_input:
         return ""
     table = str.maketrans(
@@ -43,7 +43,7 @@ def sanitize_phone_number(raw_input: str) -> str:
     return cleaned
 
 # ==============================================================================
-# 2. أنماط الواجهة (ألوان تحديد ساطعة وعالية التباين)
+# 2. أنماط الواجهة (الاهتزاز الذكي + تباين عالي + ضبط الحواف للجوال)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -52,10 +52,10 @@ st.markdown("""
     --primary: #10b981;
     --active-bg: #064e3b;
     --card-bg: #111827;
-    --border-color: rgba(255, 255, 255, 0.15);
+    --border-color: rgba(255, 255, 255, 0.14);
 }
 
-/* إخفاء واجهات Streamlit التلقائية وشعار التاج */
+/* إخفاء واجهات وعناصر Streamlit التلقائية */
 header[data-testid="stHeader"], 
 #MainMenu, 
 footer,
@@ -160,51 +160,142 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
-/* ==========================================================================
-   أزرار العطور: واضحة، مركزية، ولون تحديد فاقع جداً
-   ========================================================================== */
-div[data-testid="stRadio"] label div:first-child:not(:last-child),
-div[data-testid="stRadio"] input[type="radio"] + div {
-    display: none !important;
+/* العنوان في المنتصف تماماً */
+.centered-section-title {
+    text-align: center !important;
+    font-size: 0.98em !important;
+    font-weight: 900 !important;
+    color: #ffffff !important;
+    margin-top: 10px !important;
+    margin-bottom: 8px !important;
 }
 
-div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] {
+/* شبكة العطور: 3 يمين و 3 يسار */
+div[data-testid="stRadio"] div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 8px !important;
     width: 100% !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 10px !important;
 }
-div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] > label {
-    width: 100% !important;
-    margin: 0 !important;
+
+div[data-testid="stRadio"] label[data-baseweb="radio"],
+div[data-testid="stRadio"] div[role="radiogroup"] > label {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
     background-color: var(--card-bg) !important;
     border: 1.5px solid var(--border-color) !important;
     border-radius: 10px !important;
-    padding: 12px 6px !important;
-    min-height: 46px !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    text-align: center !important;
+    padding: 10px 10px !important;
+    min-height: 48px !important;
     cursor: pointer !important;
-    font-size: 0.88em !important;
-    font-weight: 700 !important;
     box-sizing: border-box !important;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    color: #cbd5e1 !important;
-}
-/* اللون الفاقع والمضيء عند اختيار العطر */
-div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] > label:has(input:checked) {
-    border: 2px solid var(--primary) !important;
-    background-color: var(--active-bg) !important;
-    box-shadow: 0 0 0 1px var(--primary), 0 0 16px rgba(16, 185, 129, 0.45) !important;
-    color: #ffffff !important;
-    font-weight: 900 !important;
-    transform: scale(1.02) !important;
+    width: 100% !important;
+    margin: 0 !important;
 }
 
-/* بطاقة معاينة العطر الحسي */
+div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked),
+div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
+    background-color: var(--active-bg) !important;
+    border: 2px solid var(--primary) !important;
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* خيارات الاستلام داخل الفورم */
+form div[data-testid="stRadio"] div[role="radiogroup"],
+div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    margin-top: 4px !important;
+    margin-bottom: 8px !important;
+}
+
+form div[data-testid="stRadio"] label[data-baseweb="radio"],
+form div[data-testid="stRadio"] div[role="radiogroup"] > label,
+div[data-testid="stForm"] div[data-testid="stRadio"] label[data-baseweb="radio"],
+div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] > label {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    background-color: var(--card-bg) !important;
+    border: 1.5px solid var(--border-color) !important;
+    border-radius: 10px !important;
+    padding: 12px 12px !important;
+    min-height: 48px !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+form div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked),
+div[data-testid="stForm"] div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
+    background-color: var(--active-bg) !important;
+    border: 2px solid var(--primary) !important;
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* الدوائر التفاعلية: أحمر لغير المحدد وأخضر مشع للمحدد */
+label[data-baseweb="radio"] > div:first-of-type,
+div[data-testid="stRadio"] label > div:first-of-type {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+    border-radius: 50% !important;
+    border: 1.5px solid rgba(239, 68, 68, 0.75) !important;
+    background-color: rgba(239, 68, 68, 0.12) !important;
+    margin-left: 8px !important;
+    margin-right: 0px !important;
+    flex-shrink: 0 !important;
+    transition: all 0.2s ease !important;
+}
+
+label[data-baseweb="radio"] > div:first-of-type > div,
+div[data-testid="stRadio"] label > div:first-of-type > div {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background-color: rgba(239, 68, 68, 0.8) !important;
+    transition: all 0.2s ease !important;
+}
+
+label[data-baseweb="radio"]:has(input:checked) > div:first-of-type,
+div[data-testid="stRadio"] label:has(input:checked) > div:first-of-type {
+    border: 2px solid var(--primary) !important;
+    background-color: var(--primary) !important;
+    box-shadow: 0 0 10px var(--primary) !important;
+}
+
+label[data-baseweb="radio"]:has(input:checked) > div:first-of-type > div,
+div[data-testid="stRadio"] label:has(input:checked) > div:first-of-type > div {
+    width: 7px !important;
+    height: 7px !important;
+    background-color: #022c22 !important;
+}
+
+label[data-baseweb="radio"] > div:last-of-type,
+div[data-testid="stRadio"] label > div:last-of-type {
+    color: #cbd5e1 !important;
+    font-size: 0.86em !important;
+    font-weight: 700 !important;
+}
+label[data-baseweb="radio"]:has(input:checked) > div:last-of-type,
+div[data-testid="stRadio"] label:has(input:checked) > div:last-of-type {
+    color: #ffffff !important;
+    font-weight: 900 !important;
+}
+
+/* بطاقة معاينة العطر */
 .sensory-card {
     background: var(--card-bg);
     border: 1.5px solid rgba(16, 185, 129, 0.4);
@@ -254,56 +345,7 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="rad
     font-weight: 700;
 }
 
-/* ==========================================================================
-   أزرار الاستلام والتسليم: لون فاقع وتأكيد صريح
-   ========================================================================== */
-div[data-testid="stRadio"]:has(input[name*="delivery_mode"]) div[role="radiogroup"] {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    width: 100% !important;
-    margin-top: 4px !important;
-    margin-bottom: 8px !important;
-}
-div[data-testid="stRadio"]:has(input[name*="delivery_mode"]) div[role="radiogroup"] > label {
-    background-color: var(--card-bg) !important;
-    border: 1.5px solid var(--border-color) !important;
-    border-radius: 10px !important;
-    padding: 12px 14px !important;
-    font-size: 0.84em !important;
-    cursor: pointer !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    transition: all 0.2s ease !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    color: #cbd5e1 !important;
-}
-/* اللون الساطع عند اختيار الاستلام */
-div[data-testid="stRadio"]:has(input[name*="delivery_mode"]) div[role="radiogroup"] > label:has(input:checked) {
-    border: 2px solid var(--primary) !important;
-    background-color: var(--active-bg) !important;
-    box-shadow: 0 0 0 1px var(--primary), 0 4px 14px rgba(16, 185, 129, 0.35) !important;
-    color: #ffffff !important;
-    font-weight: 800 !important;
-}
-div[data-testid="stRadio"]:has(input[name*="delivery_mode"]) div[role="radiogroup"] > label::after {
-    content: "✓ تم الاختيار" !important;
-    display: none !important;
-    font-size: 0.74em !important;
-    font-weight: 900 !important;
-    color: #ffffff !important;
-    background: var(--primary) !important;
-    border-radius: 6px !important;
-    padding: 3px 9px !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
-}
-div[data-testid="stRadio"]:has(input[name*="delivery_mode"]) div[role="radiogroup"] > label:has(input:checked)::after {
-    display: block !important;
-}
-
-/* حقول الإدخال: توهج واضح عند الكتابة */
+/* حقول الإدخال */
 div[data-testid="stTextInput"] * { outline: none !important; }
 div[data-testid="stTextInput"] div[data-baseweb="input"],
 div[data-testid="stTextInput"] div[data-baseweb="base-input"],
@@ -346,6 +388,30 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px !important;
 }
 
+/* ==========================================================================
+   أنيميشن الاهتزاز والوميض للتنبيه العلوي (Shake Animation)
+   ========================================================================== */
+@keyframes alertShake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+.warning-pill-shake {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border: 2px solid #ef4444 !important;
+    color: #fecaca !important;
+    padding: 12px 14px !important;
+    border-radius: 10px !important;
+    font-size: 0.88em !important;
+    font-weight: 800 !important;
+    margin-bottom: 12px !important;
+    text-align: center !important;
+    line-height: 1.4 !important;
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.4) !important;
+    animation: alertShake 0.45s ease-in-out !important;
+}
+
 .notice-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -383,16 +449,6 @@ div[data-testid="stFormSubmitButton"] > button {
     text-decoration: none;
     margin-top: 6px;
 }
-.warning-pill {
-    background: rgba(239, 68, 68, 0.12);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
-    padding: 8px 10px;
-    border-radius: 6px;
-    font-size: 0.78em;
-    font-weight: 600;
-    margin-bottom: 6px;
-}
 
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { display: none !important; }
@@ -400,7 +456,7 @@ input[aria-label="hp"] { display: none !important; }
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. إعداد الاتصال وكتالوج العطور (عربي واضح + إنجليزي فخم بالمعاينة)
+# 3. إعداد الاتصال وكتالوج العطور
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -424,9 +480,10 @@ ORIGINAL_RETAIL = 265
 SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
+
+# الرابط الذكي المعتمد للمشاركة
 LIVE_APP_URL = "https://dub.sh/mqsoom"
 
-# أسماء عربية صافية للأزرار، مع بيان الاسم الإنجليزي في بطاقة العطر
 PERFUMES = {
     "عطر روميو": {
         "en_name": "Romeo",
@@ -506,7 +563,7 @@ def render_live_slots():
     <div class="top-card">
         <div class="brand-badge">قسم مشترياتك • عروض بلوم (2+2 مجاناً)</div>
         <div class="headline">تقاسم عروض بلوم Blom</div>
-        <div class="sub-headline">السعر بالتساوي بين 4 أشخاص (132 ر.س للعبوة)</div>
+        <div class="sub-headline">السعر بالتساوي بين 4 أشخاص ({UNIFIED_PRICE} ر.س للعبوة)</div>
         <div class="slots-container">
             {slots_markup}
         </div>
@@ -569,12 +626,11 @@ if "confirmed_deal" in st.session_state:
         st.rerun()
 
 # ==============================================================================
-# 6. النموذج: أسماء العطور النظيفة وخيارات التسليم تحت الاسم والجوال
+# 6. النموذج: ظهور التنبيه في الأعلى مع السحب التلقائي للشاشة
 # ==============================================================================
 else:
-    st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:6px;'>1. اختر عِطرك من باقة نيوتن:</div>", unsafe_allow_html=True)
+    st.markdown('<div class="centered-section-title">اختر عطرك من باقة نيوتن</div>', unsafe_allow_html=True)
 
-    # أزرار عربية صافية بدون حشو
     chosen_perfume = st.radio(
         "اختر العطر:",
         options=list(PERFUMES.keys()),
@@ -583,7 +639,6 @@ else:
 
     p = PERFUMES[chosen_perfume]
     
-    # بطاقة المعاينة مع الاسم الإنجليزي والمكونات
     st.markdown(f"""
     <div class="sensory-card">
         <div class="sensory-top-row">
@@ -602,12 +657,15 @@ else:
     """, unsafe_allow_html=True)
 
     with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
-        st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>2. بيانات الحجز والتسليم:</div>", unsafe_allow_html=True)
+        st.markdown('<div class="centered-section-title" style="margin-top:0;">بيانات التأكيد والاستلام</div>', unsafe_allow_html=True)
+
+        # حاوية التنبيه في أعلى الفورم مباشرة فوق حقول الاسم والجوال
+        alert_placeholder = st.empty()
 
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
 
-        st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-top:6px;margin-bottom:2px;'>طريقة الاستلام:</div>", unsafe_allow_html=True)
+        st.markdown('<div class="centered-section-title" style="font-size:0.88em;margin-top:8px;margin-bottom:4px;">حدد طريقة وموعد الاستلام</div>', unsafe_allow_html=True)
 
         delivery_mode = st.radio(
             "طريقة وموعد الاستلام:",
@@ -635,8 +693,29 @@ else:
             fresh_bookings = get_confirmed_bookings(BASKET_ID)
             existing_booking = next((b for b in fresh_bookings if b.get('phone') == clean_phone), None)
 
+            # التحقق الشامل: في حال عدم إدخال الاسم أو الجوال بالشكل الصحيح
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
-                st.markdown('<div class="warning-pill">⚠️ يرجى التأكد من كتابة الاسم الثنائي ورقم جوال سعودي يبدأ بـ 05.</div>', unsafe_allow_html=True)
+                # 1. إظهار التنبيه في الأعلى باهتزاز بارز
+                alert_placeholder.markdown(
+                    '<div id="form-top-alert" class="warning-pill-shake">'
+                    '⚠️ يرجى التأكد من كتابة اسمك الكريم ورقم جوالك السعودي (05xxxxxxxx)'
+                    '</div>',
+                    unsafe_allow_html=True
+                )
+                # 2. سحب شاشة الجوال للأعلى تلقائياً بنعومة ليرى العميل الخطأ
+                components.html("""
+                <script>
+                    setTimeout(() => {
+                        try {
+                            const banner = window.parent.document.getElementById('form-top-alert');
+                            if (banner) {
+                                banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        } catch(e) {}
+                    }, 50);
+                </script>
+                """, height=0, width=0)
+
             elif existing_booking:
                 st.session_state["confirmed_deal"] = {
                     "name": existing_booking.get("name"),
@@ -647,10 +726,13 @@ else:
                 }
                 st.rerun()
             elif len(fresh_bookings) >= BASKET_CAPACITY:
-                st.markdown('<div class="warning-pill">⚠️ اكتملت هذه الباقة للتو بالكامل! جاري تجهيز باقة جديدة.</div>', unsafe_allow_html=True)
+                alert_placeholder.markdown(
+                    '<div class="warning-pill-shake">⚠️ اكتملت هذه الباقة للتو بالكامل! جاري تجهيز باقة جديدة.</div>',
+                    unsafe_allow_html=True
+                )
             else:
                 if not supabase:
-                    st.error("تعذر الاتصال بقاعدة البيانات. يرجى مراجعة إعدادات Secrets.")
+                    alert_placeholder.error("تعذر الاتصال بقاعدة البيانات. يرجى مراجعة إعدادات Secrets.")
                 else:
                     try:
                         client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
@@ -677,7 +759,7 @@ else:
                         }
                         st.rerun()
                     except Exception as db_err:
-                        st.error(f"تعذر إتمام التسجيل في السيرفر: {db_err}")
+                        alert_placeholder.error(f"تعذر إتمام التسجيل في السيرفر: {db_err}")
 
 # ==============================================================================
 # 7. لوحة المشرف المقفلة أمنياً
