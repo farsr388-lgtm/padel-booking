@@ -43,7 +43,7 @@ def sanitize_phone_number(raw_input: str) -> str:
     return cleaned
 
 # ==============================================================================
-# 2. أنماط الواجهة (الاهتزاز الذكي + تباين عالي + ضبط الحواف للجوال)
+# 2. أنماط الواجهة (حل مشكلة تشتت الحروف + دوائر حمراء وخضراء منتظمة)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -70,7 +70,7 @@ div[data-testid="stDecoration"],
     display: none !important; 
 }
 
-/* ضبط مقاس الجوال من الحافة للحافة */
+/* ضبط مقاس الجوال والشاشة 100% */
 .block-container {   
     padding-top: 0.3rem !important; 
     padding-bottom: 2rem !important; 
@@ -170,17 +170,25 @@ html, body, [class*="css"] {
     margin-bottom: 8px !important;
 }
 
-/* شبكة العطور: 3 يمين و 3 يسار */
-div[data-testid="stRadio"] div[role="radiogroup"] {
+/* ==========================================================================
+   حل مشكلة تشعتت الحروف وضبط بطاقات العطور (3 يمين و 3 يسار)
+   ========================================================================== */
+div[data-testid="stRadio"] {
+    width: 100% !important;
+}
+
+/* شبكة العطور: عمودين متساويين بنسبة 100% */
+div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 8px !important;
     width: 100% !important;
     margin-bottom: 10px !important;
+    box-sizing: border-box !important;
 }
 
-div[data-testid="stRadio"] label[data-baseweb="radio"],
-div[data-testid="stRadio"] div[role="radiogroup"] > label {
+/* تصميم بطاقة كل عطر */
+div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] > label {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
@@ -188,7 +196,7 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label {
     background-color: var(--card-bg) !important;
     border: 1.5px solid var(--border-color) !important;
     border-radius: 10px !important;
-    padding: 10px 10px !important;
+    padding: 10px 12px !important;
     min-height: 48px !important;
     cursor: pointer !important;
     box-sizing: border-box !important;
@@ -197,14 +205,70 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label {
     margin: 0 !important;
 }
 
-div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked),
+/* إخفاء دوائر المتصفح الافتراضية لمنع التداخل */
+div[data-testid="stRadio"] input[type="radio"] {
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+}
+div[data-testid="stRadio"] label > div:first-child:not(:only-child) {
+    display: none !important;
+}
+
+/* 1. الدائرة الحمراء للخانة غير المحددة (Unselected State) */
+div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
+    content: "" !important;
+    display: inline-block !important;
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+    min-height: 14px !important;
+    border-radius: 50% !important;
+    border: 2px solid #ef4444 !important; /* حلقة حمراء أنيقة */
+    background-color: rgba(239, 68, 68, 0.25) !important;
+    margin-left: 10px !important;
+    margin-right: 0px !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.3) !important;
+    transition: all 0.2s ease !important;
+}
+
+/* 2. الدائرة الزمردية والبطاقة المضيئة عند الاختيار (Selected State) */
 div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
     background-color: var(--active-bg) !important;
     border: 2px solid var(--primary) !important;
     box-shadow: 0 0 14px rgba(16, 185, 129, 0.4) !important;
 }
+div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked)::before {
+    border-color: var(--primary) !important;
+    background-color: var(--primary) !important; /* تصبح خضراء مشعة */
+    box-shadow: 0 0 10px var(--primary) !important;
+}
 
-/* خيارات الاستلام داخل الفورم */
+/* حماية النصوص من الالتفاف والتفكك تماماً */
+div[data-testid="stRadio"] label p,
+div[data-testid="stRadio"] label span,
+div[data-testid="stRadio"] label div {
+    color: #cbd5e1 !important;
+    font-size: 0.88em !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    white-space: nowrap !important; /* يمنع نزول الحروف تحت بعضها */
+    word-break: keep-all !important;
+}
+div[data-testid="stRadio"] label:has(input:checked) p,
+div[data-testid="stRadio"] label:has(input:checked) span {
+    color: #ffffff !important;
+    font-weight: 900 !important;
+}
+
+/* ==========================================================================
+   خيارات الاستلام والتسليم (داخل الفورم)
+   ========================================================================== */
 form div[data-testid="stRadio"] div[role="radiogroup"],
 div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
@@ -215,9 +279,7 @@ div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
     margin-bottom: 8px !important;
 }
 
-form div[data-testid="stRadio"] label[data-baseweb="radio"],
 form div[data-testid="stRadio"] div[role="radiogroup"] > label,
-div[data-testid="stForm"] div[data-testid="stRadio"] label[data-baseweb="radio"],
 div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] > label {
     display: flex !important;
     flex-direction: row !important;
@@ -226,7 +288,7 @@ div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] > la
     background-color: var(--card-bg) !important;
     border: 1.5px solid var(--border-color) !important;
     border-radius: 10px !important;
-    padding: 12px 12px !important;
+    padding: 12px 14px !important;
     min-height: 48px !important;
     cursor: pointer !important;
     box-sizing: border-box !important;
@@ -234,65 +296,12 @@ div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] > la
     margin: 0 !important;
 }
 
-form div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked),
-div[data-testid="stForm"] div[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {
-    background-color: var(--active-bg) !important;
-    border: 2px solid var(--primary) !important;
-    box-shadow: 0 0 14px rgba(16, 185, 129, 0.4) !important;
-}
-
-/* الدوائر التفاعلية: أحمر لغير المحدد وأخضر مشع للمحدد */
-label[data-baseweb="radio"] > div:first-of-type,
-div[data-testid="stRadio"] label > div:first-of-type {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 18px !important;
-    height: 18px !important;
-    min-width: 18px !important;
-    min-height: 18px !important;
-    border-radius: 50% !important;
-    border: 1.5px solid rgba(239, 68, 68, 0.75) !important;
-    background-color: rgba(239, 68, 68, 0.12) !important;
-    margin-left: 8px !important;
-    margin-right: 0px !important;
-    flex-shrink: 0 !important;
-    transition: all 0.2s ease !important;
-}
-
-label[data-baseweb="radio"] > div:first-of-type > div,
-div[data-testid="stRadio"] label > div:first-of-type > div {
-    width: 6px !important;
-    height: 6px !important;
-    border-radius: 50% !important;
-    background-color: rgba(239, 68, 68, 0.8) !important;
-    transition: all 0.2s ease !important;
-}
-
-label[data-baseweb="radio"]:has(input:checked) > div:first-of-type,
-div[data-testid="stRadio"] label:has(input:checked) > div:first-of-type {
-    border: 2px solid var(--primary) !important;
-    background-color: var(--primary) !important;
-    box-shadow: 0 0 10px var(--primary) !important;
-}
-
-label[data-baseweb="radio"]:has(input:checked) > div:first-of-type > div,
-div[data-testid="stRadio"] label:has(input:checked) > div:first-of-type > div {
-    width: 7px !important;
-    height: 7px !important;
-    background-color: #022c22 !important;
-}
-
-label[data-baseweb="radio"] > div:last-of-type,
-div[data-testid="stRadio"] label > div:last-of-type {
-    color: #cbd5e1 !important;
-    font-size: 0.86em !important;
-    font-weight: 700 !important;
-}
-label[data-baseweb="radio"]:has(input:checked) > div:last-of-type,
-div[data-testid="stRadio"] label:has(input:checked) > div:last-of-type {
-    color: #ffffff !important;
-    font-weight: 900 !important;
+/* السماح لنص الاستلام الأطول بالالتفاف الطبيعي كجملة واحدة */
+div[data-testid="stForm"] div[data-testid="stRadio"] label p,
+div[data-testid="stForm"] div[data-testid="stRadio"] label span {
+    white-space: normal !important;
+    font-size: 0.84em !important;
+    line-height: 1.4 !important;
 }
 
 /* بطاقة معاينة العطر */
@@ -388,9 +397,7 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px !important;
 }
 
-/* ==========================================================================
-   أنيميشن الاهتزاز والوميض للتنبيه العلوي (Shake Animation)
-   ========================================================================== */
+/* التنبيه العلوي الأنيق والمهتز عند الخطأ */
 @keyframes alertShake {
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-6px); }
@@ -481,7 +488,6 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 
-# الرابط الذكي المعتمد للمشاركة
 LIVE_APP_URL = "https://dub.sh/mqsoom"
 
 PERFUMES = {
@@ -626,7 +632,7 @@ if "confirmed_deal" in st.session_state:
         st.rerun()
 
 # ==============================================================================
-# 6. النموذج: ظهور التنبيه في الأعلى مع السحب التلقائي للشاشة
+# 6. النموذج: عرض البطاقات المنظمة دون تشعتت الحروف
 # ==============================================================================
 else:
     st.markdown('<div class="centered-section-title">اختر عطرك من باقة نيوتن</div>', unsafe_allow_html=True)
@@ -659,7 +665,6 @@ else:
     with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
         st.markdown('<div class="centered-section-title" style="margin-top:0;">بيانات التأكيد والاستلام</div>', unsafe_allow_html=True)
 
-        # حاوية التنبيه في أعلى الفورم مباشرة فوق حقول الاسم والجوال
         alert_placeholder = st.empty()
 
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
@@ -693,16 +698,13 @@ else:
             fresh_bookings = get_confirmed_bookings(BASKET_ID)
             existing_booking = next((b for b in fresh_bookings if b.get('phone') == clean_phone), None)
 
-            # التحقق الشامل: في حال عدم إدخال الاسم أو الجوال بالشكل الصحيح
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
-                # 1. إظهار التنبيه في الأعلى باهتزاز بارز
                 alert_placeholder.markdown(
                     '<div id="form-top-alert" class="warning-pill-shake">'
                     '⚠️ يرجى التأكد من كتابة اسمك الكريم ورقم جوالك السعودي (05xxxxxxxx)'
                     '</div>',
                     unsafe_allow_html=True
                 )
-                # 2. سحب شاشة الجوال للأعلى تلقائياً بنعومة ليرى العميل الخطأ
                 components.html("""
                 <script>
                     setTimeout(() => {
