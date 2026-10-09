@@ -72,7 +72,7 @@ div[data-testid="stDecoration"],
     display: none !important; 
 }
 
-/* 2. استغلال كامل أبعاد شاشة الجوال ومنع الهوامش الزائدة */
+/* 2. استغلال كامل أبعاد شاشة الجوال */
 .block-container {   
     padding-top: 0.2rem !important; 
     padding-bottom: 2rem !important; 
@@ -162,7 +162,7 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
-/* العنوان المركزي في المنتصف */
+/* العنوان المركزي الصافي */
 .centered-section-title {
     text-align: center !important;
     font-size: 0.96em !important;
@@ -173,7 +173,7 @@ html, body, [class*="css"] {
 }
 
 /* ==========================================================================
-   3. حل مشكلة تشتت الحروف وضبط بطاقات العطور (3 يمين و 3 يسار)
+   3. بطاقات العطور (3 يمين و 3 يسار) ومنع تشتت الحروف
    ========================================================================== */
 div[data-testid="stRadio"] { width: 100% !important; }
 
@@ -203,7 +203,6 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="rad
     margin: 0 !important;
 }
 
-/* إخفاء دوائر الراديو الافتراضية لمنع انهيار العرض */
 div[data-testid="stRadio"] input[type="radio"] {
     position: absolute !important;
     opacity: 0 !important;
@@ -245,7 +244,6 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked)::be
     box-shadow: 0 0 10px var(--primary) !important;
 }
 
-/* حماية النصوص العربية من الانهيار والالتفاف العمودي */
 div[data-testid="stRadio"] label p,
 div[data-testid="stRadio"] label span,
 div[data-testid="stRadio"] label div {
@@ -264,7 +262,7 @@ div[data-testid="stRadio"] label:has(input:checked) span {
     font-weight: 900 !important;
 }
 
-/* خيارات الاستلام والتسليم داخل النموذج */
+/* خيارات الاستلام والتسليم */
 form div[data-testid="stRadio"] div[role="radiogroup"],
 div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
@@ -377,7 +375,7 @@ input, textarea {
 }
 input::placeholder { color: #64748b !important; }
 
-/* زر التثبيت الأساسي */
+/* زر التثبيت */
 div[data-testid="stFormSubmitButton"] > button {
     background: var(--primary) !important;
     color: #022c22 !important;
@@ -391,7 +389,7 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px !important;
 }
 
-/* أنيميشن الاهتزاز والوميض للتنبيه عند نقص البيانات */
+/* تنبيه الخطأ العلوي مع الاهتزاز */
 @keyframes alertShake {
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-6px); }
@@ -471,7 +469,6 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px;
 }
 
-/* مصيدة الروبوتات البرمجية الخفية */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { display: none !important; }
 </style>
@@ -503,7 +500,6 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 
-# الرابط الذكي المعتمد لبطاقات الواتساب
 LIVE_APP_URL = "https://dub.sh/mqsoom"
 
 PERFUMES = {
@@ -567,7 +563,7 @@ def get_confirmed_bookings(basket_key: str):
         return []
 
 # ==============================================================================
-# 5. الرأسية التسويقية (تحديث لحظي للحصص دون إعادة تحميل الصفحة)
+# 5. الرأسية التسويقية (تحديث لحظي للحصص)
 # ==============================================================================
 @st.fragment(run_every="6s")
 def render_live_slots():
@@ -603,18 +599,15 @@ if "confirmed_deal" in st.session_state:
     safe_perfume = html.escape(deal['perfume'])
     safe_delivery = html.escape(deal['delivery'])
 
-    # حساب المقاعد المتبقية في هذه اللحظة تلقائياً
     fresh_list = get_confirmed_bookings(BASKET_ID)
     current_taken = len(fresh_list)
     remaining_seats = max(0, BASKET_CAPACITY - current_taken)
 
-    # 1. نص المقاعد الذكي المحفّز
     if remaining_seats > 0:
         seats_status_msg = f"⏳ باقي {remaining_seats} وينقفل القروب ونطلب فوراً."
     else:
         seats_status_msg = "🔥 اكتملت الـ 4 مقاعد بالكامل وجاري تنفيذ الطلب!"
 
-    # 2. تخصيص التعليمات بدقة حسب رغبة العميل
     if "توصيل" in deal['delivery']:
         delivery_instruction = "📍 موقع التوصيل: (برسل لك اللوكيشن في هذه المحادثة مباشرة)"
         card_delivery_note = "سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد اللوكيشن والتوصيل."
@@ -637,7 +630,6 @@ if "confirmed_deal" in st.session_state:
     </div>
     """, unsafe_allow_html=True)
 
-    # رسالة الواتساب المخصصة للإدارة
     wa_admin_msg = (
         f"مرحباً 🌿\n"
         f"حجزت حصتي في تطبيق مَقسوم ({UNIFIED_PRICE} ر.س):\n\n"
@@ -651,7 +643,6 @@ if "confirmed_deal" in st.session_state:
     admin_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
     st.markdown(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
 
-    # رسالة مشاركة العرض مع الأصدقاء
     share_msg = (
         f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نتقاسمها بين 4 بالتساوي.\n"
         f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية في جدة.\n\n"
@@ -666,7 +657,7 @@ if "confirmed_deal" in st.session_state:
         st.rerun()
 
 # ==============================================================================
-# 7. النموذج: اختيار العطر أولاً ثم بيانات الاستلام مع التنبيه العلوي
+# 7. النموذج: اختيار العطر وبيانات الاستلام
 # ==============================================================================
 else:
     st.markdown('<div class="centered-section-title">اختر عطرك من باقة نيوتن</div>', unsafe_allow_html=True)
@@ -699,7 +690,6 @@ else:
     with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
         st.markdown('<div class="centered-section-title" style="margin-top:0;">بيانات التأكيد والاستلام</div>', unsafe_allow_html=True)
 
-        # الحاوية العلوية المخصصة لرسائل الخطأ وقائمة الانتظار مع التمرير التلقائي
         alert_placeholder = st.empty()
 
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
@@ -723,7 +713,6 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-        # مصيدة الروبوتات البرمجية
         hp = st.text_input("hp", label_visibility="collapsed")
         submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
 
@@ -766,7 +755,7 @@ else:
                 }
                 st.rerun()
 
-            # 3. في حال اكتمال الباقة: رسالة التقدير والاحترام الراقية بدلاً من الخطأ
+            # 3. في حال اكتمال الباقة: رسالة التقدير الراقية وقائمة الانتظار
             elif len(fresh_bookings) >= BASKET_CAPACITY:
                 alert_placeholder.markdown(
                     '<div class="waitlist-card">'
@@ -822,7 +811,7 @@ else:
                         alert_placeholder.error(f"تعذر إتمام التسجيل في السيرفر: {db_err}")
 
 # ==============================================================================
-# 8. لوحة الإدارة المقفلة بخوارزمية HMAC ضد هجمات التوقيت
+# 8. لوحة الإدارة المحصنة هندسياً 100% ضد انهيار الرمز (UTF-8 Defensive Encoding)
 # ==============================================================================
 if st.query_params.get("manage") == "faris":
     st.markdown("---")
@@ -832,7 +821,18 @@ if st.query_params.get("manage") == "faris":
     input_pin_str = str(admin_pin or "").strip()
     target_pwd_str = str(ADMIN_PASSWORD or "").strip()
 
-    if input_pin_str and target_pwd_str and hmac.compare_digest(input_pin_str, target_pwd_str):
+    is_authenticated = False
+    if input_pin_str and target_pwd_str:
+        try:
+            # تحويل النصوص إلى بايت UTF-8 يمنع تماماً انهيار الدالة مع الحروف العربية أو الرموز
+            is_authenticated = hmac.compare_digest(
+                input_pin_str.encode("utf-8"),
+                target_pwd_str.encode("utf-8")
+            )
+        except Exception:
+            is_authenticated = False
+
+    if is_authenticated:
         bookings_list = get_confirmed_bookings(BASKET_ID)
         total_count = len(bookings_list)
         paid_count = sum(1 for b in bookings_list if b.get('payment_status') == 'paid')
