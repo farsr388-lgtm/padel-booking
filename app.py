@@ -43,11 +43,16 @@ def sanitize_phone_number(raw_input: str) -> str:
     return cleaned
 
 # ==============================================================================
-# 2. أنماط الواجهة خفيفة الحجم (Optimized CSS)
+# 2. أنماط الواجهة والقضاء على اللون الأحمر وتداخل النصوص
 # ==============================================================================
 st.markdown("""
 <style>
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
+
+/* 1. إخفاء عبارة Press Enter to submit form نهائياً ومنع تداخلها مع النصوص */
+div[data-testid="InputInstructions"] {
+    display: none !important;
+}
 
 .block-container {   
     padding-top: 0.2rem !important; 
@@ -64,6 +69,7 @@ html, body, [class*="css"] {
     color: #f8fafc;
 }
 
+/* بطاقة الهيدر العلوية */
 .top-card {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -96,6 +102,7 @@ html, body, [class*="css"] {
     margin: 3px 0 8px 0;
 }
 
+/* شريط الحصص */
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -126,6 +133,7 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
+/* شبكة اختيار العطور */
 div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -152,6 +160,7 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="r
     background-color: rgba(16, 185, 129, 0.1) !important;
 }
 
+/* خيارات الاستلام */
 div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
@@ -166,7 +175,15 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     font-size: 0.82em !important;
 }
 
-/* بطاقة العطر مع الصورة التفاعلية الخفيفة */
+/* 2. إلغاء اللون الأحمر من دوائر الاختيار (Radio buttons) */
+div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] {
+    border-color: #10b981 !important;
+}
+div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] div {
+    background-color: #10b981 !important;
+}
+
+/* بطاقة المكون الحسي العطري */
 .sensory-card {
     background: #111827;
     border: 1px solid rgba(16, 185, 129, 0.25);
@@ -182,13 +199,13 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     align-items: center;
     gap: 12px;
 }
-.perfume-thumb {
-    width: 68px;
-    height: 68px;
-    border-radius: 8px;
+.ingredient-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
     object-fit: cover;
     background-color: #030712;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(16, 185, 129, 0.4);
     flex-shrink: 0;
 }
 .sensory-details {
@@ -213,17 +230,38 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     font-weight: 700;
 }
 
+/* 3. إلغاء المربع والإطار الأحمر في حقول الإدخال واستبداله باللون الزمردي */
+div[data-baseweb="input"],
+div[data-baseweb="base-input"] {
+    background-color: #111827 !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+}
+
+div[data-baseweb="input"]:focus-within,
+div[data-baseweb="base-input"]:focus-within,
+input:focus, textarea:focus {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 1px #10b981, 0 0 10px rgba(16, 185, 129, 0.25) !important;
+    outline: none !important;
+}
+
 input, textarea { 
     caret-color: #10b981 !important; 
     border-radius: 6px !important; 
     font-size: 0.85em !important; 
     padding: 9px 10px !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    background-color: #111827 !important;
+    border: none !important;
+    background-color: transparent !important;
     color: #ffffff !important;
 }
-input:focus, textarea:focus { border-color: #10b981 !important; }
+input::placeholder {
+    color: #64748b !important;
+    font-size: 0.9em !important;
+}
 
+/* أزرار الإرسال */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
@@ -297,7 +335,7 @@ input[aria-label="hp"] { display: none !important; }
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. إعداد الاتصال وثوابت الكتالوج (مع روابط صور سحابية مضغوطة WebP)
+# 3. إعداد الاتصال وكتالوج المكونات الطبيعية
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -323,43 +361,48 @@ ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 LIVE_APP_URL = "https://maqsoom-deals.streamlit.app"
 
-# كتالوج العطور مع صور WebP سريعة التحميل وخفيفة للغاية
 PERFUMES = {
     "عطر روميو (Romeo)": {
         "tag": "رجالي فاخر • أصلي",
         "rating": "4.8 ★",
         "notes": "باتشولي، فانيلا، ومسك",
-        "img": "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=200&q=75"
+        "ingredient_label": "خلاصة الباتشولي الطبيعي",
+        "img": "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=150&q=80"
     },
     "عطر يوجا (Yoga)": {
         "tag": "هادئ ومنعش • أصلي",
         "rating": "4.8 ★",
         "notes": "برغموت، مسك نقي، ونرجس",
-        "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=200&q=75"
+        "ingredient_label": "البرغموت الإيطالي النقي",
+        "img": "https://images.unsplash.com/photo-1582281298055-e25b84a30b0b?auto=format&fit=crop&w=150&q=80"
     },
     "عطر لونار (Lunar)": {
         "tag": "أناقة للجنسين • أصلي",
         "rating": "4.9 ★",
         "notes": "عنب أسود، باتشولي، وعنبر",
-        "img": "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=200&q=75"
+        "ingredient_label": "راتنج العنبر الدافئ",
+        "img": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80"
     },
     "عطر لاروزيه (Larose)": {
         "tag": "أنثوي ساحر • أصلي",
         "rating": "5.0 ★",
         "notes": "فانيلا، زنبق أبيض، وياسمين",
-        "img": "https://images.unsplash.com/photo-1588405748880-12d1d2259f75?auto=format&fit=crop&w=200&q=75"
+        "ingredient_label": "بتلات الياسمين الأبيض",
+        "img": "https://images.unsplash.com/photo-1596438459194-f275f413d6ff?auto=format&fit=crop&w=150&q=80"
     },
     "عطر اليسيوم (Elysium)": {
         "tag": "فخامة ملكية • أصلي",
         "rating": "4.9 ★",
         "notes": "عنبر ملكي، فانيلا، ولافندر",
-        "img": "https://images.unsplash.com/photo-1615397349754-cfa2066a298e?auto=format&fit=crop&w=200&q=75"
+        "ingredient_label": "زهور الخزامى (اللافندر)",
+        "img": "https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?auto=format&fit=crop&w=150&q=80"
     },
     "عطر هارت بيت (Heart Beat)": {
         "tag": "حيوي ورومانسي • أصلي",
         "rating": "4.8 ★",
         "notes": "كشمش أسود، مسك، وورد",
-        "img": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=200&q=75"
+        "ingredient_label": "الكشمش الأسود والورد المخملي",
+        "img": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=150&q=80"
     }
 }
 
@@ -379,7 +422,7 @@ def get_confirmed_bookings(basket_key: str):
         return []
 
 # ==============================================================================
-# 4. الرأسية التسويقية وتحديث المقاعد اللحظي (موزون على 6 ثوانٍ للأداء العالي)
+# 4. الرأسية التسويقية وتحديث المقاعد اللحظي
 # ==============================================================================
 @st.fragment(run_every="6s")
 def render_live_slots():
@@ -472,14 +515,13 @@ else:
 
     p = PERFUMES[chosen_perfume]
     
-    # بطاقة تفاعلية خفيفة: الصورة مع التفاصيل والسعر في كتلة واحدة
     st.markdown(f"""
     <div class="sensory-card">
         <div class="sensory-top-row">
-            <img src="{p['img']}" class="perfume-thumb" alt="{chosen_perfume}" loading="lazy" decoding="async" />
+            <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" loading="lazy" decoding="async" />
             <div class="sensory-details">
                 <div class="sensory-name">{chosen_perfume}</div>
-                <div class="sensory-tag">{p['rating']} • {p['tag']}</div>
+                <div class="sensory-tag">🌿 {p['ingredient_label']} • {p['rating']}</div>
                 <div class="sensory-notes">المكونات: {p['notes']}</div>
             </div>
         </div>
@@ -590,7 +632,8 @@ if st.query_params.get("manage") == "faris":
 
         k1, k2, k3 = st.columns(3)
         k1.metric("المقاعد المحجوزة", f"{total_count} / {BASKET_CAPACITY}")
-        k2.metric("المحصل (مدفوع)", f"{paid_count * UNIFIED_PRICE} ر.س")
+        k1_paid = f"{paid_count * UNIFIED_PRICE} ر.س"
+        k2.metric("المحصل (مدفوع)", k1_paid)
         k3.metric("إجمالي السلة", f"{total_val} ر.س")
 
         st.markdown("##### قائمة المشتركين:")
