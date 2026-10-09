@@ -43,7 +43,7 @@ def sanitize_phone_number(raw_input: str) -> str:
     return cleaned
 
 # ==============================================================================
-# 2. أنماط الواجهة (إلغاء الأحمر والدوائر المزعجة نهائياً)
+# 2. أنماط الواجهة (الاستجابة لحواف الشاشة + شارات التحديد الواضحة)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -57,18 +57,29 @@ input, select, textarea, button {
 
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 
-/* إخفاء عبارة Press Enter التعليمية وتداخل النصوص */
+/* إخفاء عبارات التعليمات التلقائية */
 [data-testid="InputInstructions"],
 [data-testid="stWidgetInstructions"],
 div[data-testid="stTextInput"] small {
     display: none !important;
 }
 
+/* الاستغلال الكامل لحواف شاشة الجوال */
 .block-container {   
-    padding-top: 0.2rem !important; 
-    padding-bottom: 2rem !important; 
-    max-width: 410px !important; 
-    margin: 0 auto; 
+    padding-top: 0.15rem !important; 
+    padding-bottom: 1.8rem !important; 
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+}
+@media (min-width: 480px) {
+    .block-container {
+        max-width: 420px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
 }
 
 html, body, [class*="css"] { 
@@ -77,6 +88,7 @@ html, body, [class*="css"] {
     text-align: right; 
     background-color: #0b0f19;
     color: #f8fafc;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* بطاقة الهيدر العلوية */
@@ -93,14 +105,14 @@ html, body, [class*="css"] {
     background: rgba(16, 185, 129, 0.1);
     border: 1px solid rgba(16, 185, 129, 0.2);
     border-radius: 12px;
-    padding: 2px 10px;
-    font-size: 0.72em;
+    padding: 3px 12px;
+    font-size: 0.74em;
     font-weight: 700;
     display: inline-block;
-    margin-bottom: 4px;
+    margin-bottom: 5px;
 }
 .headline {
-    font-size: 1.25em;
+    font-size: 1.28em;
     font-weight: 900;
     color: #ffffff;
     margin: 0;
@@ -109,21 +121,21 @@ html, body, [class*="css"] {
     font-size: 0.82em;
     font-weight: 700;
     color: #94a3b8 !important;
-    margin: 3px 0 8px 0;
+    margin: 4px 0 8px 0;
 }
 
 /* شريط الحصص الأربعة */
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
+    gap: 5px;
     margin-bottom: 4px;
 }
 .slot-pill {
     background: #030712;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
-    padding: 6px 2px;
+    padding: 7px 2px;
     text-align: center;
     font-size: 0.72em;
     font-weight: 700;
@@ -136,19 +148,21 @@ html, body, [class*="css"] {
 .slot-pill.current {
     border-color: #10b981;
     color: #10b981;
-    background: rgba(16, 185, 129, 0.05);
+    background: rgba(16, 185, 129, 0.08);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
 }
 .slot-pill.available {
     color: #64748b;
     border-style: dashed;
 }
 
-/* إلغاء دوائر الراديو وتحويلها إلى بطاقات لمس فاخرة */
+/* إلغاء دوائر الراديو التقليدية */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child:not(:last-child),
 div[data-testid="stRadio"] input[type="radio"] + div {
     display: none !important;
 }
 
+/* شبكة اختيار العطور (أزرار تفاعلية) */
 div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -162,8 +176,8 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="r
     background-color: #111827 !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 8px !important;
-    padding: 9px 8px !important;
-    min-height: 42px !important;
+    padding: 10px 8px !important;
+    min-height: 44px !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
@@ -174,44 +188,67 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="r
 }
 div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] > label:has(input:checked) {
     border-color: #10b981 !important;
-    background-color: rgba(16, 185, 129, 0.14) !important;
+    background-color: rgba(16, 185, 129, 0.16) !important;
     box-shadow: 0 0 0 1px #10b981 !important;
     color: #10b981 !important;
-    font-weight: 700 !important;
+    font-weight: 800 !important;
 }
 
+/* خيارات الاستلام: بطاقات ذكية توضح التحديد بالكامل */
 div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
-    gap: 5px !important;
-    margin-bottom: 6px !important;
+    gap: 6px !important;
+    margin-bottom: 8px !important;
 }
 div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label {
+    position: relative !important;
     background-color: #111827 !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 8px !important;
-    padding: 10px 12px !important;
-    font-size: 0.82em !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 10px !important;
+    padding: 12px 14px !important;
+    font-size: 0.84em !important;
     cursor: pointer !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
     transition: all 0.2s ease !important;
+    box-sizing: border-box !important;
 }
 div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label:has(input:checked) {
     border-color: #10b981 !important;
-    background-color: rgba(16, 185, 129, 0.14) !important;
-    box-shadow: 0 0 0 1px #10b981 !important;
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    box-shadow: 0 0 0 1px #10b981, 0 4px 12px rgba(16, 185, 129, 0.15) !important;
     color: #ffffff !important;
+    font-weight: 700 !important;
+}
+div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label::after {
+    content: "✓ تم التحديد" !important;
+    display: none !important;
+    font-size: 0.72em !important;
+    font-weight: 800 !important;
+    color: #10b981 !important;
+    background: rgba(16, 185, 129, 0.2) !important;
+    border: 1px solid rgba(16, 185, 129, 0.4) !important;
+    border-radius: 6px !important;
+    padding: 3px 8px !important;
+    white-space: nowrap !important;
+}
+div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label:has(input:checked)::after {
+    display: block !important;
 }
 
-/* بطاقة المكون الحسي العطري */
+/* بطاقة العطر التسويقية الفاخرة */
 .sensory-card {
     background: #111827;
-    border: 1px solid rgba(16, 185, 129, 0.25);
-    border-radius: 10px;
-    padding: 10px 12px;
-    margin-bottom: 6px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
 }
 .sensory-top-row {
     display: flex;
@@ -219,12 +256,12 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     gap: 12px;
 }
 .ingredient-thumb {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
+    width: 72px;
+    height: 72px;
+    border-radius: 10px;
     object-fit: cover;
     background-color: #030712;
-    border: 2px solid rgba(16, 185, 129, 0.4);
+    border: 2px solid rgba(16, 185, 129, 0.5);
     flex-shrink: 0;
 }
 .sensory-details {
@@ -233,15 +270,15 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     flex-direction: column;
     gap: 2px;
 }
-.sensory-name { font-size: 0.9em; font-weight: 800; color: #ffffff; }
-.sensory-tag { font-size: 0.72em; color: #10b981; font-weight: 700; }
-.sensory-notes { font-size: 0.76em; color: #94a3b8; line-height: 1.3; }
+.sensory-name { font-size: 0.95em; font-weight: 800; color: #ffffff; }
+.sensory-tag { font-size: 0.74em; color: #10b981; font-weight: 700; }
+.sensory-notes { font-size: 0.76em; color: #94a3b8; line-height: 1.35; }
 
 .price-chip {
     background: rgba(16, 185, 129, 0.08);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-    border-radius: 6px;
-    padding: 5px 8px;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 8px;
+    padding: 7px 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -249,106 +286,93 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     font-weight: 700;
 }
 
-/* إلغاء الإطار الأحمر من حقول الإدخال وفرض التوهج الزمردي */
-div[data-testid="stTextInput"] * {
-    outline: none !important;
+.trust-bullets {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7em;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin-top: 2px;
 }
+
+/* حقول الإدخال */
+div[data-testid="stTextInput"] * { outline: none !important; }
 div[data-testid="stTextInput"] div[data-baseweb="input"],
 div[data-testid="stTextInput"] div[data-baseweb="base-input"],
 div[data-testid="stTextInputRootElement"],
 div[data-testid="stTextInputRootElement"] > div,
 .stTextInput div[data-baseweb="input"] {
     border-color: rgba(255, 255, 255, 0.12) !important;
-    border-top-color: rgba(255, 255, 255, 0.12) !important;
-    border-bottom-color: rgba(255, 255, 255, 0.12) !important;
-    border-left-color: rgba(255, 255, 255, 0.12) !important;
-    border-right-color: rgba(255, 255, 255, 0.12) !important;
     background-color: #111827 !important;
     box-shadow: none !important;
 }
-
 div[data-testid="stTextInput"]:focus-within div[data-baseweb="input"],
-div[data-testid="stTextInput"]:focus-within div[data-baseweb="base-input"],
-div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
-div[data-testid="stTextInput"] div[data-baseweb="base-input"]:focus-within,
-div[data-testid="stTextInput"] [data-testid="stTextInputRootElement"]:focus-within,
 div[data-testid="stTextInput"] input:focus,
 .stTextInput input:focus {
     border-color: #10b981 !important;
-    border-top-color: #10b981 !important;
-    border-bottom-color: #10b981 !important;
-    border-left-color: #10b981 !important;
-    border-right-color: #10b981 !important;
     box-shadow: 0 0 0 1px #10b981, 0 0 10px rgba(16, 185, 129, 0.25) !important;
 }
 
 input, textarea { 
     caret-color: #10b981 !important; 
-    border-radius: 6px !important; 
-    font-size: 0.85em !important; 
-    padding: 9px 10px !important;
+    border-radius: 8px !important; 
+    font-size: 0.88em !important; 
+    padding: 10px 12px !important;
     border: none !important;
     background-color: transparent !important;
     color: #ffffff !important;
 }
-input::placeholder {
-    color: #64748b !important;
-    font-size: 0.9em !important;
-}
+input::placeholder { color: #64748b !important; font-size: 0.9em !important; }
 
+/* زر التثبيت الكبير */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
-    font-size: 0.96em !important;
+    font-size: 0.98em !important;
     font-weight: 800 !important;
-    height: 46px !important;
-    border-radius: 8px !important;
+    height: 48px !important;
+    border-radius: 10px !important;
     border: none !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
 }
 
 .notice-card {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
-    padding: 10px;
-    font-size: 0.8em;
+    padding: 11px;
+    font-size: 0.82em;
     color: #94a3b8;
     text-align: center;
     line-height: 1.5;
     margin: 6px 0;
-}
-.trust-strip {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 6px;
-    padding: 7px 8px;
-    text-align: center;
-    font-size: 0.73em;
-    color: #94a3b8;
-    margin: 5px 0 8px 0;
 }
 .wa-link-btn {
     display: block;
     background: #10b981;
     color: #022c22 !important;
     text-align: center;
-    padding: 12px;
-    border-radius: 8px;
+    padding: 13px;
+    border-radius: 10px;
     font-weight: 800;
-    font-size: 0.95em;
+    font-size: 0.96em;
     text-decoration: none;
     margin-top: 6px;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25);
 }
 .wa-share-btn {
     display: block;
     background: #030712;
-    border: 1px solid #10b981;
+    border: 1.5px solid #10b981;
     color: #10b981 !important;
     text-align: center;
-    padding: 11px;
-    border-radius: 8px;
+    padding: 12px;
+    border-radius: 10px;
     font-weight: 700;
-    font-size: 0.88em;
+    font-size: 0.9em;
     text-decoration: none;
     margin-top: 6px;
 }
@@ -369,7 +393,7 @@ input[aria-label="hp"] { display: none !important; }
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. إعداد الاتصال والثوابت (رابط المشاركة المعتمد)
+# 3. إعداد الاتصال وكتالوج المكونات الطبيعية
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -394,51 +418,51 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 
-# الرابط المختصر الجديد لمشاركة العرض مع الأصدقاء
+# الرابط المختصر الفخم للمشاركة في الواتساب
 LIVE_APP_URL = "https://dub.sh/mqsoom"
 
 PERFUMES = {
     "عطر روميو (Romeo)": {
-        "tag": "رجالي فاخر • أصلي",
-        "rating": "4.8 ★",
-        "notes": "باتشولي، فانيلا، ومسك",
+        "tag": "رجالي فاخر • الأكثر طلباً 🔥",
+        "rating": "4.9 ★",
+        "notes": "باتشولي نقي، فانيلا، ومسك فاخر",
         "ingredient_label": "خلاصة الباتشولي الطبيعي",
-        "img": "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=150&q=80"
+        "img": "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=180&q=80"
     },
     "عطر يوجا (Yoga)": {
-        "tag": "هادئ ومنعش • أصلي",
+        "tag": "هادئ ومنعش • فوّاح",
         "rating": "4.8 ★",
-        "notes": "برغموت، مسك نقي، ونرجس",
+        "notes": "برغموت إيطالي، مسك نقي، ونرجس",
         "ingredient_label": "البرغموت الإيطالي النقي",
-        "img": "https://images.unsplash.com/photo-1582281298055-e25b84a30b0b?auto=format&fit=crop&w=150&q=80"
+        "img": "https://images.unsplash.com/photo-1582281298055-e25b84a30b0b?auto=format&fit=crop&w=180&q=80"
     },
     "عطر لونار (Lunar)": {
-        "tag": "أناقة للجنسين • أصلي",
+        "tag": "أناقة للجنسين • ثبات عالي",
         "rating": "4.9 ★",
         "notes": "عنب أسود، باتشولي، وعنبر دافئ",
-        "ingredient_label": "راتنج العنبر الطبيعي وخلاصة العنب",
-        "img": "https://images.unsplash.com/photo-1509783236416-c9ad59bae472?auto=format&fit=crop&w=150&q=80"
+        "ingredient_label": "راتنج العنبر الطبيعي الفاخر",
+        "img": "https://images.unsplash.com/photo-1509783236416-c9ad59bae472?auto=format&fit=crop&w=180&q=80"
     },
     "عطر لاروزيه (Larose)": {
-        "tag": "أنثوي ساحر • أصلي",
+        "tag": "أنثوي ساحر • ناعم وجذاب",
         "rating": "5.0 ★",
-        "notes": "فانيلا، زنبق أبيض، وياسمين",
+        "notes": "فانيلا فرنسية، زنبق أبيض، وياسمين",
         "ingredient_label": "بتلات الياسمين الأبيض",
-        "img": "https://images.unsplash.com/photo-1596438459194-f275f413d6ff?auto=format&fit=crop&w=150&q=80"
+        "img": "https://images.unsplash.com/photo-1596438459194-f275f413d6ff?auto=format&fit=crop&w=180&q=80"
     },
     "عطر اليسيوم (Elysium)": {
-        "tag": "فخامة ملكية • أصلي",
+        "tag": "فخامة ملكية • للمناسبات",
         "rating": "4.9 ★",
-        "notes": "عنبر ملكي، فانيلا، ولافندر",
-        "ingredient_label": "زهور الخزامى (اللافندر)",
-        "img": "https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?auto=format&fit=crop&w=150&q=80"
+        "notes": "عنبر ملكي، فانيلا، ولافندر بارد",
+        "ingredient_label": "زهور الخزامى واللافندر النقي",
+        "img": "https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?auto=format&fit=crop&w=180&q=80"
     },
     "عطر هارت بيت (Heart Beat)": {
-        "tag": "حيوي ورومانسي • أصلي",
+        "tag": "حيوي ورومانسي • جذاب",
         "rating": "4.8 ★",
-        "notes": "كشمش أسود، مسك، وورد",
+        "notes": "كشمش أسود، مسك أبيض، وورد مخملي",
         "ingredient_label": "الكشمش الأسود والورد المخملي",
-        "img": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=150&q=80"
+        "img": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=180&q=80"
     }
 }
 
@@ -486,7 +510,7 @@ def render_live_slots():
 render_live_slots()
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة (رسالة المشاركة برابط dub.sh)
+# 5. شاشة تأكيد الحصة (الموعد والمكان محددين بوضوح)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -498,18 +522,19 @@ if "confirmed_deal" in st.session_state:
     <div class="top-card" style="border-color:#10b981;">
         <div class="brand-badge">تم تأكيد حصتك بنجاح 🌿</div>
         <div class="headline" style="font-size:1.15em;">{safe_perfume}</div>
-        <div class="sub-headline" style="color:#cbd5e1 !important;">طريقة الاستلام: {safe_delivery}</div>
+        <div class="sub-headline" style="color:#cbd5e1 !important;">{safe_delivery}</div>
         <div style="font-size:1.15em;font-weight:800;color:#ffffff;margin-top:5px;">
             المطلوب عند الاستلام: <span style="color:#10b981;">{UNIFIED_PRICE} ر.س فقط</span>
         </div>
     </div>
     <div class="notice-card">
         🤝 <b>الدفع يد بيد بعد المعاينة والفاتورة</b><br>
-        سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد موعد التسليم مباشرة.
+        موعد الاستلام بالسلام مول: <b>السبت القادم (بين المغرب والعشاء: 6:30م – 9:00م) عند بوابة 5 و 6</b>.<br>
+        سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتنسيق اللقاء بدقة.
     </div>
     """, unsafe_allow_html=True)
 
-    delivery_note_text = "سأرسل اللوكيشن هنا في الواتساب" if "توصيل" in deal['delivery'] else "موعدنا في السلام مول"
+    location_detail = "سأرسل اللوكيشن في الواتساب" if "توصيل" in deal['delivery'] else "السبت (المغرب-العشاء) عند بوابة 5 أو 6 بالسلام مول"
 
     wa_admin_msg = (
         f"مرحباً 🌿\n"
@@ -517,16 +542,16 @@ if "confirmed_deal" in st.session_state:
         f"• الاسم: {deal['name']}\n"
         f"• الجوال: {deal['phone']}\n"
         f"• العطر: {deal['perfume']}\n"
-        f"• الاستلام: {deal['delivery']}\n"
-        f"• الموقع: {delivery_note_text}\n\n"
-        f"بانتظار اكتمال الباقة لاستلام الطلب مع الفاتورة الرسمية."
+        f"• طريقة التسليم: {deal['delivery']}\n"
+        f"• نقطة وموعد الاستلام: {location_detail}\n\n"
+        f"بانتظار اكتمال الباقة لاستلام العطر مع الفاتورة الأصلية وفحصه يد بيد."
     )
     admin_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
     st.markdown(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
 
     share_msg = (
         f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نتقاسمها بين 4 بالتساوي.\n"
-        f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية في جدة والتوصيل مجاني أول ما تكتمل.\n\n"
+        f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية (التسليم السبت بالسلام مول بوابة 5 و 6 أو توصيل).\n\n"
         f"حجزت حصتي وباقي مقاعد بسيطة، ادخل اختر عطرك وقفل الباقة معنا هنا:\n"
         f"{LIVE_APP_URL}"
     )
@@ -538,10 +563,10 @@ if "confirmed_deal" in st.session_state:
         st.rerun()
 
 # ==============================================================================
-# 6. النموذج واختيار العطر
+# 6. النموذج واختيار العطر وطريقة الاستلام
 # ==============================================================================
 else:
-    st.markdown("<div style='font-size:0.82em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>1. اختر عِطرك من مجموعة نيوتن (Newton):</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>1. اختر عِطرك من مجموعة نيوتن (Newton):</div>", unsafe_allow_html=True)
 
     chosen_perfume = st.radio(
         "اختر العطر:",
@@ -554,7 +579,7 @@ else:
     st.markdown(f"""
     <div class="sensory-card">
         <div class="sensory-top-row">
-            <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" loading="lazy" decoding="async" />
+            <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" loading="eager" decoding="async" />
             <div class="sensory-details">
                 <div class="sensory-name">{chosen_perfume}</div>
                 <div class="sensory-tag">🌿 {p['ingredient_label']} • {p['rating']}</div>
@@ -562,35 +587,43 @@ else:
             </div>
         </div>
         <div class="price-chip">
-            <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:#10b981;font-size:1.1em;">{UNIFIED_PRICE} ر.س</b></span>
-            <span style="color:#10b981;">وفرت {SAVINGS_AMOUNT} ر.س (خصم 50%)</span>
+            <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:#10b981;font-size:1.15em;">{UNIFIED_PRICE} ر.س</b></span>
+            <span style="color:#10b981;font-weight:800;">وفرت {SAVINGS_AMOUNT} ر.س (خصم 50%)</span>
+        </div>
+        <div class="trust-bullets">
+            <span>🛡️ أصلي 100% بالباركود</span>
+            <span>🧾 الفاتورة الأصلية للمعاينة</span>
+            <span>🤝 فحص يد بيد قبل الدفع</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div style='font-size:0.82em;font-weight:700;color:#cbd5e1;margin-top:6px;margin-bottom:4px;'>2. حدد طريقة الاستلام:</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-top:8px;margin-bottom:4px;'>2. حدد موعد وطريقة الاستلام:</div>", unsafe_allow_html=True)
 
+    # توضيح الموعد المظبوط والبوابة لرفع الالتزام
     delivery_mode = st.radio(
         "طريقة الاستلام والدفع:",
         [
-            f"استلام يد بيد (السلام مول) — {UNIFIED_PRICE} ر.س عند الاستلام",
-            f"توصيل مجاني داخل جدة — {UNIFIED_PRICE} ر.س عند الاستلام"
+            f"السلام مول (بوابة 5 و 6) • السبت (المغرب إلى العشاء) — {UNIFIED_PRICE} ر.س",
+            f"توصيل مجاني داخل أحياء جدة — {UNIFIED_PRICE} ر.س"
         ],
         key="delivery_choice",
         label_visibility="collapsed"
     )
 
     if "توصيل" in delivery_mode:
-        st.markdown("<div style='font-size:0.75em;color:#10b981;margin-bottom:6px;'>📍 اللوكيشن يتم إرساله مباشرة وسريعاً عبر الواتساب عند اكتمال الباقة.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.75em;color:#10b981;margin-bottom:6px;'>📍 اللوكيشن يتم إرساله مباشرة وسريعاً عبر الواتساب فور اكتمال الباقة.</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div style='font-size:0.75em;color:#10b981;margin-bottom:6px;'>📍 موعد التسليم: السبت (6:30م إلى 9:00م) عند بوابة 5 أو 6 لسهولة وسرعة الوقوف.</div>", unsafe_allow_html=True)
 
     with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
-        st.markdown("<div style='font-size:0.82em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>بيانات التأكيد:</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>بيانات التأكيد:</div>", unsafe_allow_html=True)
 
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
 
         st.markdown("""
-        <div class="trust-strip">
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:7px;text-align:center;font-size:0.73em;color:#94a3b8;margin:6px 0 8px 0;">
             🛡️ فحص العطر والفاتورة الأصلية قبل الدفع يد بيد • لا يوجد أي تحويل مسبق
         </div>
         """, unsafe_allow_html=True)
@@ -633,7 +666,7 @@ else:
                             "level": chosen_perfume,
                             "status": "confirmed",
                             "payment_status": "pending",
-                            "hear_about": delivery_mode[:35],
+                            "hear_about": delivery_mode[:50],
                             "player_note": client_note
                         }).execute()
 
