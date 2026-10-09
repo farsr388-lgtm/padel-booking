@@ -32,7 +32,7 @@ def clean_html(raw: str) -> str:
     return "".join(line.strip() for line in raw.splitlines() if line.strip())
 
 # ==============================================================================
-# 2. أنماط الواجهة (Minimal Dark Luxury - بدون أي إطارات حمراء)
+# 2. أنماط الواجهة (Minimal Dark Luxury - خالية من التعقيد)
 # ==============================================================================
 css_styles = clean_html("""
 <style>
@@ -148,7 +148,7 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="r
     box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* خيارات الاستلام بتصميم مدمج وسلس */
+/* خيارات الاستلام بتصميم مدمج */
 div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
@@ -164,7 +164,7 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     font-size: 0.82em !important;
 }
 
-/* استئصال اللون الأحمر تماماً */
+/* حماية المؤشر من أي وميض أحمر */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
     border-color: #475569 !important;
     background-color: transparent !important;
@@ -336,7 +336,7 @@ def get_supabase_client() -> Client:
 
 supabase = get_supabase_client()
 
-BASKET_ID = "BLOM-NEWTON-JEDDAH-V12"
+BASKET_ID = "BLOM-NEWTON-JEDDAH-V13"
 BASKET_CAPACITY = 4
 UNIFIED_PRICE = 132
 ORIGINAL_RETAIL = 265
@@ -345,7 +345,7 @@ ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD_HASH = st.secrets.get("ADMIN_PASSWORD", "")
 LIVE_APP_URL = "https://maqsoom-deals.streamlit.app"
 
-# كتالوج مختصر بدون صور وبنوتات سريعة (3 يمين مقابل 3 يسار)
+# كتالوج مختصر بدون صور (3 يمين مقابل 3 يسار)
 PERFUMES = {
     # صف 1: روميو مقابل يوجا
     "عطر روميو (Romeo)": {
@@ -431,7 +431,7 @@ if "confirmed_deal" in st.session_state:
     safe_perfume = html.escape(deal['perfume'])
     safe_delivery = html.escape(deal['delivery'])
     
-    # إرسال حدث تحويل مخصص لـ Clarity لفلترة المشترين الحقيقيين فقط
+    # إرسال حدث تحويل مخصص لـ Clarity
     components.html("""
     <script type="text/javascript">
         if (window.parent && window.parent.clarity) {
@@ -456,13 +456,16 @@ if "confirmed_deal" in st.session_state:
     """)
     st.markdown(confirm_markup, unsafe_allow_html=True)
     
+    delivery_note_text = "سأرسل اللوكيشن هنا في الواتساب" if "توصيل" in deal['delivery'] else "موعدنا في السلام مول"
+    
     wa_admin_msg = (
         f"مرحباً 🌿\n"
         f"حجزت حصتي في تطبيق مَقسوم - مجموعة نيوتن ({UNIFIED_PRICE} ر.س):\n\n"
         f"• الاسم: {deal['name']}\n"
         f"• الجوال: {deal['phone']}\n"
         f"• العطر: {deal['perfume']}\n"
-        f"• الاستلام: {deal['delivery']}\n\n"
+        f"• الاستلام: {deal['delivery']}\n"
+        f"• الموقع: {delivery_note_text}\n\n"
         f"بانتظار اكتمال الباقة لاستلام الطلب مع الفاتورة الرسمية."
     )
     admin_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
@@ -506,9 +509,7 @@ else:
     """)
     st.markdown(sensory_markup, unsafe_allow_html=True)
     
-    # --------------------------------------------------------------------------
-    # الخطوة 2: خيار الاستلام التفاعلي خارج الفورم لتفعيل الظهور المشروط لحظياً
-    # --------------------------------------------------------------------------
+    # تحديد طريقة الاستلام
     st.markdown("<div style='font-size:0.82em;font-weight:700;color:#cbd5e1;margin-top:6px;margin-bottom:4px;'>2. حدد طريقة الاستلام:</div>", unsafe_allow_html=True)
     
     delivery_mode = st.radio(
@@ -521,25 +522,16 @@ else:
         label_visibility="collapsed"
     )
     
-    is_delivery_selected = "توصيل" in delivery_mode
+    # سطر توجيهي مريح وبدون خانة كتابة للحي
+    if "توصيل" in delivery_mode:
+        st.markdown("<div style='font-size:0.75em;color:#10b981;margin-bottom:6px;'>📍 اللوكيشن يتم إرساله مباشرة وسريعاً عبر الواتساب عند اكتمال الباقة.</div>", unsafe_allow_html=True)
     
-    # --------------------------------------------------------------------------
-    # الخطوة 3: نموذج البيانات الذكي (يكشف خانة الحي فقط عند اختيار التوصيل)
-    # --------------------------------------------------------------------------
+    # نموذج البيانات المباشر (اسم + جوال فقط)
     with st.form("quick_order_form"):
         st.markdown("<div style='font-size:0.82em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>بيانات التأكيد:</div>", unsafe_allow_html=True)
         
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
-        
-        # كشف تدريجي (Progressive Disclosure): يظهر فقط إذا اختار التوصيل!
-        if is_delivery_selected:
-            f_district = st.text_input(
-                "الحي داخل جدة (أو شارك اللوكيشن عبر واتساب):", 
-                placeholder="مثال: الروضة، الصفا، السامر..."
-            )
-        else:
-            f_district = ""
         
         st.markdown("""
         <div class="trust-strip">
@@ -557,15 +549,12 @@ else:
             if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
             elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
             
-            clean_district = f_district.strip() if f_district else ("استلام بالسلام مول" if not is_delivery_selected else "سيتم إرسال اللوكيشن عبر واتساب")
-            
             fresh_bookings = get_confirmed_bookings(BASKET_ID)
             existing_booking = next((b for b in fresh_bookings if b.get('phone') == clean_phone), None)
             
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
                 st.markdown('<div class="warning-pill">⚠️ يرجى التأكد من كتابة الاسم الثنائي ورقم جوال سعودي يبدأ بـ 05.</div>', unsafe_allow_html=True)
             elif existing_booking:
-                # استرجاع الحصة فوراً لمنع التكرار وحل مشكلة تحديث الصفحة
                 st.session_state["confirmed_deal"] = {
                     "name": existing_booking.get("name"),
                     "phone": existing_booking.get("phone"),
@@ -578,8 +567,7 @@ else:
                 st.markdown('<div class="warning-pill">⚠️ اكتملت الباقة الحالية بالكامل! جاري فتح باقة جديدة قريباً.</div>', unsafe_allow_html=True)
             else:
                 try:
-                    delivery_full = f"{delivery_mode} ({clean_district})"
-                    client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_full} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
+                    client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
                     
                     if supabase:
                         supabase.table("bookings").insert({
@@ -590,7 +578,7 @@ else:
                             "level": chosen_perfume,
                             "status": "confirmed",
                             "payment_status": "pending",
-                            "hear_about": delivery_full[:40],
+                            "hear_about": delivery_mode[:35],
                             "player_note": client_note
                         }).execute()
                         st.cache_data.clear()
@@ -601,7 +589,7 @@ else:
                     "name": clean_name,
                     "phone": clean_phone,
                     "perfume": chosen_perfume,
-                    "delivery": delivery_full,
+                    "delivery": delivery_mode,
                     "price": UNIFIED_PRICE
                 }
                 st.rerun()
