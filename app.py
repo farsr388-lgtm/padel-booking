@@ -28,7 +28,7 @@ components.html("""
 """, height=0, width=0)
 
 def sanitize_phone_number(raw_input: str) -> str:
-    """تنظيف وتوحيد أرقام الجوال ومنع أخطاء الأرقام العربية والرموز."""
+    """تنظيف وتوحيد أرقام الجوال ومعالجة الأرقام العربية والرموز."""
     if not raw_input:
         return ""
     table = str.maketrans(
@@ -57,7 +57,7 @@ st.markdown("""
     --danger: #ef4444;
 }
 
-/* 1. استئصال كافة عناصر Streamlit الافتراضية وشعار التاج السفلي */
+/* 1. إخفاء عناصر Streamlit الافتراضية وشعار التاج */
 header[data-testid="stHeader"], 
 #MainMenu, 
 footer,
@@ -72,7 +72,7 @@ div[data-testid="stDecoration"],
     display: none !important; 
 }
 
-/* 2. استغلال كامل أبعاد الشاشة ومنع الهوامش الزائدة */
+/* 2. استغلال كامل أبعاد شاشة الجوال ومنع الهوامش الزائدة */
 .block-container {   
     padding-top: 0.2rem !important; 
     padding-bottom: 2rem !important; 
@@ -98,7 +98,7 @@ html, body, [class*="css"] {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* البطاقة العلوية وشريط المقاعد */
+/* البطاقة العلوية وشريط الحصص */
 .top-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -162,7 +162,7 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
-/* العنوان المركزي الصافي */
+/* العنوان المركزي في المنتصف */
 .centered-section-title {
     text-align: center !important;
     font-size: 0.96em !important;
@@ -203,7 +203,7 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="rad
     margin: 0 !important;
 }
 
-/* إلغاء عناصر الراديو الافتراضية لمنع انهيار العرض */
+/* إخفاء دوائر الراديو الافتراضية لمنع انهيار العرض */
 div[data-testid="stRadio"] input[type="radio"] {
     position: absolute !important;
     opacity: 0 !important;
@@ -245,7 +245,7 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked)::be
     box-shadow: 0 0 10px var(--primary) !important;
 }
 
-/* حماية النصوص العربية من الانهيار العمودي */
+/* حماية النصوص العربية من الانهيار والالتفاف العمودي */
 div[data-testid="stRadio"] label p,
 div[data-testid="stRadio"] label span,
 div[data-testid="stRadio"] label div {
@@ -264,7 +264,7 @@ div[data-testid="stRadio"] label:has(input:checked) span {
     font-weight: 900 !important;
 }
 
-/* خيارات الاستلام داخل النموذج */
+/* خيارات الاستلام والتسليم داخل النموذج */
 form div[data-testid="stRadio"] div[role="radiogroup"],
 div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
@@ -377,7 +377,7 @@ input, textarea {
 }
 input::placeholder { color: #64748b !important; }
 
-/* زر التثبيت الكبير */
+/* زر التثبيت الأساسي */
 div[data-testid="stFormSubmitButton"] > button {
     background: var(--primary) !important;
     color: #022c22 !important;
@@ -391,7 +391,7 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px !important;
 }
 
-/* أنيميشن الاهتزاز والوميض للتنبيه العلوي عند نقص البيانات */
+/* أنيميشن الاهتزاز والوميض للتنبيه عند نقص البيانات */
 @keyframes alertShake {
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-6px); }
@@ -411,6 +411,26 @@ div[data-testid="stFormSubmitButton"] > button {
     line-height: 1.4 !important;
     box-shadow: 0 0 18px rgba(239, 68, 68, 0.4) !important;
     animation: alertShake 0.45s ease-in-out !important;
+}
+
+/* بطاقة التقدير وقائمة الانتظار عند اكتمال الباقة */
+.waitlist-card {
+    background: rgba(16, 185, 129, 0.08) !important;
+    border: 1.5px solid rgba(16, 185, 129, 0.4) !important;
+    color: #f8fafc !important;
+    padding: 14px 16px !important;
+    border-radius: 10px !important;
+    font-size: 0.88em !important;
+    line-height: 1.6 !important;
+    text-align: center !important;
+    margin-bottom: 12px !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
+}
+.waitlist-card b {
+    color: #10b981 !important;
+    font-size: 1.05em !important;
+    display: block;
+    margin-bottom: 4px;
 }
 
 .notice-card {
@@ -679,7 +699,7 @@ else:
     with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
         st.markdown('<div class="centered-section-title" style="margin-top:0;">بيانات التأكيد والاستلام</div>', unsafe_allow_html=True)
 
-        # الحاوية العلوية المخصصة لرسائل الخطأ مع التمرير التلقائي
+        # الحاوية العلوية المخصصة لرسائل الخطأ وقائمة الانتظار مع التمرير التلقائي
         alert_placeholder = st.empty()
 
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
@@ -703,7 +723,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
-        # مصيدة الروبوتات
+        # مصيدة الروبوتات البرمجية
         hp = st.text_input("hp", label_visibility="collapsed")
         submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
 
@@ -714,7 +734,7 @@ else:
             fresh_bookings = get_confirmed_bookings(BASKET_ID)
             existing_booking = next((b for b in fresh_bookings if b.get('phone') == clean_phone), None)
 
-            # التحقق الصارم: ظهور التنبيه في الأعلى وسحب الشاشة تلقائياً
+            # 1. التحقق من صحة الاسم ورقم الجوال
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
                 alert_placeholder.markdown(
                     '<div id="form-top-alert" class="warning-pill-shake">'
@@ -735,6 +755,7 @@ else:
                 </script>
                 """, height=0, width=0)
 
+            # 2. في حال كان العميل مسجلاً مسبقاً بنفس الرقم
             elif existing_booking:
                 st.session_state["confirmed_deal"] = {
                     "name": existing_booking.get("name"),
@@ -744,11 +765,31 @@ else:
                     "price": UNIFIED_PRICE
                 }
                 st.rerun()
+
+            # 3. في حال اكتمال الباقة: رسالة التقدير والاحترام الراقية بدلاً من الخطأ
             elif len(fresh_bookings) >= BASKET_CAPACITY:
                 alert_placeholder.markdown(
-                    '<div class="warning-pill-shake">⚠️ اكتملت هذه الباقة للتو بالكامل! جاري تجهيز باقة جديدة.</div>',
+                    '<div class="waitlist-card">'
+                    '✨ <b>شكراً جزيلاً لثقتك واهتمامك يا غالي 🌿</b>'
+                    'مقاعد هذه الباقة اكتملت للتو بالكامل، وسعداء جداً برغبتك معنا.<br>'
+                    'سنبادر بالتواصل معك فوراً عبر الواتساب في حال توفر مقعد بديل أو مع إطلاق السلة القادمة مباشرة.'
+                    '</div>',
                     unsafe_allow_html=True
                 )
+                components.html("""
+                <script>
+                    setTimeout(() => {
+                        try {
+                            const banner = window.parent.document.querySelector('.waitlist-card');
+                            if (banner) {
+                                banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        } catch(e) {}
+                    }, 50);
+                </script>
+                """, height=0, width=0)
+
+            # 4. إتمام الحجز بنجاح
             else:
                 if not supabase:
                     alert_placeholder.error("تعذر الاتصال بقاعدة البيانات. يرجى مراجعة إعدادات Secrets.")
