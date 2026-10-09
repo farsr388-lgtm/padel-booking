@@ -10,7 +10,7 @@ import urllib.parse
 # 1. إعداد الصفحة والتهيئة
 # ==============================================================================
 st.set_page_config(
-    page_title="مَقسوم | تقاسم عروض بلوم - نيوتن",
+    page_title="مَقسوم | عروض بلوم نيوتن",
     page_icon="🌿",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -43,11 +43,18 @@ def sanitize_phone_number(raw_input: str) -> str:
     return cleaned
 
 # ==============================================================================
-# 2. تصميم الواجهة 100% وإزالة التشتت وشارات Streamlit
+# 2. أنماط الواجهة (متوافقة كلياً مع سفاري وكروم والوضع الليلي)
 # ==============================================================================
 st.markdown("""
 <style>
-/* 1. إخفاء كافة الشارات، الأزرار السفلية وشعار التاج الأحمر */
+:root {
+    color-scheme: dark;
+    --primary: #10b981;
+    --card-bg: #111827;
+    --border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* إخفاء واجهات وعناصر Streamlit التلقائية وشعار التاج */
 header[data-testid="stHeader"], 
 #MainMenu, 
 footer,
@@ -56,30 +63,24 @@ div[data-testid="stStatusWidget"],
 [data-testid="stToolbar"],
 div[class*="viewerBadge"],
 [class*="manageApp"],
-div[data-testid="stDecoration"] { 
+div[data-testid="stDecoration"],
+[data-testid="InputInstructions"],
+[data-testid="stWidgetInstructions"] { 
     display: none !important; 
 }
 
-/* 2. إخفاء عبارات التعليمات والـ Help */
-[data-testid="InputInstructions"],
-[data-testid="stWidgetInstructions"],
-div[data-testid="stTextInput"] small {
-    display: none !important;
-}
-
-/* 3. ضبط أبعاد الشاشة 100% بدون فراغات ميتة */
+/* ضبط أبعاد الجوال 100% بدون فراغات جانبية */
 .block-container {   
-    padding-top: 0.4rem !important; 
-    padding-bottom: 2.2rem !important; 
+    padding-top: 0.3rem !important; 
+    padding-bottom: 2rem !important; 
     padding-left: 10px !important;
     padding-right: 10px !important;
     max-width: 100% !important;
-    width: 100% !important;
     margin: 0 auto !important;
 }
 @media (min-width: 480px) {
     .block-container {
-        max-width: 410px !important;
+        max-width: 420px !important;
     }
 }
 
@@ -87,32 +88,32 @@ html, body, [class*="css"] {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Cairo", sans-serif; 
     direction: rtl; 
     text-align: right; 
-    background-color: #0b0f19;
-    color: #f8fafc;
+    background-color: #0b0f19 !important;
+    color: #f8fafc !important;
     -webkit-tap-highlight-color: transparent;
 }
 
-/* البطاقة العلوية الموحدة */
+/* بطاقة الهيدر العلوية */
 .top-card {
-    background: #111827;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 12px 14px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     text-align: center;
     width: 100%;
     box-sizing: border-box;
 }
 .brand-badge {
-    color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-    border-radius: 12px;
+    color: var(--primary);
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 20px;
     padding: 3px 12px;
     font-size: 0.74em;
     font-weight: 700;
     display: inline-block;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 }
 .headline {
     font-size: 1.25em;
@@ -123,20 +124,19 @@ html, body, [class*="css"] {
 .sub-headline {
     font-size: 0.82em;
     font-weight: 700;
-    color: #94a3b8 !important;
-    margin: 4px 0 8px 0;
+    color: #94a3b8;
+    margin: 3px 0 8px 0;
 }
 
-/* شريط الحصص */
+/* شريط الحصص الأربعة */
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    margin-bottom: 2px;
+    gap: 5px;
 }
 .slot-pill {
     background: #030712;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 7px 2px;
     text-align: center;
@@ -144,15 +144,15 @@ html, body, [class*="css"] {
     font-weight: 700;
 }
 .slot-pill.taken {
-    background: rgba(16, 185, 129, 0.12);
-    border-color: #10b981;
-    color: #10b981;
+    background: rgba(16, 185, 129, 0.15);
+    border-color: var(--primary);
+    color: var(--primary);
 }
 .slot-pill.current {
-    border-color: #10b981;
-    color: #10b981;
+    border-color: var(--primary);
+    color: var(--primary);
     background: rgba(16, 185, 129, 0.08);
-    box-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
 }
 .slot-pill.available {
     color: #64748b;
@@ -160,97 +160,54 @@ html, body, [class*="css"] {
 }
 
 /* ==========================================================================
-   إلغاء التشتت في خيارات العطور والاستلام وتحويلها لبطاقات واضحة تماماً
+   إلغاء دوائر الراديو الافتراضية وتحويلها لبطاقات متناسقة ومركزية
    ========================================================================== */
 div[data-testid="stRadio"] label div:first-child:not(:last-child),
 div[data-testid="stRadio"] input[type="radio"] + div {
     display: none !important;
 }
 
-/* شبكة العطور: بطاقات متناسقة 2x3 */
-div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] {
+/* شبكة أزرار العطور (موزعة في المنتصف) */
+div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 6px !important;
     width: 100% !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 6px !important;
 }
-div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] > label {
+div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] > label {
     width: 100% !important;
     margin: 0 !important;
-    background-color: #111827 !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background-color: var(--card-bg) !important;
+    border: 1.5px solid var(--border-color) !important;
     border-radius: 8px !important;
     padding: 10px 6px !important;
     min-height: 44px !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
+    text-align: center !important;
     cursor: pointer !important;
     font-size: 0.82em !important;
+    font-weight: 600 !important;
     box-sizing: border-box !important;
     transition: all 0.2s ease !important;
-    text-align: center !important;
 }
-div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] > label:has(input:checked) {
-    border-color: #10b981 !important;
+div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] > label:has(input:checked) {
+    border-color: var(--primary) !important;
     background-color: rgba(16, 185, 129, 0.16) !important;
-    box-shadow: 0 0 0 1px #10b981 !important;
-    color: #10b981 !important;
+    box-shadow: 0 0 0 1px var(--primary) !important;
+    color: var(--primary) !important;
     font-weight: 800 !important;
 }
 
-/* خيارات الاستلام: بطاقات عريضة واضحة ومنفصلة بنسبة 100% */
-div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    width: 100% !important;
-    margin-bottom: 8px !important;
-}
-div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label {
-    background-color: #111827 !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 10px !important;
-    padding: 12px 14px !important;
-    font-size: 0.84em !important;
-    cursor: pointer !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    transition: all 0.2s ease !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-}
-div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label:has(input:checked) {
-    border-color: #10b981 !important;
-    background-color: rgba(16, 185, 129, 0.15) !important;
-    box-shadow: 0 0 0 1px #10b981, 0 4px 12px rgba(16, 185, 129, 0.15) !important;
-    color: #ffffff !important;
-    font-weight: 700 !important;
-}
-div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label::after {
-    content: "✓ تم التحديد" !important;
-    display: none !important;
-    font-size: 0.72em !important;
-    font-weight: 800 !important;
-    color: #10b981 !important;
-    background: rgba(16, 185, 129, 0.2) !important;
-    border: 1px solid rgba(16, 185, 129, 0.4) !important;
-    border-radius: 6px !important;
-    padding: 3px 8px !important;
-}
-div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label:has(input:checked)::after {
-    display: block !important;
-}
-
-/* بطاقة العطر */
+/* بطاقة معاينة العطر الحسي */
 .sensory-card {
-    background: #111827;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: var(--card-bg);
+    border: 1px solid rgba(16, 185, 129, 0.35);
     border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -263,8 +220,8 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     gap: 12px;
 }
 .ingredient-thumb {
-    width: 68px;
-    height: 68px;
+    width: 64px;
+    height: 64px;
     border-radius: 10px;
     object-fit: cover;
     background-color: #030712;
@@ -278,7 +235,7 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     gap: 2px;
 }
 .sensory-name { font-size: 0.95em; font-weight: 800; color: #ffffff; }
-.sensory-tag { font-size: 0.74em; color: #10b981; font-weight: 700; }
+.sensory-tag { font-size: 0.74em; color: var(--primary); font-weight: 700; }
 .sensory-notes { font-size: 0.76em; color: #94a3b8; line-height: 1.35; }
 
 .price-chip {
@@ -289,18 +246,55 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.76em;
+    font-size: 0.78em;
     font-weight: 700;
 }
-.trust-bullets {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.7em;
-    color: #94a3b8;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    padding: 6px 8px;
+
+/* ==========================================================================
+   خيارات الاستلام والتسليم داخل الفورم تحت الاسم والجوال
+   ========================================================================== */
+div[data-testid="stRadio"]:has(input[name*="delivery_mode"]) div[role="radiogroup"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 7px !important;
+    width: 100% !important;
+    margin-top: 4px !important;
+    margin-bottom: 6px !important;
+}
+div[data-testid="stRadio"]:has(input[name*="delivery_mode"]) div[role="radiogroup"] > label {
+    background-color: var(--card-bg) !important;
+    border: 1.5px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    padding: 11px 12px !important;
+    font-size: 0.82em !important;
+    cursor: pointer !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    transition: all 0.2s ease !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+div[data-testid="stRadio"]:has(input[name*="delivery_mode"]) div[role="radiogroup"] > label:has(input:checked) {
+    border-color: var(--primary) !important;
+    background-color: rgba(16, 185, 129, 0.16) !important;
+    box-shadow: 0 0 0 1px var(--primary) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+div[data-testid="stRadio"]:has(input[name*="delivery_mode"]) div[role="radiogroup"] > label::after {
+    content: "✓ محدد" !important;
+    display: none !important;
+    font-size: 0.72em !important;
+    font-weight: 800 !important;
+    color: var(--primary) !important;
+    background: rgba(16, 185, 129, 0.2) !important;
+    border: 1px solid rgba(16, 185, 129, 0.4) !important;
+    border-radius: 6px !important;
+    padding: 2px 7px !important;
+}
+div[data-testid="stRadio"]:has(input[name*="delivery_mode"]) div[role="radiogroup"] > label:has(input:checked)::after {
+    display: block !important;
 }
 
 /* حقول الإدخال */
@@ -310,20 +304,18 @@ div[data-testid="stTextInput"] div[data-baseweb="base-input"],
 div[data-testid="stTextInputRootElement"],
 div[data-testid="stTextInputRootElement"] > div,
 .stTextInput div[data-baseweb="input"] {
-    border-color: rgba(255, 255, 255, 0.12) !important;
-    background-color: #111827 !important;
-    box-shadow: none !important;
+    border-color: var(--border-color) !important;
+    background-color: var(--card-bg) !important;
     border-radius: 8px !important;
 }
 div[data-testid="stTextInput"]:focus-within div[data-baseweb="input"],
 div[data-testid="stTextInput"] input:focus,
 .stTextInput input:focus {
-    border-color: #10b981 !important;
-    box-shadow: 0 0 0 1px #10b981, 0 0 10px rgba(16, 185, 129, 0.25) !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 1px var(--primary), 0 0 10px rgba(16, 185, 129, 0.25) !important;
 }
-
 input, textarea { 
-    caret-color: #10b981 !important; 
+    caret-color: var(--primary) !important; 
     border-radius: 8px !important; 
     font-size: 0.88em !important; 
     padding: 10px 12px !important;
@@ -331,24 +323,25 @@ input, textarea {
     background-color: transparent !important;
     color: #ffffff !important;
 }
-input::placeholder { color: #64748b !important; font-size: 0.9em !important; }
+input::placeholder { color: #64748b !important; }
 
-/* زر التثبيت بكامل العرض */
+/* زر التأكيد الكبير */
 div[data-testid="stFormSubmitButton"] > button {
-    background: #10b981 !important;
+    background: var(--primary) !important;
     color: #022c22 !important;
     font-size: 0.98em !important;
-    font-weight: 800 !important;
+    font-weight: 900 !important;
     height: 48px !important;
     border-radius: 10px !important;
     border: none !important;
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
     width: 100% !important;
+    margin-top: 6px !important;
 }
 
 .notice-card {
-    background: #111827;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 11px;
     font-size: 0.82em;
@@ -359,7 +352,7 @@ div[data-testid="stFormSubmitButton"] > button {
 }
 .wa-link-btn {
     display: block;
-    background: #10b981;
+    background: var(--primary);
     color: #022c22 !important;
     text-align: center;
     padding: 13px;
@@ -368,13 +361,12 @@ div[data-testid="stFormSubmitButton"] > button {
     font-size: 0.96em;
     text-decoration: none;
     margin-top: 6px;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25);
 }
 .wa-share-btn {
     display: block;
     background: #030712;
-    border: 1.5px solid #10b981;
-    color: #10b981 !important;
+    border: 1.5px solid var(--primary);
+    color: var(--primary) !important;
     text-align: center;
     padding: 12px;
     border-radius: 10px;
@@ -384,8 +376,8 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px;
 }
 .warning-pill {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
     color: #fca5a5;
     padding: 8px 10px;
     border-radius: 6px;
@@ -400,7 +392,7 @@ input[aria-label="hp"] { display: none !important; }
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. إعداد الاتصال وكتالوج المكونات
+# 3. إعداد الاتصال وكتالوج المكونات الفاخرة
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -424,49 +416,41 @@ ORIGINAL_RETAIL = 265
 SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
-
 LIVE_APP_URL = "https://dub.sh/mqsoom"
 
-# صور واضحة وعالية الجودة والمصداقية
 PERFUMES = {
     "عطر روميو (Romeo)": {
         "tag": "رجالي فاخر • الأكثر طلباً 🔥",
-        "rating": "4.9 ★",
         "notes": "باتشولي نقي، فانيلا، ومسك فاخر",
         "ingredient_label": "خلاصة الباتشولي الطبيعي",
         "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=180&q=80"
     },
     "عطر يوجا (Yoga)": {
         "tag": "هادئ ومنعش • فوّاح",
-        "rating": "4.8 ★",
         "notes": "برغموت إيطالي، مسك نقي، ونرجس",
         "ingredient_label": "البرغموت الإيطالي النقي",
         "img": "https://images.unsplash.com/photo-1582281298055-e25b84a30b0b?auto=format&fit=crop&w=180&q=80"
     },
     "عطر لونار (Lunar)": {
         "tag": "أناقة للجنسين • ثبات عالي",
-        "rating": "4.9 ★",
         "notes": "عنب أسود، باتشولي، وعنبر دافئ",
         "ingredient_label": "راتنج العنبر الطبيعي الفاخر",
         "img": "https://images.unsplash.com/photo-1509783236416-c9ad59bae472?auto=format&fit=crop&w=180&q=80"
     },
     "عطر لاروزيه (Larose)": {
         "tag": "أنثوي ساحر • ناعم وجذاب",
-        "rating": "5.0 ★",
         "notes": "فانيلا فرنسية، زنبق أبيض، وياسمين",
         "ingredient_label": "بتلات الياسمين الأبيض",
         "img": "https://images.unsplash.com/photo-1596438459194-f275f413d6ff?auto=format&fit=crop&w=180&q=80"
     },
     "عطر اليسيوم (Elysium)": {
         "tag": "فخامة ملكية • للمناسبات",
-        "rating": "4.9 ★",
         "notes": "عنبر ملكي، فانيلا، ولافندر بارد",
         "ingredient_label": "زهور الخزامى واللافندر النقي",
         "img": "https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?auto=format&fit=crop&w=180&q=80"
     },
     "عطر هارت بيت (Heart Beat)": {
         "tag": "حيوي ورومانسي • جذاب",
-        "rating": "4.8 ★",
         "notes": "كشمش أسود، مسك أبيض، وورد مخملي",
         "ingredient_label": "الكشمش الأسود والورد المخملي",
         "img": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=180&q=80"
@@ -489,7 +473,7 @@ def get_confirmed_bookings(basket_key: str):
         return []
 
 # ==============================================================================
-# 4. الرأسية التسويقية
+# 4. الرأسية التسويقية (تحديث لحظي للحصص)
 # ==============================================================================
 @st.fragment(run_every="6s")
 def render_live_slots():
@@ -507,7 +491,7 @@ def render_live_slots():
     <div class="top-card">
         <div class="brand-badge">قسم مشترياتك • عروض بلوم (2+2 مجاناً)</div>
         <div class="headline">تقاسم عروض بلوم Blom</div>
-        <div class="sub-headline">تقاسم السعر بين 4 أشخاص بالتساوي (أنت و 3 معك)</div>
+        <div class="sub-headline">السعر بالتساوي بين 4 أشخاص (132 ر.س للعبوة)</div>
         <div class="slots-container">
             {slots_markup}
         </div>
@@ -517,7 +501,7 @@ def render_live_slots():
 render_live_slots()
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة
+# 5. شاشة تأكيد الحصة (بعد الحجز)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -526,18 +510,18 @@ if "confirmed_deal" in st.session_state:
     safe_delivery = html.escape(deal['delivery'])
 
     st.markdown(f"""
-    <div class="top-card" style="border-color:#10b981;">
+    <div class="top-card" style="border-color:var(--primary);">
         <div class="brand-badge">تم تأكيد حصتك بنجاح 🌿</div>
         <div class="headline" style="font-size:1.15em;">{safe_perfume}</div>
         <div class="sub-headline" style="color:#cbd5e1 !important;">{safe_delivery}</div>
         <div style="font-size:1.15em;font-weight:800;color:#ffffff;margin-top:5px;">
-            المطلوب عند الاستلام: <span style="color:#10b981;">{UNIFIED_PRICE} ر.س فقط</span>
+            المطلوب عند الاستلام: <span style="color:var(--primary);">{UNIFIED_PRICE} ر.س فقط</span>
         </div>
     </div>
     <div class="notice-card">
         🤝 <b>الدفع يد بيد بعد المعاينة والفاتورة</b><br>
-        موعد الاستلام بالسلام مول: <b>السبت (المغرب إلى العشاء: 6:30م – 9:00م) عند بوابة 5 و 6</b>.<br>
-        سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتنسيق اللقاء بدقة.
+        التسليم: <b>السبت (المغرب إلى العشاء) عند بوابة 5 أو 6 بالسلام مول</b>.<br>
+        سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد الاستلام.
     </div>
     """, unsafe_allow_html=True)
 
@@ -549,8 +533,8 @@ if "confirmed_deal" in st.session_state:
         f"• الاسم: {deal['name']}\n"
         f"• الجوال: {deal['phone']}\n"
         f"• العطر: {deal['perfume']}\n"
-        f"• طريقة التسليم: {deal['delivery']}\n"
-        f"• نقطة وموعد الاستلام: {location_detail}\n\n"
+        f"• طريقة الاستلام: {deal['delivery']}\n"
+        f"• موعد ونقطة الاستلام: {location_detail}\n\n"
         f"بانتظار اكتمال الباقة لاستلام العطر مع الفاتورة الأصلية وفحصه يد بيد."
     )
     admin_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
@@ -558,7 +542,7 @@ if "confirmed_deal" in st.session_state:
 
     share_msg = (
         f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نتقاسمها بين 4 بالتساوي.\n"
-        f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية (التسليم السبت بالسلام مول بوابة 5 و 6 أو توصيل).\n\n"
+        f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية (التسليم السبت بالسلام مول بوابة 5 و 6 أو توصيل مجاني).\n\n"
         f"حجزت حصتي وباقي مقاعد بسيطة، ادخل اختر عطرك وقفل الباقة معنا هنا:\n"
         f"{LIVE_APP_URL}"
     )
@@ -570,10 +554,10 @@ if "confirmed_deal" in st.session_state:
         st.rerun()
 
 # ==============================================================================
-# 6. النموذج واختيار العطر وطريقة الاستلام
+# 6. النموذج: اختيار العطر أولاً ثم بيانات الحجز والاستلام تحته
 # ==============================================================================
 else:
-    st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:6px;'>1. اختر عِطرك من مجموعة نيوتن (Newton):</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:6px;'>1. اختر عِطرك من باقة نيوتن:</div>", unsafe_allow_html=True)
 
     chosen_perfume = st.radio(
         "اختر العطر:",
@@ -583,54 +567,47 @@ else:
 
     p = PERFUMES[chosen_perfume]
     
+    # بطاقة العطر المركزة والموجزة
     st.markdown(f"""
     <div class="sensory-card">
         <div class="sensory-top-row">
-            <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" loading="eager" decoding="async" />
+            <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" loading="eager" />
             <div class="sensory-details">
                 <div class="sensory-name">{chosen_perfume}</div>
-                <div class="sensory-tag">🌿 {p['ingredient_label']} • {p['rating']}</div>
+                <div class="sensory-tag">🌿 {p['ingredient_label']}</div>
                 <div class="sensory-notes">المكونات: {p['notes']}</div>
             </div>
         </div>
         <div class="price-chip">
-            <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:#10b981;font-size:1.15em;">{UNIFIED_PRICE} ر.س</b></span>
-            <span style="color:#10b981;font-weight:800;">وفرت {SAVINGS_AMOUNT} ر.س (خصم 50%)</span>
-        </div>
-        <div class="trust-bullets">
-            <span>🛡️ أصلي 100% بالباركود</span>
-            <span>🧾 الفاتورة الأصلية للمعاينة</span>
-            <span>🤝 فحص يد بيد قبل الدفع</span>
+            <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:var(--primary);font-size:1.15em;">{UNIFIED_PRICE} ر.س</b></span>
+            <span style="color:var(--primary);font-weight:800;">وفرت {SAVINGS_AMOUNT} ر.س (خصم 50%)</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-top:10px;margin-bottom:6px;'>2. حدد موعد وطريقة الاستلام:</div>", unsafe_allow_html=True)
-
-    delivery_mode = st.radio(
-        "طريقة الاستلام والدفع:",
-        [
-            f"السلام مول (بوابة 5 و 6) • السبت (المغرب إلى العشاء) — {UNIFIED_PRICE} ر.س",
-            f"توصيل مجاني داخل أحياء جدة — {UNIFIED_PRICE} ر.س"
-        ],
-        key="delivery_choice",
-        label_visibility="collapsed"
-    )
-
-    if "توصيل" in delivery_mode:
-        st.markdown("<div style='font-size:0.75em;color:#10b981;margin-bottom:8px;'>📍 اللوكيشن يتم إرساله مباشرة وسريعاً عبر الواتساب فور اكتمال الباقة.</div>", unsafe_allow_html=True)
-    else:
-        st.markdown("<div style='font-size:0.75em;color:#10b981;margin-bottom:8px;'>📍 موعد التسليم: السبت (6:30م إلى 9:00م) عند بوابة 5 أو 6 لسهولة وسرعة الوقوف.</div>", unsafe_allow_html=True)
-
+    # فورم الحجز: الاسم والجوال ثم الاستلام تحتهما مباشرة
     with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
-        st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>بيانات التأكيد:</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>2. بيانات الحجز والتسليم:</div>", unsafe_allow_html=True)
 
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
 
+        st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-top:6px;margin-bottom:2px;'>طريقة الاستلام:</div>", unsafe_allow_html=True)
+
+        # خيارات الاستلام منقولة هنا تحت الاسم والجوال
+        delivery_mode = st.radio(
+            "طريقة وموعد الاستلام:",
+            [
+                f"السلام مول (بوابة 5 و 6) • السبت (المغرب إلى العشاء) — {UNIFIED_PRICE} ر.س",
+                f"توصيل مجاني داخل أحياء جدة — {UNIFIED_PRICE} ر.س"
+            ],
+            key="delivery_mode",
+            label_visibility="collapsed"
+        )
+
         st.markdown("""
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:7px;text-align:center;font-size:0.73em;color:#94a3b8;margin:6px 0 8px 0;">
-            🛡️ فحص العطر والفاتورة الأصلية قبل الدفع يد بيد • لا يوجد أي تحويل مسبق
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:7px;text-align:center;font-size:0.73em;color:#94a3b8;margin:8px 0;">
+            🛡️ أصلي 100% • فحص العطر والفاتورة الأصلية قبل الدفع يد بيد
         </div>
         """, unsafe_allow_html=True)
 
@@ -717,7 +694,7 @@ if st.query_params.get("manage") == "faris":
                 st.write(f"**{b.get('name')}** | `{b.get('phone')}`\nالعطر: **{b.get('level')}**\nالتسليم: `{b.get('hear_about')}`")
             with c2:
                 if b.get('payment_status') == 'paid':
-                    st.markdown("<span style='color:#10b981; font-weight:700;'>مدفوع ✓</span>", unsafe_allow_html=True)
+                    st.markdown("<span style='color:var(--primary); font-weight:700;'>مدفوع ✓</span>", unsafe_allow_html=True)
                 else:
                     if st.button("اعتماد دفع", key=f"pay_{b.get('id')}"):
                         if supabase:
