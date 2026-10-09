@@ -47,7 +47,6 @@ def sanitize_phone_number(raw_input: str) -> str:
 # ==============================================================================
 st.markdown("""
 <style>
-/* فرض اللون الأخضر الزمردي في المتصفح عالمياً */
 :root {
     --primary-color: #10b981 !important;
     accent-color: #10b981 !important;
@@ -58,7 +57,7 @@ input, select, textarea, button {
 
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 
-/* إخفاء عبارة Press Enter التعليمية */
+/* إخفاء عبارة Press Enter التعليمية وتداخل النصوص */
 [data-testid="InputInstructions"],
 [data-testid="stWidgetInstructions"],
 div[data-testid="stTextInput"] small {
@@ -144,15 +143,12 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
-/* ==========================================================================
-   إلغاء دوائر الراديو الحمراء بالكامل وتحويلها لبطاقات تفاعلية أنيقة
-   ========================================================================== */
+/* إلغاء دوائر الراديو وتحويلها إلى بطاقات لمس فاخرة */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child:not(:last-child),
 div[data-testid="stRadio"] input[type="radio"] + div {
     display: none !important;
 }
 
-/* شبكة العطور (3 يمين و 3 يسار كأزرار متناسقة) */
 div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -184,7 +180,6 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="r
     font-weight: 700 !important;
 }
 
-/* خيارات الاستلام كبطاقات مباشرة خضراء عند التحديد */
 div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
@@ -254,9 +249,7 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     font-weight: 700;
 }
 
-/* ==========================================================================
-   إلغاء الإطار والظل الأحمر من حقول الإدخال وفرض التوهج الزمردي
-   ========================================================================== */
+/* إلغاء الإطار الأحمر من حقول الإدخال وفرض التوهج الزمردي */
 div[data-testid="stTextInput"] * {
     outline: none !important;
 }
@@ -376,7 +369,7 @@ input[aria-label="hp"] { display: none !important; }
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. إعداد الاتصال وكتالوج المكونات الطبيعية (صورة لونار الحقيقية)
+# 3. إعداد الاتصال والثوابت (رابط المشاركة المعتمد)
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -400,7 +393,9 @@ ORIGINAL_RETAIL = 265
 SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
-LIVE_APP_URL = "https://maqsoom-deals.streamlit.app"
+
+# الرابط المختصر الجديد لمشاركة العرض مع الأصدقاء
+LIVE_APP_URL = "https://dub.sh/mqsoom"
 
 PERFUMES = {
     "عطر روميو (Romeo)": {
@@ -422,7 +417,6 @@ PERFUMES = {
         "rating": "4.9 ★",
         "notes": "عنب أسود، باتشولي، وعنبر دافئ",
         "ingredient_label": "راتنج العنبر الطبيعي وخلاصة العنب",
-        # صورة طبيعية راقية لبلورات العنبر الحقيقي
         "img": "https://images.unsplash.com/photo-1509783236416-c9ad59bae472?auto=format&fit=crop&w=150&q=80"
     },
     "عطر لاروزيه (Larose)": {
@@ -464,7 +458,7 @@ def get_confirmed_bookings(basket_key: str):
         return []
 
 # ==============================================================================
-# 4. الرأسية التسويقية الدقيقة (تقاسم السعر بين 4 أشخاص بالتساوي)
+# 4. الرأسية التسويقية
 # ==============================================================================
 @st.fragment(run_every="6s")
 def render_live_slots():
@@ -492,7 +486,7 @@ def render_live_slots():
 render_live_slots()
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة
+# 5. شاشة تأكيد الحصة (رسالة المشاركة برابط dub.sh)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
