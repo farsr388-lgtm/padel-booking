@@ -7,7 +7,7 @@ import hmac
 import urllib.parse
 
 # ==============================================================================
-# 1. إعداد الصفحة وهوية المنصة
+# 1. إعداد الصفحة وتتبع الجلسات
 # ==============================================================================
 st.set_page_config(
     page_title="مَقسوم | تقاسم عروض بلوم - نيوتن",
@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# تتبع أداء الجلسات (Microsoft Clarity)
+# تتبع Microsoft Clarity الأساسي
 components.html("""
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -32,7 +32,7 @@ def clean_html(raw: str) -> str:
     return "".join(line.strip() for line in raw.splitlines() if line.strip())
 
 # ==============================================================================
-# 2. أنماط الواجهة (Minimal Dark Luxury - خالية تماماً من أي وميض أحمر)
+# 2. أنماط الواجهة (Minimal Dark Luxury - خالية من الإطارات الحمراء والتعقيد)
 # ==============================================================================
 css_styles = clean_html("""
 <style>
@@ -57,7 +57,7 @@ html, body, [class*="css"] {
 .top-card {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
+    border-radius: 12px;
     padding: 12px 14px;
     margin-bottom: 8px;
     text-align: center;
@@ -80,8 +80,9 @@ html, body, [class*="css"] {
     margin: 0;
 }
 .sub-headline {
-    font-size: 0.8em;
-    color: #94a3b8;
+    font-size: 0.82em;
+    font-weight: 700;
+    color: #ffffff !important;
     margin: 2px 0 8px 0;
 }
 
@@ -111,7 +112,7 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
-/* بطاقات الراديو */
+/* شبكة العطور المتقابلة (3 في اليمين ضد 3 في اليسار) */
 div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -132,18 +133,22 @@ div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiog
     align-items: center !important;
     cursor: pointer !important;
     font-size: 0.8em !important;
+    box-sizing: border-box !important;
+    transition: all 0.15s ease-in-out !important;
 }
 
 div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] > label:hover {
     border-color: rgba(16, 185, 129, 0.3) !important;
+    background-color: #141e33 !important;
 }
 
 div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] > label:has(input:checked) {
     border-color: #10b981 !important;
     background-color: rgba(16, 185, 129, 0.1) !important;
+    box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* مؤشرات الراديو المحايدة */
+/* حماية المؤشر من أي وميض أحمر */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
     border-color: #475569 !important;
     background-color: transparent !important;
@@ -157,42 +162,24 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     background-color: #10b981 !important;
 }
 
-/* بطاقة استعراض العطر الحسي الفاخر */
+/* بطاقة العطر بدون صور وبمكونات مختصرة وسعر مباشر */
 .sensory-card {
     background: #111827;
     border: 1px solid rgba(16, 185, 129, 0.25);
-    border-radius: 12px;
-    padding: 12px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-}
-.sensory-badge-icon {
-    width: 58px;
-    height: 58px;
     border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.8em;
-    background: #030712;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    flex-shrink: 0;
-}
-.sensory-content {
-    flex-grow: 1;
+    padding: 10px 12px;
+    margin-bottom: 6px;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
 }
-.sensory-title-row {
+.sensory-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 .sensory-name {
-    font-size: 0.9em;
+    font-size: 0.88em;
     font-weight: 800;
     color: #ffffff;
 }
@@ -204,7 +191,6 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
 .sensory-notes {
     font-size: 0.76em;
     color: #94a3b8;
-    line-height: 1.3;
 }
 .price-chip {
     background: rgba(16, 185, 129, 0.08);
@@ -214,9 +200,9 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.76em;
+    font-size: 0.75em;
     font-weight: 700;
-    margin-top: 4px;
+    margin-top: 3px;
 }
 
 /* النموذج وحقول الإدخال */
@@ -255,10 +241,10 @@ div[data-baseweb="input"] { border-color: rgba(255, 255, 255, 0.1) !important; }
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
-    font-size: 0.9em !important;
+    font-size: 0.95em !important;
     font-weight: 800 !important;
-    height: 42px !important;
-    border-radius: 6px !important;
+    height: 44px !important;
+    border-radius: 8px !important;
     border: none !important;
     margin-top: 4px !important;
 }
@@ -266,12 +252,12 @@ div[data-testid="stFormSubmitButton"] > button {
 .notice-card {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
-    padding: 8px;
-    font-size: 0.78em;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 0.8em;
     color: #94a3b8;
     text-align: center;
-    line-height: 1.4;
+    line-height: 1.5;
     margin: 6px 0;
 }
 .trust-strip {
@@ -289,10 +275,10 @@ div[data-testid="stFormSubmitButton"] > button {
     background: #10b981;
     color: #022c22 !important;
     text-align: center;
-    padding: 10px;
-    border-radius: 6px;
+    padding: 11px;
+    border-radius: 8px;
     font-weight: 800;
-    font-size: 0.9em;
+    font-size: 0.92em;
     text-decoration: none;
     margin-top: 6px;
 }
@@ -302,10 +288,10 @@ div[data-testid="stFormSubmitButton"] > button {
     border: 1px solid #10b981;
     color: #10b981 !important;
     text-align: center;
-    padding: 9px;
-    border-radius: 6px;
+    padding: 10px;
+    border-radius: 8px;
     font-weight: 700;
-    font-size: 0.84em;
+    font-size: 0.85em;
     text-decoration: none;
     margin-top: 6px;
 }
@@ -333,7 +319,7 @@ input[aria-label="hp"] {
 st.markdown(css_styles, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. إدارة قاعدة البيانات والكتالوج الحسي
+# 3. إدارة قاعدة البيانات والكتالوج المختصر
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -350,7 +336,7 @@ def get_supabase_client() -> Client:
 
 supabase = get_supabase_client()
 
-BASKET_ID = "BLOM-NEWTON-JEDDAH-V10"
+BASKET_ID = "BLOM-NEWTON-JEDDAH-V11"
 BASKET_CAPACITY = 4
 UNIFIED_PRICE = 132
 ORIGINAL_RETAIL = 265
@@ -359,36 +345,40 @@ ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD_HASH = st.secrets.get("ADMIN_PASSWORD", "")
 LIVE_APP_URL = "https://maqsoom-deals.streamlit.app"
 
+# كتالوج مختصر بدون صور وبنوتات سريعة (3 يمين مقابل 3 يسار)
 PERFUMES = {
-    "عطر يوجا (Yoga)": {
-        "tag": "هادئ ومنعش • أصلي",
-        "icon": "🍋",
-        "notes": "برغموت إيطالي • نرجس ندي • مسك قطني نظيف"
-    },
-    "عطر هارت بيت (Heart Beat)": {
-        "tag": "الأكثر طلباً • أصلي",
-        "icon": "🌹",
-        "notes": "كشمش أسود • ورد جوري مخملي • مسك جذاب"
-    },
+    # صف 1: روميو مقابل يوجا
     "عطر روميو (Romeo)": {
         "tag": "رجالي فاخر • أصلي",
-        "icon": "🪵",
-        "notes": "حبوب هيل • باتشولي إندونيسي • فانيلا معتقة"
+        "rating": "4.8 ★",
+        "notes": "باتشولي، فانيلا، ومسك"
     },
+    "عطر يوجا (Yoga)": {
+        "tag": "هادئ ومنعش • أصلي",
+        "rating": "4.8 ★",
+        "notes": "برغموت، مسك نقي، ونرجس"
+    },
+    # صف 2: لونار مقابل لاروزيه
     "عطر لونار (Lunar)": {
-        "tag": "غامض ومميز • أصلي",
-        "icon": "🌊",
-        "notes": "عنب أسود • عنبر بحري عميق • لمسات خشبية"
+        "tag": "أناقة للجنسين • أصلي",
+        "rating": "4.9 ★",
+        "notes": "عنب أسود، باتشولي، وعنبر"
     },
     "عطر لاروزيه (Larose)": {
         "tag": "أنثوي ساحر • أصلي",
-        "icon": "🌸",
-        "notes": "ياسمين رقيق • زنبق أبيض • أخشاب صندل ناعمة"
+        "rating": "5.0 ★",
+        "notes": "فانيلا، زنبق أبيض، وياسمين"
     },
+    # صف 3: اليسيوم مقابل هارت بيت
     "عطر اليسيوم (Elysium)": {
         "tag": "فخامة ملكية • أصلي",
-        "icon": "👑",
-        "notes": "لافندر فرنسي • توابل دافئة • عنبر ملكي فاخر"
+        "rating": "4.9 ★",
+        "notes": "عنبر ملكي، فانيلا، ولافندر"
+    },
+    "عطر هارت بيت (Heart Beat)": {
+        "tag": "حيوي ورومانسي • أصلي",
+        "rating": "4.8 ★",
+        "notes": "كشمش أسود، مسك، وورد"
     }
 }
 
@@ -410,13 +400,6 @@ current_bookings = get_confirmed_bookings(BASKET_ID)
 taken_count = len(current_bookings)
 remaining_spots = max(0, BASKET_CAPACITY - taken_count)
 
-if remaining_spots == 1:
-    urgency_text = "⚡️ متبقي حصة أخيرة وتُقفل الباقة للتنفيذ فوراً!"
-elif remaining_spots > 1:
-    urgency_text = f"🔥 مكتمل {taken_count} من 4 • متبقي {remaining_spots} حصص لتنفيذ الطلب"
-else:
-    urgency_text = "✓ الباقة مكتملة بالكامل وجاري التنسيق والتوصيل"
-
 slots_html = "".join([
     f'<div class="slot-pill taken">حصة {i} مكتملة ✓</div>' if i <= taken_count else
     '<div class="slot-pill" style="border-color:#10b981; color:#10b981; background:rgba(16,185,129,0.05);">حصتك الآن 🔥</div>' if i == taken_count + 1 else
@@ -429,9 +412,9 @@ slots_html = "".join([
 # ==============================================================================
 header_markup = clean_html(f"""
 <div class="top-card">
-    <div class="brand-badge">تطبيق مَقسوم • عروض بلوم (2+2 مجاناً)</div>
-    <div class="headline">نفس الجودة. نصف السعر.</div>
-    <div class="sub-headline">عطرك بـ {UNIFIED_PRICE} ر.س بدلاً من {ORIGINAL_RETAIL} ر.س (مقسوم بالتساوي)</div>
+    <div class="brand-badge">قسم مشترياتك • عروض بلوم (2+2 مجاناً)</div>
+    <div class="headline">تقاسم عروض بلوم Blom</div>
+    <div class="sub-headline">تقاسم السعر أنت و 4 أشخاص</div>
     <div class="slots-container">
         {slots_html}
     </div>
@@ -440,7 +423,7 @@ header_markup = clean_html(f"""
 st.markdown(header_markup, unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة (Viral Loop + Direct Admin Connect)
+# 5. شاشة تأكيد الحصة (مع إرسال حدث Clarity وتفعيل الحلقة الفيروسية)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -448,13 +431,22 @@ if "confirmed_deal" in st.session_state:
     safe_perfume = html.escape(deal['perfume'])
     safe_delivery = html.escape(deal['delivery'])
     
+    # إرسال حدث تحويل مخصص لـ Clarity لفلترة المشترين الحقيقيين فقط
+    components.html("""
+    <script type="text/javascript">
+        if (window.parent && window.parent.clarity) {
+            window.parent.clarity('event', 'seat_booked');
+        }
+    </script>
+    """, height=0, width=0)
+    
     confirm_markup = clean_html(f"""
     <div class="top-card" style="border-color:#10b981;">
         <div class="brand-badge">تم تأكيد حصتك بنجاح 🌿</div>
         <div class="headline" style="font-size:1.1em;">{safe_perfume}</div>
-        <div class="sub-headline">{safe_delivery}</div>
+        <div class="sub-headline" style="color:#cbd5e1 !important;">طريقة الاستلام: {safe_delivery}</div>
         <div style="font-size:1.15em;font-weight:800;color:#ffffff;margin-top:4px;">
-            المطلوب عند الاستلام: <span style="color:#10b981;">{UNIFIED_PRICE} ر.س</span>
+            المطلوب عند الاستلام: <span style="color:#10b981;">{UNIFIED_PRICE} ر.س فقط</span>
         </div>
     </div>
     <div class="notice-card">
@@ -471,13 +463,13 @@ if "confirmed_deal" in st.session_state:
         f"• الجوال: {deal['phone']}\n"
         f"• العطر: {deal['perfume']}\n"
         f"• الاستلام: {deal['delivery']}\n\n"
-        f"بانتظار اكتمال الباقة لاستلام الطلب مع الفاتورة."
+        f"بانتظار اكتمال الباقة لاستلام الطلب مع الفاتورة الرسمية."
     )
     admin_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
-    st.markdown(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز مع المشرف عبر واتساب</a>', unsafe_allow_html=True)
+    st.markdown(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
 
     share_msg = (
-        f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نقسمها بالتساوي.\n"
+        f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نتقاسمها سوا بالتساوي.\n"
         f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية في جدة والتوصيل مجاني أول ما تكتمل.\n\n"
         f"حجزت حصتي وباقي مقاعد بسيطة، ادخل اختر عطرك وقفل الباقة معنا هنا:\n"
         f"{LIVE_APP_URL}"
@@ -489,7 +481,7 @@ if "confirmed_deal" in st.session_state:
 # 6. النموذج واختيار العطر
 # ==============================================================================
 else:
-    st.markdown("<div style='font-size:0.8em;font-weight:700;color:#94a3b8;margin-bottom:4px;'>1. حدد عِطرك المفضل من مجموعة نيوتن:</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.82em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>1. اختر عِطرك من مجموعة نيوتن (Newton):</div>", unsafe_allow_html=True)
     
     chosen_perfume = st.radio(
         "اختر العطر:",
@@ -501,39 +493,43 @@ else:
     
     sensory_markup = clean_html(f"""
     <div class="sensory-card">
-        <div class="sensory-badge-icon">{p['icon']}</div>
-        <div class="sensory-content">
-            <div class="sensory-title-row">
-                <span class="sensory-name">{chosen_perfume}</span>
-                <span class="sensory-tag">{p['tag']}</span>
-            </div>
-            <div class="sensory-notes">{p['notes']}</div>
-            <div class="price-chip">
-                <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:#10b981;">{UNIFIED_PRICE} ر.س</b></span>
-                <span style="color:#10b981;">وفرت {SAVINGS_AMOUNT} ر.س</span>
-            </div>
+        <div class="sensory-header-row">
+            <span class="sensory-name">{chosen_perfume}</span>
+            <span class="sensory-tag">{p['rating']} • {p['tag']}</span>
+        </div>
+        <div class="sensory-notes">المكونات: {p['notes']}</div>
+        <div class="price-chip">
+            <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:#10b981;font-size:1.1em;">{UNIFIED_PRICE} ر.س</b></span>
+            <span style="color:#10b981;">وفرت {SAVINGS_AMOUNT} ر.س (خصم 50%)</span>
         </div>
     </div>
     """)
     st.markdown(sensory_markup, unsafe_allow_html=True)
     
     with st.form("quick_order_form"):
-        st.markdown("<div style='font-size:0.8em;font-weight:700;color:#94a3b8;margin-bottom:4px;'>2. بيانات التأكيد والاستلام:</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.82em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>2. بياناتك وطريقة الاستلام:</div>", unsafe_allow_html=True)
         
+        # 1. الاسم الكريم
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
+        
+        # 2. رقم الجوال
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
         
+        # 3. خيارات الاستلام تحتهما مباشرة
         delivery_mode = st.radio(
-            "طريقة الاستلام (الدفع يد بيد بعد المعاينة):",
+            "طريقة الاستلام والدفع:",
             [
-                f"استلام يد بيد (السلام مول) — {UNIFIED_PRICE} ر.س",
-                f"توصيل مجاني داخل جدة عند اكتمال الباقة — {UNIFIED_PRICE} ر.س"
+                f"استلام يد بيد (السلام مول) — {UNIFIED_PRICE} ر.س عند الاستلام",
+                f"توصيل مجاني داخل جدة — {UNIFIED_PRICE} ر.س عند الاستلام"
             ]
         )
         
+        # 4. الحي (حل النقطة العمياء لتفادي ملاحقة العميل على العنوان)
+        f_district = st.text_input("الحي السكني داخل جدة (في حال التوصيل):", placeholder="مثال: الروضة، الصفا، السامر")
+        
         st.markdown("""
         <div class="trust-strip">
-            🛡️ فحص العطر والكيس والفاتورة الأصلية قبل الدفع يد بيد • لا يوجد أي تحويل مسبق
+            🛡️ فحص العطر والفاتورة الأصلية قبل الدفع يد بيد • لا يوجد أي تحويل مسبق
         </div>
         """, unsafe_allow_html=True)
         
@@ -547,19 +543,32 @@ else:
             if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
             elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
             
-            # فحص فوري ومباشر من قاعدة البيانات لمنع تضارب الحجز لحظياً
+            clean_district = f_district.strip() if f_district else "غير محدد"
+            
+            # فحص فوري ومباشر من قاعدة البيانات لمنع تضارب الحجز
             fresh_bookings = get_confirmed_bookings(BASKET_ID)
+            existing_booking = next((b for b in fresh_bookings if b.get('phone') == clean_phone), None)
             
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
-                st.markdown('<div class="warning-pill">⚠️ يرجى التأكد من كتابة الاسم الثنائي ورقم جوال صحيح يبدأ بـ 05.</div>', unsafe_allow_html=True)
-            elif any(b.get('phone') == clean_phone for b in fresh_bookings):
-                st.markdown('<div class="warning-pill">⚠️ هذا الرقم مسجل بالفعل في الباقة الحالية.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="warning-pill">⚠️ يرجى التأكد من كتابة الاسم الثنائي ورقم جوال سعودي يبدأ بـ 05.</div>', unsafe_allow_html=True)
+            elif existing_booking:
+                # استرجاع حجز العميل مباشرة لمنع التكرار وحل مشكلة تحديث الصفحة
+                st.session_state["confirmed_deal"] = {
+                    "name": existing_booking.get("name"),
+                    "phone": existing_booking.get("phone"),
+                    "perfume": existing_booking.get("level"),
+                    "delivery": existing_booking.get("hear_about", delivery_mode),
+                    "price": UNIFIED_PRICE
+                }
+                st.rerun()
             elif len(fresh_bookings) >= BASKET_CAPACITY:
-                st.markdown('<div class="warning-pill">⚠️ اكتملت الباقة الحالية! جاري فتح باقة جديدة قريباً.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="warning-pill">⚠️ اكتملت الباقة الحالية بالكامل! جاري فتح باقة جديدة قريباً.</div>', unsafe_allow_html=True)
             else:
                 try:
+                    delivery_full = f"{delivery_mode} | الحي: {clean_district}"
+                    client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_full} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
+                    
                     if supabase:
-                        client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
                         supabase.table("bookings").insert({
                             "name": clean_name,
                             "phone": clean_phone,
@@ -568,7 +577,7 @@ else:
                             "level": chosen_perfume,
                             "status": "confirmed",
                             "payment_status": "pending",
-                            "hear_about": delivery_mode[:30],
+                            "hear_about": delivery_full[:40],
                             "player_note": client_note
                         }).execute()
                         st.cache_data.clear()
@@ -579,18 +588,18 @@ else:
                     "name": clean_name,
                     "phone": clean_phone,
                     "perfume": chosen_perfume,
-                    "delivery": delivery_mode,
+                    "delivery": f"{delivery_mode} ({clean_district})",
                     "price": UNIFIED_PRICE
                 }
                 st.rerun()
 
 # ==============================================================================
-# 7. لوحة المشرف المتطورة والتحليلات (Admin & Analytics Console)
+# 7. لوحة المشرف والتحليلات (Admin & Analytics Console)
 # ==============================================================================
 query_params = st.query_params
 if query_params.get("manage") == "faris":
     st.markdown("---")
-    st.caption("لوحة الإدارة والتحليلات")
+    st.caption("لوحة الإدارة والتحليلات السريعة")
     admin_pin = st.text_input("رمز الدخول السري:", type="password", key="adm_key")
     
     if admin_pin and ADMIN_PASSWORD_HASH and hmac.compare_digest(admin_pin.strip(), ADMIN_PASSWORD_HASH):
@@ -599,17 +608,16 @@ if query_params.get("manage") == "faris":
         paid_count = sum(1 for b in bookings_list if b.get('payment_status') == 'paid')
         total_val = total_count * UNIFIED_PRICE
         
-        # مؤشرات أداء حية
         kpi1, kpi2, kpi3 = st.columns(3)
-        kpi1.metric("الحصص المحجوزة", f"{total_count} / {BASKET_CAPACITY}")
+        kpi1.metric("المقاعد المحجوزة", f"{total_count} / {BASKET_CAPACITY}")
         kpi2.metric("المحصل (مدفوع)", f"{paid_count * UNIFIED_PRICE} ر.س")
         kpi3.metric("إجمالي السلة", f"{total_val} ر.س")
         
-        st.markdown("##### قائمة العملاء والمقاعد:")
+        st.markdown("##### قائمة المشتركين:")
         for b in bookings_list:
             card_col, action_col = st.columns([3, 1])
             with card_col:
-                st.write(f"**{b.get('name')}** | `{b.get('phone')}`\nالعطر: **{b.get('level')}**")
+                st.write(f"**{b.get('name')}** | `{b.get('phone')}`\nالعطر: **{b.get('level')}**\nالتسليم: `{b.get('hear_about')}`")
             with action_col:
                 if b.get('payment_status') == 'paid':
                     st.markdown("<span style='color:#10b981; font-weight:700;'>مدفوع ✓</span>", unsafe_allow_html=True)
@@ -620,8 +628,7 @@ if query_params.get("manage") == "faris":
                         st.cache_data.clear()
                         st.rerun()
                 
-                # زر إلغاء لتفريغ المقعد في حال تعذر التواصل مع العميل
-                if st.button("إلغاء الحصة", key=f"cancel_{b.get('id')}"):
+                if st.button("إلغاء المقعد", key=f"cancel_{b.get('id')}"):
                     if supabase:
                         supabase.table("bookings").update({"status": "cancelled"}).eq("id", b.get('id')).execute()
                     st.cache_data.clear()
