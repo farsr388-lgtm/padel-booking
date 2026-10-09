@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 from supabase import create_client, Client
+import textwrap
 import re
 import html
 import hmac
@@ -16,19 +17,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# تتبع تجربة المستخدم عبر Microsoft Clarity
-components.html("""
-<script type="text/javascript">
-    (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window.parent, window.parent.document, "clarity", "script", "ytjnujh8td");
-</script>
-""", height=0, width=0)
+def clean_html(raw_html: str) -> str:
+    """تجريد المسافات البادئة والأسطر الزائدة لمنع انهيار الماركداون أو تسرب الأكواد."""
+    return textwrap.dedent(raw_html).strip()
 
 def sanitize_phone_number(raw_input: str) -> str:
-    """تنظيف وتوحيد أرقام الجوال ومعالجة الأرقام العربية والرموز."""
+    """تنظيف وتوحيد أرقام الجوال ومعالجة الأرقام العربية والرموز ومفتاح الدولة."""
     if not raw_input:
         return ""
     table = str.maketrans(
@@ -42,22 +36,34 @@ def sanitize_phone_number(raw_input: str) -> str:
         cleaned = "0" + cleaned
     return cleaned
 
+# تتبع Microsoft Clarity الأساسي
+components.html(clean_html("""
+    <script type="text/javascript">
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        })(window.parent, window.parent.document, "clarity", "script", "ytjnujh8td");
+    </script>
+"""), height=0, width=0)
+
 # ==============================================================================
-# 2. هندسة أنماط الواجهة (CSS Engine & Defensive Layout)
+# 2. هندسة أنماط الواجهة (استئصال الأحمر واعتماد الكربوني والزمردي)
 # ==============================================================================
-st.markdown("""
+st.markdown(clean_html("""
 <style>
 :root {
     color-scheme: dark;
     --primary: #10b981;
-    --primary-glow: rgba(16, 185, 129, 0.4);
+    --primary-glow: rgba(16, 185, 129, 0.35);
     --active-bg: #064e3b;
     --card-bg: #111827;
     --border-color: rgba(255, 255, 255, 0.12);
-    --danger: #ef4444;
+    --neutral-dot: rgba(255, 255, 255, 0.25);
+    --neutral-dot-bg: rgba(255, 255, 255, 0.05);
 }
 
-/* 1. إخفاء عناصر Streamlit الافتراضية وشعار التاج */
+/* إخفاء عناصر Streamlit الافتراضية وشعار التاج */
 header[data-testid="stHeader"], 
 #MainMenu, 
 footer,
@@ -72,7 +78,7 @@ div[data-testid="stDecoration"],
     display: none !important; 
 }
 
-/* 2. استغلال كامل أبعاد شاشة الجوال */
+/* ضبط استجابة الشاشة على الجوال */
 .block-container {   
     padding-top: 0.2rem !important; 
     padding-bottom: 2rem !important; 
@@ -98,7 +104,7 @@ html, body, [class*="css"] {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* البطاقة العلوية وشريط الحصص */
+/* بطاقة الرأس وحصص السلة */
 .top-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -162,7 +168,6 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
-/* العنوان المركزي الصافي */
 .centered-section-title {
     text-align: center !important;
     font-size: 0.96em !important;
@@ -173,7 +178,7 @@ html, body, [class*="css"] {
 }
 
 /* ==========================================================================
-   3. بطاقات العطور (3 يمين و 3 يسار) ومنع تشتت الحروف
+   شبكة العطور (3 يمين و 3 يسار) مع استئصال الأحمر واستبداله بنقاط كربونية
    ========================================================================== */
 div[data-testid="stRadio"] { width: 100% !important; }
 
@@ -203,6 +208,7 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="rad
     margin: 0 !important;
 }
 
+/* إخفاء دوائر الراديو التلقائية */
 div[data-testid="stRadio"] input[type="radio"] {
     position: absolute !important;
     opacity: 0 !important;
@@ -214,25 +220,24 @@ div[data-testid="stRadio"] label > div:first-child:not(:only-child) {
     display: none !important;
 }
 
-/* النقطة الحمراء للخيارات غير المحددة */
+/* نقطة كربونية رمادية هادئة للخانة غير المحددة (صفر أحمر) */
 div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
     content: "" !important;
     display: inline-block !important;
-    width: 14px !important;
-    height: 14px !important;
-    min-width: 14px !important;
-    min-height: 14px !important;
+    width: 13px !important;
+    height: 13px !important;
+    min-width: 13px !important;
+    min-height: 13px !important;
     border-radius: 50% !important;
-    border: 2px solid var(--danger) !important;
-    background-color: rgba(239, 68, 68, 0.2) !important;
+    border: 1.5px solid var(--neutral-dot) !important;
+    background-color: var(--neutral-dot-bg) !important;
     margin-left: 10px !important;
     margin-right: 0 !important;
     flex-shrink: 0 !important;
-    box-shadow: 0 0 6px rgba(239, 68, 68, 0.35) !important;
     transition: all 0.2s ease !important;
 }
 
-/* النقطة الزمردية والإضاءة الفاخرة عند التحديد */
+/* نقطة زمردية وإضاءة خضراء متوهجة فقط عند التحديد */
 div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
     background-color: var(--active-bg) !important;
     border: 2px solid var(--primary) !important;
@@ -262,7 +267,7 @@ div[data-testid="stRadio"] label:has(input:checked) span {
     font-weight: 900 !important;
 }
 
-/* خيارات الاستلام والتسليم */
+/* خيارات الاستلام والتسليم داخل النموذج */
 form div[data-testid="stRadio"] div[role="radiogroup"],
 div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
@@ -296,7 +301,7 @@ div[data-testid="stForm"] div[data-testid="stRadio"] label span {
     line-height: 1.4 !important;
 }
 
-/* بطاقة معاينة العطر الفاخرة */
+/* بطاقة العطر الاستعراضية */
 .sensory-card {
     background: var(--card-bg);
     border: 1.5px solid rgba(16, 185, 129, 0.4);
@@ -375,7 +380,7 @@ input, textarea {
 }
 input::placeholder { color: #64748b !important; }
 
-/* زر التثبيت */
+/* زر التثبيت الكبير */
 div[data-testid="stFormSubmitButton"] > button {
     background: var(--primary) !important;
     color: #022c22 !important;
@@ -389,16 +394,15 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px !important;
 }
 
-/* تنبيه الخطأ العلوي مع الاهتزاز */
+/* تنبيه الخطأ العلوي */
 @keyframes alertShake {
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-6px); }
     40%, 80% { transform: translateX(6px); }
 }
-
 .warning-pill-shake {
-    background: rgba(239, 68, 68, 0.2) !important;
-    border: 2px solid var(--danger) !important;
+    background: rgba(239, 68, 68, 0.18) !important;
+    border: 1.5px solid #ef4444 !important;
     color: #fecaca !important;
     padding: 12px 14px !important;
     border-radius: 10px !important;
@@ -407,11 +411,11 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-bottom: 12px !important;
     text-align: center !important;
     line-height: 1.4 !important;
-    box-shadow: 0 0 18px rgba(239, 68, 68, 0.4) !important;
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.35) !important;
     animation: alertShake 0.45s ease-in-out !important;
 }
 
-/* بطاقة التقدير وقائمة الانتظار عند اكتمال الباقة */
+/* بطاقة قائمة الانتظار المهذبة */
 .waitlist-card {
     background: rgba(16, 185, 129, 0.08) !important;
     border: 1.5px solid rgba(16, 185, 129, 0.4) !important;
@@ -472,10 +476,10 @@ div[data-testid="stFormSubmitButton"] > button {
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { display: none !important; }
 </style>
-""", unsafe_allow_html=True)
+"""), unsafe_allow_html=True)
 
 # ==============================================================================
-# 4. إعداد الاتصال وكتالوج العطور الفاخرة
+# 3. إعداد الاتصال والكتالوج المعتمد
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -499,7 +503,6 @@ ORIGINAL_RETAIL = 265
 SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
-
 LIVE_APP_URL = "https://dub.sh/mqsoom"
 
 PERFUMES = {
@@ -563,7 +566,7 @@ def get_confirmed_bookings(basket_key: str):
         return []
 
 # ==============================================================================
-# 5. الرأسية التسويقية (تحديث لحظي للحصص)
+# 4. الرأسية التسويقية
 # ==============================================================================
 @st.fragment(run_every="6s")
 def render_live_slots():
@@ -577,21 +580,21 @@ def render_live_slots():
         for i in range(1, BASKET_CAPACITY + 1)
     ])
 
-    st.markdown(f"""
-    <div class="top-card">
-        <div class="brand-badge">قسم مشترياتك • عروض بلوم (2+2 مجاناً)</div>
-        <div class="headline">تقاسم عروض بلوم Blom</div>
-        <div class="sub-headline">السعر بالتساوي بين 4 أشخاص ({UNIFIED_PRICE} ر.س للعبوة)</div>
-        <div class="slots-container">
-            {slots_markup}
+    st.markdown(clean_html(f"""
+        <div class="top-card">
+            <div class="brand-badge">قسم مشترياتك • عروض بلوم (2+2 مجاناً)</div>
+            <div class="headline">تقاسم عروض بلوم Blom</div>
+            <div class="sub-headline">السعر بالتساوي بين 4 أشخاص ({UNIFIED_PRICE} ر.س للعبوة)</div>
+            <div class="slots-container">
+                {slots_markup}
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
 render_live_slots()
 
 # ==============================================================================
-# 6. شاشة تأكيد الحصة (تخصيص الرسائل التفاعلية الذكية لكل عميل)
+# 5. شاشة تأكيد الحصة (رسائل ذكية + حدث التحويل في Clarity)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -615,20 +618,31 @@ if "confirmed_deal" in st.session_state:
         delivery_instruction = "📍 الاستلام: السلام مول (بوابة 5 و 6) - السبت بين المغرب والعشاء"
         card_delivery_note = "موعد الاستلام بالسلام مول: <b>السبت (المغرب إلى العشاء: 6:30م – 9:00م) عند بوابة 5 أو 6</b>."
 
-    st.markdown(f"""
-    <div class="top-card" style="border-color:var(--primary);">
-        <div class="brand-badge">تم تأكيد حصتك بنجاح 🌿</div>
-        <div class="headline" style="font-size:1.15em;">{safe_perfume}</div>
-        <div class="sub-headline" style="color:#cbd5e1 !important;">{safe_delivery}</div>
-        <div style="font-size:1.15em;font-weight:800;color:#ffffff;margin-top:5px;">
-            المطلوب عند الاستلام: <span style="color:var(--primary);">{UNIFIED_PRICE} ر.س فقط</span>
+    st.markdown(clean_html(f"""
+        <div class="top-card" style="border-color:var(--primary);">
+            <div class="brand-badge">تم تأكيد حصتك بنجاح 🌿</div>
+            <div class="headline" style="font-size:1.15em;">{safe_perfume}</div>
+            <div class="sub-headline" style="color:#cbd5e1 !important;">{safe_delivery}</div>
+            <div style="font-size:1.15em;font-weight:800;color:#ffffff;margin-top:5px;">
+                المطلوب عند الاستلام: <span style="color:var(--primary);">{UNIFIED_PRICE} ر.س فقط</span>
+            </div>
         </div>
-    </div>
-    <div class="notice-card">
-        🤝 <b>الدفع يد بيد بعد المعاينة والفاتورة الأصلية</b><br>
-        {card_delivery_note}
-    </div>
-    """, unsafe_allow_html=True)
+        <div class="notice-card">
+            🤝 <b>الدفع يد بيد بعد المعاينة والفاتورة الأصلية</b><br>
+            {card_delivery_note}
+        </div>
+    """), unsafe_allow_html=True)
+
+    # إرسال حدث التحويل المخصص لـ Microsoft Clarity
+    components.html(clean_html("""
+        <script>
+            try {
+                if (window.parent && window.parent.clarity) {
+                    window.parent.clarity("event", "seat_booked");
+                }
+            } catch(e) {}
+        </script>
+    """), height=0, width=0)
 
     wa_admin_msg = (
         f"مرحباً 🌿\n"
@@ -641,7 +655,7 @@ if "confirmed_deal" in st.session_state:
         f"بانتظار تأكيدك واستلام الفاتورة الأصلية وفحص العطر يد بيد."
     )
     admin_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
-    st.markdown(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
+    st.markdown(clean_html(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>'), unsafe_allow_html=True)
 
     share_msg = (
         f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نتقاسمها بين 4 بالتساوي.\n"
@@ -650,17 +664,17 @@ if "confirmed_deal" in st.session_state:
         f"{LIVE_APP_URL}"
     )
     share_link = f"https://wa.me/?text={urllib.parse.quote(share_msg)}"
-    st.markdown(f'<a href="{share_link}" target="_blank" class="wa-share-btn">👥 شارك العرض مع خويك لتكتمل الباقة أسرع</a>', unsafe_allow_html=True)
+    st.markdown(clean_html(f'<a href="{share_link}" target="_blank" class="wa-share-btn">👥 شارك العرض مع خويك لتكتمل الباقة أسرع</a>'), unsafe_allow_html=True)
 
     if st.button("تعديل الاختيار أو حجز مقعد آخر", use_container_width=True):
         del st.session_state["confirmed_deal"]
         st.rerun()
 
 # ==============================================================================
-# 7. النموذج: اختيار العطر وبيانات الاستلام
+# 6. النموذج وتجربة الاختيار السلسة
 # ==============================================================================
 else:
-    st.markdown('<div class="centered-section-title">اختر عطرك من باقة نيوتن</div>', unsafe_allow_html=True)
+    st.markdown(clean_html('<div class="centered-section-title">اختر عطرك من باقة نيوتن</div>'), unsafe_allow_html=True)
 
     chosen_perfume = st.radio(
         "اختر العطر:",
@@ -670,32 +684,32 @@ else:
 
     p = PERFUMES[chosen_perfume]
     
-    st.markdown(f"""
-    <div class="sensory-card">
-        <div class="sensory-top-row">
-            <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" loading="eager" />
-            <div class="sensory-details">
-                <div class="sensory-name">{chosen_perfume} <span style="font-size:0.8em;color:#94a3b8;font-weight:500;">({p['en_name']})</span></div>
-                <div class="sensory-tag">🌿 {p['ingredient_label']}</div>
-                <div class="sensory-notes">المكونات: {p['notes']}</div>
+    st.markdown(clean_html(f"""
+        <div class="sensory-card">
+            <div class="sensory-top-row">
+                <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" loading="eager" />
+                <div class="sensory-details">
+                    <div class="sensory-name">{chosen_perfume} <span style="font-size:0.8em;color:#94a3b8;font-weight:500;">({p['en_name']})</span></div>
+                    <div class="sensory-tag">🌿 {p['ingredient_label']}</div>
+                    <div class="sensory-notes">المكونات: {p['notes']}</div>
+                </div>
+            </div>
+            <div class="price-chip">
+                <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:var(--primary);font-size:1.15em;">{UNIFIED_PRICE} ر.س</b></span>
+                <span style="color:var(--primary);font-weight:800;">وفرت {SAVINGS_AMOUNT} ر.س (خصم 50%)</span>
             </div>
         </div>
-        <div class="price-chip">
-            <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:var(--primary);font-size:1.15em;">{UNIFIED_PRICE} ر.س</b></span>
-            <span style="color:var(--primary);font-weight:800;">وفرت {SAVINGS_AMOUNT} ر.س (خصم 50%)</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    """), unsafe_allow_html=True)
 
     with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
-        st.markdown('<div class="centered-section-title" style="margin-top:0;">بيانات التأكيد والاستلام</div>', unsafe_allow_html=True)
+        st.markdown(clean_html('<div class="centered-section-title" style="margin-top:0;">بيانات التأكيد والاستلام</div>'), unsafe_allow_html=True)
 
         alert_placeholder = st.empty()
 
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
 
-        st.markdown('<div class="centered-section-title" style="font-size:0.88em;margin-top:8px;margin-bottom:4px;">حدد طريقة وموعد الاستلام</div>', unsafe_allow_html=True)
+        st.markdown(clean_html('<div class="centered-section-title" style="font-size:0.88em;margin-top:8px;margin-bottom:4px;">حدد طريقة وموعد الاستلام</div>'), unsafe_allow_html=True)
 
         delivery_mode = st.radio(
             "طريقة وموعد الاستلام:",
@@ -707,11 +721,11 @@ else:
             label_visibility="collapsed"
         )
 
-        st.markdown("""
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:7px;text-align:center;font-size:0.73em;color:#94a3b8;margin:8px 0;">
-            🛡️ أصلي 100% • فحص العطر والفاتورة الأصلية قبل الدفع يد بيد
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(clean_html("""
+            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:7px;text-align:center;font-size:0.73em;color:#94a3b8;margin:8px 0;">
+                🛡️ أصلي 100% • فحص العطر والفاتورة الأصلية قبل الدفع يد بيد
+            </div>
+        """), unsafe_allow_html=True)
 
         hp = st.text_input("hp", label_visibility="collapsed")
         submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
@@ -725,24 +739,23 @@ else:
 
             # 1. التحقق من صحة الاسم ورقم الجوال
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
-                alert_placeholder.markdown(
-                    '<div id="form-top-alert" class="warning-pill-shake">'
-                    '⚠️ يرجى التأكد من كتابة اسمك الكريم ورقم جوالك السعودي (05xxxxxxxx)'
-                    '</div>',
-                    unsafe_allow_html=True
-                )
-                components.html("""
-                <script>
-                    setTimeout(() => {
-                        try {
-                            const banner = window.parent.document.getElementById('form-top-alert');
-                            if (banner) {
-                                banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }
-                        } catch(e) {}
-                    }, 50);
-                </script>
-                """, height=0, width=0)
+                alert_placeholder.markdown(clean_html("""
+                    <div id="form-top-alert" class="warning-pill-shake">
+                        ⚠️ يرجى التأكد من كتابة اسمك الكريم ورقم جوالك السعودي (05xxxxxxxx)
+                    </div>
+                """), unsafe_allow_html=True)
+                components.html(clean_html("""
+                    <script>
+                        setTimeout(() => {
+                            try {
+                                const banner = window.parent.document.getElementById('form-top-alert');
+                                if (banner) {
+                                    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                            } catch(e) {}
+                        }, 50);
+                    </script>
+                """), height=0, width=0)
 
             # 2. في حال كان العميل مسجلاً مسبقاً بنفس الرقم
             elif existing_booking:
@@ -755,28 +768,27 @@ else:
                 }
                 st.rerun()
 
-            # 3. في حال اكتمال الباقة: رسالة التقدير الراقية وقائمة الانتظار
+            # 3. في حال اكتمال الباقة: رسالة التقدير المهذبة وقائمة الانتظار
             elif len(fresh_bookings) >= BASKET_CAPACITY:
-                alert_placeholder.markdown(
-                    '<div class="waitlist-card">'
-                    '✨ <b>شكراً جزيلاً لثقتك واهتمامك يا غالي 🌿</b>'
-                    'مقاعد هذه الباقة اكتملت للتو بالكامل، وسعداء جداً برغبتك معنا.<br>'
-                    'سنبادر بالتواصل معك فوراً عبر الواتساب في حال توفر مقعد بديل أو مع إطلاق السلة القادمة مباشرة.'
-                    '</div>',
-                    unsafe_allow_html=True
-                )
-                components.html("""
-                <script>
-                    setTimeout(() => {
-                        try {
-                            const banner = window.parent.document.querySelector('.waitlist-card');
-                            if (banner) {
-                                banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }
-                        } catch(e) {}
-                    }, 50);
-                </script>
-                """, height=0, width=0)
+                alert_placeholder.markdown(clean_html("""
+                    <div class="waitlist-card">
+                        ✨ <b>شكراً جزيلاً لثقتك واهتمامك يا غالي 🌿</b>
+                        مقاعد هذه الباقة اكتملت للتو بالكامل، وسعداء جداً باختيارك.<br>
+                        سنتواصل معك عبر الواتساب فوراً في حال اعتذر أحد المشتركين أو مع إطلاق السلة القادمة مباشرة.
+                    </div>
+                """), unsafe_allow_html=True)
+                components.html(clean_html("""
+                    <script>
+                        setTimeout(() => {
+                            try {
+                                const banner = window.parent.document.querySelector('.waitlist-card');
+                                if (banner) {
+                                    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                            } catch(e) {}
+                        }, 50);
+                    </script>
+                """), height=0, width=0)
 
             # 4. إتمام الحجز بنجاح
             else:
@@ -811,7 +823,7 @@ else:
                         alert_placeholder.error(f"تعذر إتمام التسجيل في السيرفر: {db_err}")
 
 # ==============================================================================
-# 8. لوحة الإدارة المحصنة هندسياً 100% ضد انهيار الرمز (UTF-8 Defensive Encoding)
+# 7. لوحة المشرف المحصنة بتشفير UTF-8 ومنع Timing Attacks
 # ==============================================================================
 if st.query_params.get("manage") == "faris":
     st.markdown("---")
@@ -824,7 +836,7 @@ if st.query_params.get("manage") == "faris":
     is_authenticated = False
     if input_pin_str and target_pwd_str:
         try:
-            # تحويل النصوص إلى بايت UTF-8 يمنع تماماً انهيار الدالة مع الحروف العربية أو الرموز
+            # حماية صارمة بنظام UTF-8 تمنع انهيار الدالة مع الحروف العربية أو الرموز
             is_authenticated = hmac.compare_digest(
                 input_pin_str.encode("utf-8"),
                 target_pwd_str.encode("utf-8")
