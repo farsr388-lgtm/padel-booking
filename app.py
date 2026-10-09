@@ -28,11 +28,11 @@ components.html("""
 """, height=0, width=0)
 
 def clean_html(raw: str) -> str:
-    """تنظيف تام للنصوص البرمجية لمنع ثغرة الـ Markdown Indentation."""
+    """تنظيف تام للنصوص البرمجية لمنع ثغرة الـ Markdown Indentation في Streamlit."""
     return "".join(line.strip() for line in raw.splitlines() if line.strip())
 
 # ==============================================================================
-# 2. أنماط الواجهة (Minimal Dark Luxury - بدون أي لون أحمر)
+# 2. أنماط الواجهة (Minimal Dark Luxury - خالي من أي لون أحمر)
 # ==============================================================================
 css_styles = clean_html("""
 <style>
@@ -85,6 +85,19 @@ html, body, [class*="css"] {
     margin: 2px 0 8px 0;
 }
 
+/* مؤشر الاستعجال التفاعلي */
+.urgency-badge {
+    display: inline-block;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+    font-size: 0.72em;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
 /* شبكة الحصص الأربعة */
 .slots-container {
     display: grid;
@@ -111,7 +124,7 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
-/* شبكة أزرار الاختيار المتقابلة */
+/* شبكة أزرار الاختيار */
 div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -143,7 +156,7 @@ div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiog
     background-color: rgba(16, 185, 129, 0.1) !important;
 }
 
-/* إزالة اللون الأحمر تماماً من دوائر الراديو */
+/* دوائر الراديو بلون زمردي هادئ */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
     border-color: #475569 !important;
     background-color: transparent !important;
@@ -157,7 +170,7 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     background-color: #10b981 !important;
 }
 
-/* بطاقة استعراض العطر الحسي الفاخر */
+/* بطاقة استعراض العطر الحسي */
 .sensory-card {
     background: #111827;
     border: 1px solid rgba(16, 185, 129, 0.25);
@@ -274,6 +287,19 @@ div[data-testid="stFormSubmitButton"] > button {
     line-height: 1.4;
     margin: 6px 0;
 }
+
+/* شريط الثقة */
+.trust-strip {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    padding: 6px 8px;
+    text-align: center;
+    font-size: 0.72em;
+    color: #94a3b8;
+    margin: 4px 0 6px 0;
+}
+
 .wa-link-btn {
     display: block;
     background: #10b981;
@@ -283,6 +309,19 @@ div[data-testid="stFormSubmitButton"] > button {
     border-radius: 6px;
     font-weight: 800;
     font-size: 0.9em;
+    text-decoration: none;
+    margin-top: 6px;
+}
+.wa-share-btn {
+    display: block;
+    background: #030712;
+    border: 1px solid #10b981;
+    color: #10b981 !important;
+    text-align: center;
+    padding: 9px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.84em;
     text-decoration: none;
     margin-top: 6px;
 }
@@ -333,8 +372,8 @@ ORIGINAL_RETAIL = 265
 SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD_HASH = st.secrets.get("ADMIN_PASSWORD", "")
+LIVE_APP_URL = "https://maqsoom-deals.streamlit.app"
 
-# كتالوج العطور الحسي المعزول عن مشاكل الشبكات وروابط الصور الخارجية
 PERFUMES = {
     "عطر يوجا (Yoga)": {
         "tag": "هادئ ومنعش • أصلي",
@@ -384,8 +423,16 @@ def get_confirmed_bookings(basket_key: str):
 
 current_bookings = get_confirmed_bookings(BASKET_ID)
 taken_count = len(current_bookings)
+remaining_spots = max(0, BASKET_CAPACITY - taken_count)
 
-# شريط مقاعد الحصص التفاعلي
+# مؤشر الحصص والاستعجال
+if remaining_spots == 1:
+    urgency_text = "⚡️ متبقي حصة أخيرة وتُقفل الباقة للتنفيذ فوراً!"
+elif remaining_spots > 1:
+    urgency_text = f"🔥 مكتمل {taken_count} من 4 • متبقي {remaining_spots} حصص لتنفيذ الطلب"
+else:
+    urgency_text = "✓ الباقة مكتملة بالكامل وجاري التنسيق والتوصيل"
+
 slots_html = "".join([
     f'<div class="slot-pill taken">حصة {i} مكتملة ✓</div>' if i <= taken_count else
     '<div class="slot-pill" style="border-color:#10b981; color:#10b981; background:rgba(16,185,129,0.05);">حصتك الآن 🔥</div>' if i == taken_count + 1 else
@@ -398,9 +445,10 @@ slots_html = "".join([
 # ==============================================================================
 header_markup = clean_html(f"""
 <div class="top-card">
-    <div class="brand-badge">تطبيق مَقسوم • عرض بلوم (2+2 مجاناً)</div>
+    <div class="brand-badge">تطبيق مَقسوم • عروض بلوم (2+2 مجاناً)</div>
     <div class="headline">نفس الجودة. نصف السعر.</div>
     <div class="sub-headline">عطرك بـ {UNIFIED_PRICE} ر.س بدلاً من {ORIGINAL_RETAIL} ر.س (مقسوم بالتساوي)</div>
+    <div class="urgency-badge">{urgency_text}</div>
     <div class="slots-container">
         {slots_html}
     </div>
@@ -409,7 +457,7 @@ header_markup = clean_html(f"""
 st.markdown(header_markup, unsafe_allow_html=True)
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة
+# 5. شاشة تأكيد الحصة (Viral Loop + Direct Admin Connect)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -419,7 +467,7 @@ if "confirmed_deal" in st.session_state:
     
     confirm_markup = clean_html(f"""
     <div class="top-card" style="border-color:#10b981;">
-        <div class="brand-badge">تم تأكيد حصتك في الباقة</div>
+        <div class="brand-badge">تم تأكيد حصتك بنجاح 🌿</div>
         <div class="headline" style="font-size:1.1em;">{safe_perfume}</div>
         <div class="sub-headline">{safe_delivery}</div>
         <div style="font-size:1.15em;font-weight:800;color:#ffffff;margin-top:4px;">
@@ -427,29 +475,40 @@ if "confirmed_deal" in st.session_state:
         </div>
     </div>
     <div class="notice-card">
-        🤝 <b>الدفع عند الاستلام يد بيد</b><br>
-        سنتواصل معك عبر الواتساب فور اكتمال الباقة وتجهيز طلبك مع الفاتورة.
+        🤝 <b>الدفع يد بيد بعد المعاينة والفاتورة</b><br>
+        سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد موعد التسليم مباشرة.
     </div>
     """)
     st.markdown(confirm_markup, unsafe_allow_html=True)
     
-    wa_msg = (
+    # 1. زر التواصل مع المشرف
+    wa_admin_msg = (
         f"مرحباً 🌿\n"
-        f"سجلت اهتمامي في تطبيق مَقسوم - مجموعة نيوتن ({UNIFIED_PRICE} ر.س):\n\n"
+        f"حجزت حصتي في تطبيق مَقسوم - مجموعة نيوتن ({UNIFIED_PRICE} ر.س):\n\n"
         f"• الاسم: {deal['name']}\n"
         f"• الجوال: {deal['phone']}\n"
         f"• العطر: {deal['perfume']}\n"
         f"• الاستلام: {deal['delivery']}\n\n"
-        f"بانتظار اكتمال الباقة لتأكيد موعد التسليم."
+        f"بانتظار اكتمال الباقة لاستلام الطلب مع الفاتورة."
     )
-    wa_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_msg)}"
-    st.markdown(f'<a href="{wa_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
+    admin_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
+    st.markdown(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز مع المشرف عبر واتساب</a>', unsafe_allow_html=True)
+
+    # 2. زر مشاركة الرابط مع الأصدقاء
+    share_msg = (
+        f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نقسمها بالتساوي.\n"
+        f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية في جدة والتوصيل مجاني أول ما تكتمل.\n\n"
+        f"حجزت حصتي وباقي مقاعد بسيطة، ادخل اختر عطرك وقفل الباقة معنا هنا:\n"
+        f"{LIVE_APP_URL}"
+    )
+    share_link = f"https://wa.me/?text={urllib.parse.quote(share_msg)}"
+    st.markdown(f'<a href="{share_link}" target="_blank" class="wa-share-btn">👥 شارك العرض مع خويك لتكتمل الباقة أسرع</a>', unsafe_allow_html=True)
 
 # ==============================================================================
 # 6. النموذج واختيار العطر
 # ==============================================================================
 else:
-    st.markdown("<div style='font-size:0.8em;font-weight:700;color:#94a3b8;margin-bottom:4px;'>1. حدد عِطرك من مجموعة نيوتن:</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.8em;font-weight:700;color:#94a3b8;margin-bottom:4px;'>1. حدد عِطرك المفضل من مجموعة نيوتن:</div>", unsafe_allow_html=True)
     
     chosen_perfume = st.radio(
         "اختر العطر:",
@@ -484,12 +543,18 @@ else:
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
         
         delivery_mode = st.radio(
-            "طريقة الاستلام والدفع:",
+            "طريقة الاستلام (الدفع يد بيد بعد المعاينة):",
             [
                 f"استلام يد بيد (السلام مول) — {UNIFIED_PRICE} ر.س",
-                f"توصيل داخل جدة — {UNIFIED_PRICE} ر.س"
+                f"توصيل مجاني داخل جدة عند اكتمال الباقة — {UNIFIED_PRICE} ر.س"
             ]
         )
+        
+        st.markdown("""
+        <div class="trust-strip">
+            🛡️ فحص العطر والكيس والفاتورة الأصلية قبل الدفع يد بيد • لا يوجد أي تحويل مسبق
+        </div>
+        """, unsafe_allow_html=True)
         
         hp = st.text_input("hp", label_visibility="collapsed")
         submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
@@ -502,7 +567,11 @@ else:
             elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
             
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
-                st.markdown('<div class="warning-pill">⚠️ يرجى التأكد من كتابة الاسم ورقم جوال يبدأ بـ 05.</div>', unsafe_allow_html=True)
+                st.markdown('<div class="warning-pill">⚠️ يرجى التأكد من كتابة الاسم الثنائي ورقم جوال صحيح يبدأ بـ 05.</div>', unsafe_allow_html=True)
+            elif any(b.get('phone') == clean_phone for b in current_bookings):
+                st.markdown('<div class="warning-pill">⚠️ هذا الرقم مسجل بالفعل في الباقة الحالية.</div>', unsafe_allow_html=True)
+            elif taken_count >= BASKET_CAPACITY:
+                st.markdown('<div class="warning-pill">⚠️ اكتملت الباقة الحالية! جاري فتح باقة جديدة قريباً.</div>', unsafe_allow_html=True)
             else:
                 try:
                     if supabase:
@@ -532,23 +601,24 @@ else:
                 st.rerun()
 
 # ==============================================================================
-# 7. بوابة المشرف المعزولة
+# 7. لوحة المشرف السريعة
 # ==============================================================================
 query_params = st.query_params
 if query_params.get("manage") == "faris":
     st.markdown("---")
-    st.caption("لوحة التحكم")
+    st.caption("لوحة الإدارة")
     admin_pin = st.text_input("رمز الدخول:", type="password", key="adm_key")
     
     if admin_pin and ADMIN_PASSWORD_HASH and hmac.compare_digest(admin_pin.strip(), ADMIN_PASSWORD_HASH):
         bookings_list = get_confirmed_bookings(BASKET_ID)
+        st.write(f"**إجمالي الحجوزات:** {len(bookings_list)} من {BASKET_CAPACITY}")
         for b in bookings_list:
             col1, col2, col3 = st.columns([2.2, 1, 1])
             col1.write(f"**{b.get('name')}** - `{b.get('level', '-')}`\n`{b.get('phone')}`")
             if b.get('payment_status') == 'paid':
-                col2.markdown("<span style='color:#10b981; font-weight:700;'>مدفوع</span>", unsafe_allow_html=True)
+                col2.markdown("<span style='color:#10b981; font-weight:700;'>مكتمل</span>", unsafe_allow_html=True)
             else:
-                col2.markdown("<span style='color:#71717a;'>محجوز</span>", unsafe_allow_html=True)
+                col2.markdown("<span style='color:#71717a;'>بانتظار الاستلام</span>", unsafe_allow_html=True)
                 if col3.button("اعتماد", key=f"pay_{b.get('id')}"):
                     if supabase:
                         supabase.table("bookings").update({"payment_status": "paid"}).eq("id", b.get('id')).execute()
