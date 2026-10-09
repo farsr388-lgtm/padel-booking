@@ -28,7 +28,7 @@ components.html("""
 """, height=0, width=0)
 
 # ==============================================================================
-# 2. أنماط الواجهة (Minimal Dark Luxury - بدون أي لون أحمر)
+# 2. أنماط الواجهة (Minimal Dark Luxury - خالية تماماً من الأحمر)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -81,7 +81,7 @@ html, body, [class*="css"] {
     margin: 2px 0 8px 0;
 }
 
-/* شبكة مقاعد الحصص الأربعة التفاعلية */
+/* شبكة الحصص الأربعة */
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -107,7 +107,7 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
-/* أزرار اختيار العطور في شبكة متقابلة 2x3 */
+/* شبكة أزرار الاختيار */
 div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -139,6 +139,7 @@ div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiog
     background-color: rgba(16, 185, 129, 0.1) !important;
 }
 
+/* إزالة الأحمر نهائياً من مؤشرات التحديد */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
     border-color: #475569 !important;
     background-color: transparent !important;
@@ -152,68 +153,21 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     background-color: #10b981 !important;
 }
 
-/* بطاقة الحصة المتغيرة غير التقليدية */
-.bottle-showcase-card {
-    background: #111827;
-    border: 1px solid rgba(16, 185, 129, 0.25);
-    border-radius: 12px;
-    padding: 10px 12px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-}
-.bottle-svg-wrapper {
-    width: 66px;
-    height: 80px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: radial-gradient(circle, rgba(16,185,129,0.08) 0%, rgba(11,15,25,0.9) 70%);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-.bottle-details {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-.bottle-title-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.bottle-name {
-    font-size: 0.9em;
-    font-weight: 800;
-    color: #ffffff;
-}
-.bottle-tag {
-    font-size: 0.72em;
-    color: #10b981;
-    font-weight: 700;
-}
-.bottle-notes {
-    font-size: 0.76em;
-    color: #94a3b8;
-    line-height: 1.3;
-}
+/* شريحة السعر */
 .price-chip {
     background: rgba(16, 185, 129, 0.08);
     border: 1px solid rgba(16, 185, 129, 0.2);
-    border-radius: 6px;
-    padding: 4px 8px;
+    border-radius: 8px;
+    padding: 8px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.76em;
+    font-size: 0.8em;
     font-weight: 700;
-    margin-top: 2px;
+    margin: 8px 0;
 }
 
-/* النموذج */
+/* عناصر الإدخال والنموذج */
 form div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
@@ -302,7 +256,7 @@ input[aria-label="hp"] {
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. إعداد الاتصال والكتالوج التفاعلي
+# 3. محرك البيانات وإعداد الاتصال
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -327,77 +281,41 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD_HASH = st.secrets.get("ADMIN_PASSWORD", "")
 
-def get_bottle_svg(accent_color: str, glow_color: str) -> str:
-    """توليد مجسم هندسي دقيق لزجاجة نيوتن مع الغطاء الذهبي المشجر."""
-    return f"""
-    <svg width="50" height="74" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <linearGradient id="capGold" x1="0" y1="0" x2="100" y2="0" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#CA8A04"/>
-                <stop offset="0.5" stop-color="#FDE047"/>
-                <stop offset="1" stop-color="#A16207"/>
-            </linearGradient>
-            <linearGradient id="liquidGrad" x1="50" y1="50" x2="50" y2="140" gradientUnits="userSpaceOnUse">
-                <stop stop-color="{accent_color}" stop-opacity="0.25"/>
-                <stop offset="1" stop-color="{glow_color}" stop-opacity="0.85"/>
-            </linearGradient>
-        </defs>
-        <!-- غطاء نيوتن المضلع الفاخر -->
-        <path d="M35 10 H65 V34 H35 Z" fill="url(#capGold)" rx="2"/>
-        <line x1="42" y1="12" x2="42" y2="32" stroke="#78350F" stroke-width="1.5" stroke-dasharray="2 2"/>
-        <line x1="50" y1="12" x2="50" y2="32" stroke="#78350F" stroke-width="1.5" stroke-dasharray="2 2"/>
-        <line x1="58" y1="12" x2="58" y2="32" stroke="#78350F" stroke-width="1.5" stroke-dasharray="2 2"/>
-        <rect x="42" y="34" width="16" height="6" fill="#D97706"/>
-        
-        <!-- جسم الزجاجة المنحوت -->
-        <path d="M26 44 C26 40 40 40 50 40 C60 40 74 40 74 44 L84 68 C86 74 86 130 80 142 C74 146 62 148 50 148 C38 148 26 146 20 142 C14 130 14 74 16 68 Z" 
-              fill="url(#liquidGrad)" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
-        
-        <!-- حواف التضليع الكريستالي -->
-        <path d="M30 65 L50 90 L70 65" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" fill="none"/>
-        <path d="M25 90 L50 118 L75 90" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" fill="none"/>
-        <rect x="36" y="86" width="28" height="20" rx="2" fill="rgba(15,23,42,0.85)" stroke="#F59E0B" stroke-width="0.8"/>
-        <line x1="40" y1="96" x2="60" y2="96" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-    """
+# الروابط المباشرة لصور عطور نيوتن من CDN سلة
+IMG_STANDING = "https://cdn.salla.sa/f8814412-7559-4a63-becf-105144da6c16-1000x1000-qq98OmZcvROINDI3JAV8yYHxUS5NN8jkzt8HdzCb.png"
+IMG_LYING = "https://cdn.salla.sa/f2cca95c-3fc3-48bd-a008-82b49ea0cd1c-1000x1000-ZxKeUscIKEeLzfjYTYvNjbbcH1AUgn82dQ0YfwAL.png"
 
-# كتالوج العطور مع طابع وألوان الهوية الحسية
+# توزيع الصور بالتبادل بين العطور لتقديم تجربة حركية ومتنوعة
 PERFUMES = {
     "عطر يوجا (Yoga)": {
         "tag": "هادئ ومنعش • أصلي",
         "notes": "برغموت إيطالي • نرجس • مسك قطني نظيف",
-        "accent": "#10B981",
-        "glow": "#059669"
+        "image": IMG_STANDING
     },
     "عطر هارت بيت (Heart Beat)": {
         "tag": "الأكثر طلباً • أصلي",
         "notes": "كشمش أسود • ورد جوري • مسك مخملي",
-        "accent": "#F43F5E",
-        "glow": "#BE123C"
+        "image": IMG_LYING
     },
     "عطر روميو (Romeo)": {
         "tag": "رجالي فاخر • أصلي",
         "notes": "هيل • باتشولي إندونيسي • فانيلا معتقة",
-        "accent": "#D97706",
-        "glow": "#78350F"
+        "image": IMG_STANDING
     },
     "عطر لونار (Lunar)": {
         "tag": "غامض ومميز • أصلي",
         "notes": "عنب أسود • باتشولي عميق • عنبر دافئ",
-        "accent": "#38BDF8",
-        "glow": "#1D4ED8"
+        "image": IMG_LYING
     },
     "عطر لاروزيه (Larose)": {
         "tag": "أنثوي ساحر • أصلي",
         "notes": "ياسمين رقيق • زنبق • لمسة صندل",
-        "accent": "#F472B6",
-        "glow": "#9D174D"
+        "image": IMG_STANDING
     },
     "عطر اليسيوم (Elysium)": {
         "tag": "فخامة ملكية • أصلي",
         "notes": "لافندر فرنسي • توابل دافئة • عنبر ملكي",
-        "accent": "#FBBF24",
-        "glow": "#B45309"
+        "image": IMG_LYING
     }
 }
 
@@ -417,20 +335,19 @@ def get_confirmed_bookings(basket_key: str):
 
 current_bookings = get_confirmed_bookings(BASKET_ID)
 taken_count = len(current_bookings)
-slots_left = max(0, BASKET_CAPACITY - taken_count)
 
-# توليد حبات الحصص التفاعلية
+# شريط الحصص التفاعلي
 slots_html = ""
 for i in range(1, BASKET_CAPACITY + 1):
     if i <= taken_count:
         slots_html += f'<div class="slot-pill taken">حصة {i} مكتملة ✓</div>'
     elif i == taken_count + 1:
-        slots_html += f'<div class="slot-pill" style="border-color:#10b981; color:#10b981; background:rgba(16,185,129,0.05);">حصتك الآن 🔥</div>'
+        slots_html += '<div class="slot-pill" style="border-color:#10b981; color:#10b981; background:rgba(16,185,129,0.05);">حصتك الآن 🔥</div>'
     else:
         slots_html += f'<div class="slot-pill available">متاح {i}</div>'
 
 # ==============================================================================
-# 4. الرأسية التسويقية ومقاعد الحصص
+# 4. الرأسية التسويقية
 # ==============================================================================
 st.markdown(f"""
 <div class="top-card">
@@ -492,24 +409,19 @@ else:
     )
     
     p = PERFUMES[chosen_perfume]
-    svg_code = get_bottle_svg(p["accent"], p["glow"])
     
+    # عرض الصورة الأصلية المتغيرة بكل ثبات عبر محرك Streamlit الأصلي
+    col_img, col_txt = st.columns([1, 2])
+    with col_img:
+        st.image(p["image"], use_container_width=True)
+    with col_txt:
+        st.markdown(f"**{chosen_perfume}**")
+        st.caption(f"{p['tag']}\n\n{p['notes']}")
+        
     st.markdown(f"""
-    <div class="bottle-showcase-card">
-        <div class="bottle-svg-wrapper">
-            {svg_code}
-        </div>
-        <div class="bottle-details">
-            <div class="bottle-title-row">
-                <span class="bottle-name">{chosen_perfume}</span>
-                <span class="bottle-tag">{p['tag']}</span>
-            </div>
-            <div class="bottle-notes">{p['notes']}</div>
-            <div class="price-chip">
-                <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:#10b981;">{UNIFIED_PRICE} ر.س</b></span>
-                <span style="color:#10b981;">وفرت {SAVINGS_AMOUNT} ر.س</span>
-            </div>
-        </div>
+    <div class="price-chip">
+        <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:#10b981;">{UNIFIED_PRICE} ر.س</b></span>
+        <span style="color:#10b981;">وفرت {SAVINGS_AMOUNT} ر.س</span>
     </div>
     """, unsafe_allow_html=True)
     
