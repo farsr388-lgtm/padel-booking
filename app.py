@@ -7,16 +7,16 @@ import hmac
 import urllib.parse
 
 # ==============================================================================
-# 1. إعداد الصفحة والتهيئة
+# 1. إعداد الصفحة والتهيئة الأساسية
 # ==============================================================================
 st.set_page_config(
-    page_title="مَقسوم | عروض بلوم نيوتن",
+    page_title="مَقسوم | تقاسم عروض بلوم - نيوتن",
     page_icon="🌿",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# تتبع Microsoft Clarity الأساسي
+# تتبع تجربة المستخدم عبر Microsoft Clarity
 components.html("""
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -28,7 +28,7 @@ components.html("""
 """, height=0, width=0)
 
 def sanitize_phone_number(raw_input: str) -> str:
-    """تنظيف وتحويل أرقام الجوال بدقة عالية مع معالجة الأرقام العربية."""
+    """تنظيف وتوحيد أرقام الجوال ومنع أخطاء الأرقام العربية والرموز."""
     if not raw_input:
         return ""
     table = str.maketrans(
@@ -43,19 +43,21 @@ def sanitize_phone_number(raw_input: str) -> str:
     return cleaned
 
 # ==============================================================================
-# 2. أنماط الواجهة (حل مشكلة تشتت الحروف + دوائر حمراء وخضراء منتظمة)
+# 2. هندسة أنماط الواجهة (CSS Engine & Defensive Layout)
 # ==============================================================================
 st.markdown("""
 <style>
 :root {
     color-scheme: dark;
     --primary: #10b981;
+    --primary-glow: rgba(16, 185, 129, 0.4);
     --active-bg: #064e3b;
     --card-bg: #111827;
-    --border-color: rgba(255, 255, 255, 0.14);
+    --border-color: rgba(255, 255, 255, 0.12);
+    --danger: #ef4444;
 }
 
-/* إخفاء واجهات وعناصر Streamlit التلقائية */
+/* 1. استئصال كافة عناصر Streamlit الافتراضية وشعار التاج السفلي */
 header[data-testid="stHeader"], 
 #MainMenu, 
 footer,
@@ -70,18 +72,20 @@ div[data-testid="stDecoration"],
     display: none !important; 
 }
 
-/* ضبط مقاس الجوال والشاشة 100% */
+/* 2. استغلال كامل أبعاد الشاشة ومنع الهوامش الزائدة */
 .block-container {   
-    padding-top: 0.3rem !important; 
+    padding-top: 0.2rem !important; 
     padding-bottom: 2rem !important; 
-    padding-left: 10px !important;
-    padding-right: 10px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
     max-width: 100% !important;
     margin: 0 auto !important;
 }
 @media (min-width: 480px) {
     .block-container {
-        max-width: 420px !important;
+        max-width: 425px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
     }
 }
 
@@ -94,7 +98,7 @@ html, body, [class*="css"] {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* بطاقة الهيدر العلوية */
+/* البطاقة العلوية وشريط المقاعد */
 .top-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -107,8 +111,8 @@ html, body, [class*="css"] {
 }
 .brand-badge {
     color: var(--primary);
-    background: rgba(16, 185, 129, 0.15);
-    border: 1px solid rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.28);
     border-radius: 20px;
     padding: 3px 12px;
     font-size: 0.74em;
@@ -128,8 +132,6 @@ html, body, [class*="css"] {
     color: #94a3b8;
     margin: 3px 0 8px 0;
 }
-
-/* شريط الحصص */
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -145,7 +147,7 @@ html, body, [class*="css"] {
     font-weight: 700;
 }
 .slot-pill.taken {
-    background: rgba(16, 185, 129, 0.2);
+    background: rgba(16, 185, 129, 0.18);
     border-color: var(--primary);
     color: var(--primary);
 }
@@ -153,17 +155,17 @@ html, body, [class*="css"] {
     border-color: var(--primary);
     color: #ffffff;
     background: var(--active-bg);
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 12px var(--primary-glow);
 }
 .slot-pill.available {
     color: #64748b;
     border-style: dashed;
 }
 
-/* العنوان في المنتصف تماماً */
+/* العنوان المركزي الصافي */
 .centered-section-title {
     text-align: center !important;
-    font-size: 0.98em !important;
+    font-size: 0.96em !important;
     font-weight: 900 !important;
     color: #ffffff !important;
     margin-top: 10px !important;
@@ -171,13 +173,10 @@ html, body, [class*="css"] {
 }
 
 /* ==========================================================================
-   حل مشكلة تشعتت الحروف وضبط بطاقات العطور (3 يمين و 3 يسار)
+   3. حل مشكلة تشتت الحروف وضبط بطاقات العطور (3 يمين و 3 يسار)
    ========================================================================== */
-div[data-testid="stRadio"] {
-    width: 100% !important;
-}
+div[data-testid="stRadio"] { width: 100% !important; }
 
-/* شبكة العطور: عمودين متساويين بنسبة 100% */
 div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -187,7 +186,6 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="rad
     box-sizing: border-box !important;
 }
 
-/* تصميم بطاقة كل عطر */
 div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] > label {
     display: flex !important;
     flex-direction: row !important;
@@ -205,7 +203,7 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="rad
     margin: 0 !important;
 }
 
-/* إخفاء دوائر المتصفح الافتراضية لمنع التداخل */
+/* إلغاء عناصر الراديو الافتراضية لمنع انهيار العرض */
 div[data-testid="stRadio"] input[type="radio"] {
     position: absolute !important;
     opacity: 0 !important;
@@ -217,7 +215,7 @@ div[data-testid="stRadio"] label > div:first-child:not(:only-child) {
     display: none !important;
 }
 
-/* 1. الدائرة الحمراء للخانة غير المحددة (Unselected State) */
+/* النقطة الحمراء للخيارات غير المحددة */
 div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
     content: "" !important;
     display: inline-block !important;
@@ -226,28 +224,28 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
     min-width: 14px !important;
     min-height: 14px !important;
     border-radius: 50% !important;
-    border: 2px solid #ef4444 !important; /* حلقة حمراء أنيقة */
-    background-color: rgba(239, 68, 68, 0.25) !important;
+    border: 2px solid var(--danger) !important;
+    background-color: rgba(239, 68, 68, 0.2) !important;
     margin-left: 10px !important;
-    margin-right: 0px !important;
+    margin-right: 0 !important;
     flex-shrink: 0 !important;
-    box-shadow: 0 0 6px rgba(239, 68, 68, 0.3) !important;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.35) !important;
     transition: all 0.2s ease !important;
 }
 
-/* 2. الدائرة الزمردية والبطاقة المضيئة عند الاختيار (Selected State) */
+/* النقطة الزمردية والإضاءة الفاخرة عند التحديد */
 div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
     background-color: var(--active-bg) !important;
     border: 2px solid var(--primary) !important;
-    box-shadow: 0 0 14px rgba(16, 185, 129, 0.4) !important;
+    box-shadow: 0 0 14px var(--primary-glow) !important;
 }
 div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked)::before {
     border-color: var(--primary) !important;
-    background-color: var(--primary) !important; /* تصبح خضراء مشعة */
+    background-color: var(--primary) !important;
     box-shadow: 0 0 10px var(--primary) !important;
 }
 
-/* حماية النصوص من الالتفاف والتفكك تماماً */
+/* حماية النصوص العربية من الانهيار العمودي */
 div[data-testid="stRadio"] label p,
 div[data-testid="stRadio"] label span,
 div[data-testid="stRadio"] label div {
@@ -257,7 +255,7 @@ div[data-testid="stRadio"] label div {
     line-height: 1.3 !important;
     margin: 0 !important;
     padding: 0 !important;
-    white-space: nowrap !important; /* يمنع نزول الحروف تحت بعضها */
+    white-space: nowrap !important;
     word-break: keep-all !important;
 }
 div[data-testid="stRadio"] label:has(input:checked) p,
@@ -266,9 +264,7 @@ div[data-testid="stRadio"] label:has(input:checked) span {
     font-weight: 900 !important;
 }
 
-/* ==========================================================================
-   خيارات الاستلام والتسليم (داخل الفورم)
-   ========================================================================== */
+/* خيارات الاستلام داخل النموذج */
 form div[data-testid="stRadio"] div[role="radiogroup"],
 div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
@@ -295,8 +291,6 @@ div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] > la
     width: 100% !important;
     margin: 0 !important;
 }
-
-/* السماح لنص الاستلام الأطول بالالتفاف الطبيعي كجملة واحدة */
 div[data-testid="stForm"] div[data-testid="stRadio"] label p,
 div[data-testid="stForm"] div[data-testid="stRadio"] label span {
     white-space: normal !important;
@@ -304,7 +298,7 @@ div[data-testid="stForm"] div[data-testid="stRadio"] label span {
     line-height: 1.4 !important;
 }
 
-/* بطاقة معاينة العطر */
+/* بطاقة معاينة العطر الفاخرة */
 .sensory-card {
     background: var(--card-bg);
     border: 1.5px solid rgba(16, 185, 129, 0.4);
@@ -370,7 +364,7 @@ div[data-testid="stTextInput"] input:focus,
 .stTextInput input:focus {
     border: 2px solid var(--primary) !important;
     background-color: #062b23 !important;
-    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3), 0 0 12px rgba(16, 185, 129, 0.4) !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3), 0 0 12px var(--primary-glow) !important;
 }
 input, textarea { 
     caret-color: var(--primary) !important; 
@@ -383,7 +377,7 @@ input, textarea {
 }
 input::placeholder { color: #64748b !important; }
 
-/* زر التأكيد الكبير */
+/* زر التثبيت الكبير */
 div[data-testid="stFormSubmitButton"] > button {
     background: var(--primary) !important;
     color: #022c22 !important;
@@ -397,7 +391,7 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px !important;
 }
 
-/* التنبيه العلوي الأنيق والمهتز عند الخطأ */
+/* أنيميشن الاهتزاز والوميض للتنبيه العلوي عند نقص البيانات */
 @keyframes alertShake {
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-6px); }
@@ -406,7 +400,7 @@ div[data-testid="stFormSubmitButton"] > button {
 
 .warning-pill-shake {
     background: rgba(239, 68, 68, 0.2) !important;
-    border: 2px solid #ef4444 !important;
+    border: 2px solid var(--danger) !important;
     color: #fecaca !important;
     padding: 12px 14px !important;
     border-radius: 10px !important;
@@ -441,7 +435,7 @@ div[data-testid="stFormSubmitButton"] > button {
     font-size: 0.96em;
     text-decoration: none;
     margin-top: 6px;
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 4px 14px var(--primary-glow);
 }
 .wa-share-btn {
     display: block;
@@ -457,13 +451,14 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px;
 }
 
+/* مصيدة الروبوتات البرمجية الخفية */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. إعداد الاتصال وكتالوج العطور
+# 4. إعداد الاتصال وكتالوج العطور الفاخرة
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -488,6 +483,7 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 
+# الرابط الذكي المعتمد لبطاقات الواتساب
 LIVE_APP_URL = "https://dub.sh/mqsoom"
 
 PERFUMES = {
@@ -551,7 +547,7 @@ def get_confirmed_bookings(basket_key: str):
         return []
 
 # ==============================================================================
-# 4. الرأسية التسويقية
+# 5. الرأسية التسويقية (تحديث لحظي للحصص دون إعادة تحميل الصفحة)
 # ==============================================================================
 @st.fragment(run_every="6s")
 def render_live_slots():
@@ -579,13 +575,32 @@ def render_live_slots():
 render_live_slots()
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة
+# 6. شاشة تأكيد الحصة (تخصيص الرسائل التفاعلية الذكية لكل عميل)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
     safe_name = html.escape(deal['name'])
     safe_perfume = html.escape(deal['perfume'])
     safe_delivery = html.escape(deal['delivery'])
+
+    # حساب المقاعد المتبقية في هذه اللحظة تلقائياً
+    fresh_list = get_confirmed_bookings(BASKET_ID)
+    current_taken = len(fresh_list)
+    remaining_seats = max(0, BASKET_CAPACITY - current_taken)
+
+    # 1. نص المقاعد الذكي المحفّز
+    if remaining_seats > 0:
+        seats_status_msg = f"⏳ باقي {remaining_seats} وينقفل القروب ونطلب فوراً."
+    else:
+        seats_status_msg = "🔥 اكتملت الـ 4 مقاعد بالكامل وجاري تنفيذ الطلب!"
+
+    # 2. تخصيص التعليمات بدقة حسب رغبة العميل
+    if "توصيل" in deal['delivery']:
+        delivery_instruction = "📍 موقع التوصيل: (برسل لك اللوكيشن في هذه المحادثة مباشرة)"
+        card_delivery_note = "سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد اللوكيشن والتوصيل."
+    else:
+        delivery_instruction = "📍 الاستلام: السلام مول (بوابة 5 و 6) - السبت بين المغرب والعشاء"
+        card_delivery_note = "موعد الاستلام بالسلام مول: <b>السبت (المغرب إلى العشاء: 6:30م – 9:00م) عند بوابة 5 أو 6</b>."
 
     st.markdown(f"""
     <div class="top-card" style="border-color:var(--primary);">
@@ -597,30 +612,29 @@ if "confirmed_deal" in st.session_state:
         </div>
     </div>
     <div class="notice-card">
-        🤝 <b>الدفع يد بيد بعد المعاينة والفاتورة</b><br>
-        التسليم: <b>السبت (المغرب إلى العشاء) عند بوابة 5 أو 6 بالسلام مول</b>.<br>
-        سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد الاستلام.
+        🤝 <b>الدفع يد بيد بعد المعاينة والفاتورة الأصلية</b><br>
+        {card_delivery_note}
     </div>
     """, unsafe_allow_html=True)
 
-    location_detail = "سأرسل اللوكيشن في الواتساب" if "توصيل" in deal['delivery'] else "السبت (المغرب-العشاء) عند بوابة 5 أو 6 بالسلام مول"
-
+    # رسالة الواتساب المخصصة للإدارة
     wa_admin_msg = (
         f"مرحباً 🌿\n"
-        f"حجزت حصتي في تطبيق مَقسوم - مجموعة نيوتن ({UNIFIED_PRICE} ر.س):\n\n"
+        f"حجزت حصتي في تطبيق مَقسوم ({UNIFIED_PRICE} ر.س):\n\n"
         f"• الاسم: {deal['name']}\n"
         f"• الجوال: {deal['phone']}\n"
         f"• العطر: {deal['perfume']}\n"
-        f"• طريقة الاستلام: {deal['delivery']}\n"
-        f"• موعد ونقطة الاستلام: {location_detail}\n\n"
-        f"بانتظار اكتمال الباقة لاستلام العطر مع الفاتورة الأصلية وفحصه يد بيد."
+        f"• {delivery_instruction}\n\n"
+        f"{seats_status_msg}\n"
+        f"بانتظار تأكيدك واستلام الفاتورة الأصلية وفحص العطر يد بيد."
     )
     admin_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
     st.markdown(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
 
+    # رسالة مشاركة العرض مع الأصدقاء
     share_msg = (
         f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نتقاسمها بين 4 بالتساوي.\n"
-        f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية (التسليم السبت بالسلام مول بوابة 5 و 6 أو توصيل مجاني).\n\n"
+        f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية في جدة.\n\n"
         f"حجزت حصتي وباقي مقاعد بسيطة، ادخل اختر عطرك وقفل الباقة معنا هنا:\n"
         f"{LIVE_APP_URL}"
     )
@@ -632,7 +646,7 @@ if "confirmed_deal" in st.session_state:
         st.rerun()
 
 # ==============================================================================
-# 6. النموذج: عرض البطاقات المنظمة دون تشعتت الحروف
+# 7. النموذج: اختيار العطر أولاً ثم بيانات الاستلام مع التنبيه العلوي
 # ==============================================================================
 else:
     st.markdown('<div class="centered-section-title">اختر عطرك من باقة نيوتن</div>', unsafe_allow_html=True)
@@ -665,6 +679,7 @@ else:
     with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
         st.markdown('<div class="centered-section-title" style="margin-top:0;">بيانات التأكيد والاستلام</div>', unsafe_allow_html=True)
 
+        # الحاوية العلوية المخصصة لرسائل الخطأ مع التمرير التلقائي
         alert_placeholder = st.empty()
 
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
@@ -688,6 +703,7 @@ else:
         </div>
         """, unsafe_allow_html=True)
 
+        # مصيدة الروبوتات
         hp = st.text_input("hp", label_visibility="collapsed")
         submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
 
@@ -698,6 +714,7 @@ else:
             fresh_bookings = get_confirmed_bookings(BASKET_ID)
             existing_booking = next((b for b in fresh_bookings if b.get('phone') == clean_phone), None)
 
+            # التحقق الصارم: ظهور التنبيه في الأعلى وسحب الشاشة تلقائياً
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
                 alert_placeholder.markdown(
                     '<div id="form-top-alert" class="warning-pill-shake">'
@@ -764,7 +781,7 @@ else:
                         alert_placeholder.error(f"تعذر إتمام التسجيل في السيرفر: {db_err}")
 
 # ==============================================================================
-# 7. لوحة المشرف المقفلة أمنياً
+# 8. لوحة الإدارة المقفلة بخوارزمية HMAC ضد هجمات التوقيت
 # ==============================================================================
 if st.query_params.get("manage") == "faris":
     st.markdown("---")
