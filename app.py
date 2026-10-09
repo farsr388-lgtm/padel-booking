@@ -32,7 +32,7 @@ def clean_html(raw: str) -> str:
     return "".join(line.strip() for line in raw.splitlines() if line.strip())
 
 # ==============================================================================
-# 2. أنماط الواجهة (Minimal Dark Luxury - خالية من الإطارات الحمراء والتعقيد)
+# 2. أنماط الواجهة (Minimal Dark Luxury - بدون أي إطارات حمراء)
 # ==============================================================================
 css_styles = clean_html("""
 <style>
@@ -113,7 +113,7 @@ html, body, [class*="css"] {
 }
 
 /* شبكة العطور المتقابلة (3 في اليمين ضد 3 في اليسار) */
-div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] {
+div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 6px !important;
@@ -121,7 +121,7 @@ div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiog
     margin-bottom: 6px !important;
 }
 
-div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] > label {
+div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] > label {
     width: 100% !important;
     margin: 0 !important;
     background-color: #111827 !important;
@@ -137,18 +137,34 @@ div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiog
     transition: all 0.15s ease-in-out !important;
 }
 
-div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] > label:hover {
+div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] > label:hover {
     border-color: rgba(16, 185, 129, 0.3) !important;
     background-color: #141e33 !important;
 }
 
-div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] > label:has(input:checked) {
+div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] > label:has(input:checked) {
     border-color: #10b981 !important;
     background-color: rgba(16, 185, 129, 0.1) !important;
     box-shadow: 0 0 0 1px #10b981 !important;
 }
 
-/* حماية المؤشر من أي وميض أحمر */
+/* خيارات الاستلام بتصميم مدمج وسلس */
+div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    margin-bottom: 6px !important;
+}
+div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label {
+    background-color: #111827 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 8px !important;
+    padding: 7px 10px !important;
+    margin: 0 !important;
+    font-size: 0.82em !important;
+}
+
+/* استئصال اللون الأحمر تماماً */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
     border-color: #475569 !important;
     background-color: transparent !important;
@@ -203,22 +219,6 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     font-size: 0.75em;
     font-weight: 700;
     margin-top: 3px;
-}
-
-/* النموذج وحقول الإدخال */
-form div[data-testid="stRadio"] div[role="radiogroup"] {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
-    margin: 4px 0 6px 0 !important;
-}
-form div[data-testid="stRadio"] div[role="radiogroup"] > label {
-    background-color: #111827 !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-radius: 6px !important;
-    padding: 6px 10px !important;
-    margin: 0 !important;
-    font-size: 0.8em !important;
 }
 
 div[data-testid="stTextInput"] { margin-bottom: 4px !important; }
@@ -306,7 +306,7 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-bottom: 6px;
 }
 
-/* مصيدة البوتات الخفية */
+/* مصيدة البوتات */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { 
     display: none !important; 
@@ -336,7 +336,7 @@ def get_supabase_client() -> Client:
 
 supabase = get_supabase_client()
 
-BASKET_ID = "BLOM-NEWTON-JEDDAH-V11"
+BASKET_ID = "BLOM-NEWTON-JEDDAH-V12"
 BASKET_CAPACITY = 4
 UNIFIED_PRICE = 132
 ORIGINAL_RETAIL = 265
@@ -506,26 +506,40 @@ else:
     """)
     st.markdown(sensory_markup, unsafe_allow_html=True)
     
+    # --------------------------------------------------------------------------
+    # الخطوة 2: خيار الاستلام التفاعلي خارج الفورم لتفعيل الظهور المشروط لحظياً
+    # --------------------------------------------------------------------------
+    st.markdown("<div style='font-size:0.82em;font-weight:700;color:#cbd5e1;margin-top:6px;margin-bottom:4px;'>2. حدد طريقة الاستلام:</div>", unsafe_allow_html=True)
+    
+    delivery_mode = st.radio(
+        "طريقة الاستلام والدفع:",
+        [
+            f"استلام يد بيد (السلام مول) — {UNIFIED_PRICE} ر.س عند الاستلام",
+            f"توصيل مجاني داخل جدة — {UNIFIED_PRICE} ر.س عند الاستلام"
+        ],
+        key="delivery_choice",
+        label_visibility="collapsed"
+    )
+    
+    is_delivery_selected = "توصيل" in delivery_mode
+    
+    # --------------------------------------------------------------------------
+    # الخطوة 3: نموذج البيانات الذكي (يكشف خانة الحي فقط عند اختيار التوصيل)
+    # --------------------------------------------------------------------------
     with st.form("quick_order_form"):
-        st.markdown("<div style='font-size:0.82em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>2. بياناتك وطريقة الاستلام:</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.82em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>بيانات التأكيد:</div>", unsafe_allow_html=True)
         
-        # 1. الاسم الكريم
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
-        
-        # 2. رقم الجوال
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
         
-        # 3. خيارات الاستلام تحتهما مباشرة
-        delivery_mode = st.radio(
-            "طريقة الاستلام والدفع:",
-            [
-                f"استلام يد بيد (السلام مول) — {UNIFIED_PRICE} ر.س عند الاستلام",
-                f"توصيل مجاني داخل جدة — {UNIFIED_PRICE} ر.س عند الاستلام"
-            ]
-        )
-        
-        # 4. الحي (حل النقطة العمياء لتفادي ملاحقة العميل على العنوان)
-        f_district = st.text_input("الحي السكني داخل جدة (في حال التوصيل):", placeholder="مثال: الروضة، الصفا، السامر")
+        # كشف تدريجي (Progressive Disclosure): يظهر فقط إذا اختار التوصيل!
+        if is_delivery_selected:
+            f_district = st.text_input(
+                "الحي داخل جدة (أو شارك اللوكيشن عبر واتساب):", 
+                placeholder="مثال: الروضة، الصفا، السامر..."
+            )
+        else:
+            f_district = ""
         
         st.markdown("""
         <div class="trust-strip">
@@ -543,16 +557,15 @@ else:
             if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
             elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
             
-            clean_district = f_district.strip() if f_district else "غير محدد"
+            clean_district = f_district.strip() if f_district else ("استلام بالسلام مول" if not is_delivery_selected else "سيتم إرسال اللوكيشن عبر واتساب")
             
-            # فحص فوري ومباشر من قاعدة البيانات لمنع تضارب الحجز
             fresh_bookings = get_confirmed_bookings(BASKET_ID)
             existing_booking = next((b for b in fresh_bookings if b.get('phone') == clean_phone), None)
             
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
                 st.markdown('<div class="warning-pill">⚠️ يرجى التأكد من كتابة الاسم الثنائي ورقم جوال سعودي يبدأ بـ 05.</div>', unsafe_allow_html=True)
             elif existing_booking:
-                # استرجاع حجز العميل مباشرة لمنع التكرار وحل مشكلة تحديث الصفحة
+                # استرجاع الحصة فوراً لمنع التكرار وحل مشكلة تحديث الصفحة
                 st.session_state["confirmed_deal"] = {
                     "name": existing_booking.get("name"),
                     "phone": existing_booking.get("phone"),
@@ -565,7 +578,7 @@ else:
                 st.markdown('<div class="warning-pill">⚠️ اكتملت الباقة الحالية بالكامل! جاري فتح باقة جديدة قريباً.</div>', unsafe_allow_html=True)
             else:
                 try:
-                    delivery_full = f"{delivery_mode} | الحي: {clean_district}"
+                    delivery_full = f"{delivery_mode} ({clean_district})"
                     client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_full} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
                     
                     if supabase:
@@ -588,7 +601,7 @@ else:
                     "name": clean_name,
                     "phone": clean_phone,
                     "perfume": chosen_perfume,
-                    "delivery": f"{delivery_mode} ({clean_district})",
+                    "delivery": delivery_full,
                     "price": UNIFIED_PRICE
                 }
                 st.rerun()
