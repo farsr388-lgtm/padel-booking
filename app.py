@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# تتبع Microsoft Clarity
+# تتبع أداء الجلسات (Microsoft Clarity)
 components.html("""
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -28,11 +28,11 @@ components.html("""
 """, height=0, width=0)
 
 def clean_html(raw: str) -> str:
-    """تنظيف تام للنصوص البرمجية لمنع ثغرة الـ Markdown Indentation في Streamlit."""
+    """تجريد المسافات البادئة لحماية المحرك من الانهيار النصي."""
     return "".join(line.strip() for line in raw.splitlines() if line.strip())
 
 # ==============================================================================
-# 2. أنماط الواجهة (Minimal Dark Luxury - خالي من أي لون أحمر)
+# 2. أنماط الواجهة (Minimal Dark Luxury - خالية تماماً من أي وميض أحمر)
 # ==============================================================================
 css_styles = clean_html("""
 <style>
@@ -74,7 +74,7 @@ html, body, [class*="css"] {
     margin-bottom: 4px;
 }
 .headline {
-    font-size: 1.2em;
+    font-size: 1.22em;
     font-weight: 900;
     color: #ffffff;
     margin: 0;
@@ -85,20 +85,7 @@ html, body, [class*="css"] {
     margin: 2px 0 8px 0;
 }
 
-/* مؤشر الاستعجال التفاعلي */
-.urgency-badge {
-    display: inline-block;
-    background: rgba(16, 185, 129, 0.12);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    color: #10b981;
-    font-size: 0.72em;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 6px;
-    margin-bottom: 8px;
-}
-
-/* شبكة الحصص الأربعة */
+/* شريط الحصص الأربعة */
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -124,7 +111,7 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
-/* شبكة أزرار الاختيار */
+/* بطاقات الراديو */
 div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -156,7 +143,7 @@ div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiog
     background-color: rgba(16, 185, 129, 0.1) !important;
 }
 
-/* دوائر الراديو بلون زمردي هادئ */
+/* مؤشرات الراديو المحايدة */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
     border-color: #475569 !important;
     background-color: transparent !important;
@@ -170,7 +157,7 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     background-color: #10b981 !important;
 }
 
-/* بطاقة استعراض العطر الحسي */
+/* بطاقة استعراض العطر الحسي الفاخر */
 .sensory-card {
     background: #111827;
     border: 1px solid rgba(16, 185, 129, 0.25);
@@ -182,8 +169,8 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     margin-bottom: 8px;
 }
 .sensory-badge-icon {
-    width: 60px;
-    height: 60px;
+    width: 58px;
+    height: 58px;
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -232,7 +219,7 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     margin-top: 4px;
 }
 
-/* النموذج والمدخلات */
+/* النموذج وحقول الإدخال */
 form div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
@@ -287,8 +274,6 @@ div[data-testid="stFormSubmitButton"] > button {
     line-height: 1.4;
     margin: 6px 0;
 }
-
-/* شريط الثقة */
 .trust-strip {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -299,7 +284,6 @@ div[data-testid="stFormSubmitButton"] > button {
     color: #94a3b8;
     margin: 4px 0 6px 0;
 }
-
 .wa-link-btn {
     display: block;
     background: #10b981;
@@ -336,6 +320,7 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-bottom: 6px;
 }
 
+/* مصيدة البوتات الخفية */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { 
     display: none !important; 
@@ -407,7 +392,7 @@ PERFUMES = {
     }
 }
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=3)
 def get_confirmed_bookings(basket_key: str):
     if not supabase:
         return []
@@ -425,7 +410,6 @@ current_bookings = get_confirmed_bookings(BASKET_ID)
 taken_count = len(current_bookings)
 remaining_spots = max(0, BASKET_CAPACITY - taken_count)
 
-# مؤشر الحصص والاستعجال
 if remaining_spots == 1:
     urgency_text = "⚡️ متبقي حصة أخيرة وتُقفل الباقة للتنفيذ فوراً!"
 elif remaining_spots > 1:
@@ -448,7 +432,6 @@ header_markup = clean_html(f"""
     <div class="brand-badge">تطبيق مَقسوم • عروض بلوم (2+2 مجاناً)</div>
     <div class="headline">نفس الجودة. نصف السعر.</div>
     <div class="sub-headline">عطرك بـ {UNIFIED_PRICE} ر.س بدلاً من {ORIGINAL_RETAIL} ر.س (مقسوم بالتساوي)</div>
-    <div class="urgency-badge">{urgency_text}</div>
     <div class="slots-container">
         {slots_html}
     </div>
@@ -481,7 +464,6 @@ if "confirmed_deal" in st.session_state:
     """)
     st.markdown(confirm_markup, unsafe_allow_html=True)
     
-    # 1. زر التواصل مع المشرف
     wa_admin_msg = (
         f"مرحباً 🌿\n"
         f"حجزت حصتي في تطبيق مَقسوم - مجموعة نيوتن ({UNIFIED_PRICE} ر.س):\n\n"
@@ -494,7 +476,6 @@ if "confirmed_deal" in st.session_state:
     admin_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
     st.markdown(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز مع المشرف عبر واتساب</a>', unsafe_allow_html=True)
 
-    # 2. زر مشاركة الرابط مع الأصدقاء
     share_msg = (
         f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نقسمها بالتساوي.\n"
         f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية في جدة والتوصيل مجاني أول ما تكتمل.\n\n"
@@ -566,11 +547,14 @@ else:
             if clean_phone.startswith("966"): clean_phone = "0" + clean_phone[3:]
             elif clean_phone.startswith("5"): clean_phone = "0" + clean_phone
             
+            # فحص فوري ومباشر من قاعدة البيانات لمنع تضارب الحجز لحظياً
+            fresh_bookings = get_confirmed_bookings(BASKET_ID)
+            
             if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
                 st.markdown('<div class="warning-pill">⚠️ يرجى التأكد من كتابة الاسم الثنائي ورقم جوال صحيح يبدأ بـ 05.</div>', unsafe_allow_html=True)
-            elif any(b.get('phone') == clean_phone for b in current_bookings):
+            elif any(b.get('phone') == clean_phone for b in fresh_bookings):
                 st.markdown('<div class="warning-pill">⚠️ هذا الرقم مسجل بالفعل في الباقة الحالية.</div>', unsafe_allow_html=True)
-            elif taken_count >= BASKET_CAPACITY:
+            elif len(fresh_bookings) >= BASKET_CAPACITY:
                 st.markdown('<div class="warning-pill">⚠️ اكتملت الباقة الحالية! جاري فتح باقة جديدة قريباً.</div>', unsafe_allow_html=True)
             else:
                 try:
@@ -601,26 +585,45 @@ else:
                 st.rerun()
 
 # ==============================================================================
-# 7. لوحة المشرف السريعة
+# 7. لوحة المشرف المتطورة والتحليلات (Admin & Analytics Console)
 # ==============================================================================
 query_params = st.query_params
 if query_params.get("manage") == "faris":
     st.markdown("---")
-    st.caption("لوحة الإدارة")
-    admin_pin = st.text_input("رمز الدخول:", type="password", key="adm_key")
+    st.caption("لوحة الإدارة والتحليلات")
+    admin_pin = st.text_input("رمز الدخول السري:", type="password", key="adm_key")
     
     if admin_pin and ADMIN_PASSWORD_HASH and hmac.compare_digest(admin_pin.strip(), ADMIN_PASSWORD_HASH):
         bookings_list = get_confirmed_bookings(BASKET_ID)
-        st.write(f"**إجمالي الحجوزات:** {len(bookings_list)} من {BASKET_CAPACITY}")
+        total_count = len(bookings_list)
+        paid_count = sum(1 for b in bookings_list if b.get('payment_status') == 'paid')
+        total_val = total_count * UNIFIED_PRICE
+        
+        # مؤشرات أداء حية
+        kpi1, kpi2, kpi3 = st.columns(3)
+        kpi1.metric("الحصص المحجوزة", f"{total_count} / {BASKET_CAPACITY}")
+        kpi2.metric("المحصل (مدفوع)", f"{paid_count * UNIFIED_PRICE} ر.س")
+        kpi3.metric("إجمالي السلة", f"{total_val} ر.س")
+        
+        st.markdown("##### قائمة العملاء والمقاعد:")
         for b in bookings_list:
-            col1, col2, col3 = st.columns([2.2, 1, 1])
-            col1.write(f"**{b.get('name')}** - `{b.get('level', '-')}`\n`{b.get('phone')}`")
-            if b.get('payment_status') == 'paid':
-                col2.markdown("<span style='color:#10b981; font-weight:700;'>مكتمل</span>", unsafe_allow_html=True)
-            else:
-                col2.markdown("<span style='color:#71717a;'>بانتظار الاستلام</span>", unsafe_allow_html=True)
-                if col3.button("اعتماد", key=f"pay_{b.get('id')}"):
+            card_col, action_col = st.columns([3, 1])
+            with card_col:
+                st.write(f"**{b.get('name')}** | `{b.get('phone')}`\nالعطر: **{b.get('level')}**")
+            with action_col:
+                if b.get('payment_status') == 'paid':
+                    st.markdown("<span style='color:#10b981; font-weight:700;'>مدفوع ✓</span>", unsafe_allow_html=True)
+                else:
+                    if st.button("اعتماد دفع", key=f"pay_{b.get('id')}"):
+                        if supabase:
+                            supabase.table("bookings").update({"payment_status": "paid"}).eq("id", b.get('id')).execute()
+                        st.cache_data.clear()
+                        st.rerun()
+                
+                # زر إلغاء لتفريغ المقعد في حال تعذر التواصل مع العميل
+                if st.button("إلغاء الحصة", key=f"cancel_{b.get('id')}"):
                     if supabase:
-                        supabase.table("bookings").update({"payment_status": "paid"}).eq("id", b.get('id')).execute()
+                        supabase.table("bookings").update({"status": "cancelled"}).eq("id", b.get('id')).execute()
                     st.cache_data.clear()
                     st.rerun()
+            st.divider()
