@@ -470,3 +470,257 @@ PERFUMES = {
         "ingredient_label": "الكشمش الأسود والورد المخملي",
         "img": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=180&q=80"
     }
+}
+
+@st.cache_data(ttl=3)
+def get_confirmed_bookings(basket_key: str):
+    if not supabase:
+        return []
+    try:
+        res = supabase.table("bookings") \
+            .select("*") \
+            .eq("session_day", basket_key) \
+            .neq("status", "cancelled") \
+            .order("id") \
+            .execute()
+        return res.data or []
+    except Exception:
+        return []
+
+# ==============================================================================
+# 4. الرأسية التسويقية
+# ==============================================================================
+@st.fragment(run_every="6s")
+def render_live_slots():
+    current_bookings = get_confirmed_bookings(BASKET_ID)
+    taken_count = len(current_bookings)
+
+    slots_markup = "".join([
+        f'<div class="slot-pill taken">حصة {i} مكتملة ✓</div>' if i <= taken_count else
+        '<div class="slot-pill current">حصتك الآن 🔥</div>' if i == taken_count + 1 else
+        f'<div class="slot-pill available">متاح {i}</div>'
+        for i in range(1, BASKET_CAPACITY + 1)
+    ])
+
+    st.markdown(f"""
+    <div class="top-card">
+        <div class="brand-badge">قسم مشترياتك • عروض بلوم (2+2 مجاناً)</div>
+        <div class="headline">تقاسم عروض بلوم Blom</div>
+        <div class="sub-headline">السعر بالتساوي بين 4 أشخاص (132 ر.س للعبوة)</div>
+        <div class="slots-container">
+            {slots_markup}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+render_live_slots()
+
+# ==============================================================================
+# 5. شاشة تأكيد الحصة
+# ==============================================================================
+if "confirmed_deal" in st.session_state:
+    deal = st.session_state["confirmed_deal"]
+    safe_name = html.escape(deal['name'])
+    safe_perfume = html.escape(deal['perfume'])
+    safe_delivery = html.escape(deal['delivery'])
+
+    st.markdown(f"""
+    <div class="top-card" style="border-color:var(--primary);">
+        <div class="brand-badge">تم تأكيد حصتك بنجاح 🌿</div>
+        <div class="headline" style="font-size:1.15em;">{safe_perfume}</div>
+        <div class="sub-headline" style="color:#cbd5e1 !important;">{safe_delivery}</div>
+        <div style="font-size:1.15em;font-weight:800;color:#ffffff;margin-top:5px;">
+            المطلوب عند الاستلام: <span style="color:var(--primary);">{UNIFIED_PRICE} ر.س فقط</span>
+        </div>
+    </div>
+    <div class="notice-card">
+        🤝 <b>الدفع يد بيد بعد المعاينة والفاتورة</b><br>
+        التسليم: <b>السبت (المغرب إلى العشاء) عند بوابة 5 أو 6 بالسلام مول</b>.<br>
+        سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد الاستلام.
+    </div>
+    """, unsafe_allow_html=True)
+
+    location_detail = "سأرسل اللوكيشن في الواتساب" if "توصيل" in deal['delivery'] else "السبت (المغرب-العشاء) عند بوابة 5 أو 6 بالسلام مول"
+
+    wa_admin_msg = (
+        f"مرحباً 🌿\n"
+        f"حجزت حصتي في تطبيق مَقسوم - مجموعة نيوتن ({UNIFIED_PRICE} ر.س):\n\n"
+        f"• الاسم: {deal['name']}\n"
+        f"• الجوال: {deal['phone']}\n"
+        f"• العطر: {deal['perfume']}\n"
+        f"• طريقة الاستلام: {deal['delivery']}\n"
+        f"• موعد ونقطة الاستلام: {location_detail}\n\n"
+        f"بانتظار اكتمال الباقة لاستلام العطر مع الفاتورة الأصلية وفحصه يد بيد."
+    )
+    admin_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
+    st.markdown(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
+
+    share_msg = (
+        f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نتقاسمها بين 4 بالتساوي.\n"
+        f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية (التسليم السبت بالسلام مول بوابة 5 و 6 أو توصيل مجاني).\n\n"
+        f"حجزت حصتي وباقي مقاعد بسيطة، ادخل اختر عطرك وقفل الباقة معنا هنا:\n"
+        f"{LIVE_APP_URL}"
+    )
+    share_link = f"https://wa.me/?text={urllib.parse.quote(share_msg)}"
+    st.markdown(f'<a href="{share_link}" target="_blank" class="wa-share-btn">👥 شارك العرض مع خويك لتكتمل الباقة أسرع</a>', unsafe_allow_html=True)
+
+    if st.button("تعديل الاختيار أو حجز مقعد آخر", use_container_width=True):
+        del st.session_state["confirmed_deal"]
+        st.rerun()
+
+# ==============================================================================
+# 6. النموذج: أسماء العطور النظيفة وخيارات التسليم تحت الاسم والجوال
+# ==============================================================================
+else:
+    st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:6px;'>1. اختر عِطرك من باقة نيوتن:</div>", unsafe_allow_html=True)
+
+    # أزرار عربية صافية بدون حشو
+    chosen_perfume = st.radio(
+        "اختر العطر:",
+        options=list(PERFUMES.keys()),
+        label_visibility="collapsed"
+    )
+
+    p = PERFUMES[chosen_perfume]
+    
+    # بطاقة المعاينة مع الاسم الإنجليزي والمكونات
+    st.markdown(f"""
+    <div class="sensory-card">
+        <div class="sensory-top-row">
+            <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" loading="eager" />
+            <div class="sensory-details">
+                <div class="sensory-name">{chosen_perfume} <span style="font-size:0.8em;color:#94a3b8;font-weight:500;">({p['en_name']})</span></div>
+                <div class="sensory-tag">🌿 {p['ingredient_label']}</div>
+                <div class="sensory-notes">المكونات: {p['notes']}</div>
+            </div>
+        </div>
+        <div class="price-chip">
+            <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:var(--primary);font-size:1.15em;">{UNIFIED_PRICE} ر.س</b></span>
+            <span style="color:var(--primary);font-weight:800;">وفرت {SAVINGS_AMOUNT} ر.س (خصم 50%)</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
+        st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>2. بيانات الحجز والتسليم:</div>", unsafe_allow_html=True)
+
+        f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
+        f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
+
+        st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-top:6px;margin-bottom:2px;'>طريقة الاستلام:</div>", unsafe_allow_html=True)
+
+        delivery_mode = st.radio(
+            "طريقة وموعد الاستلام:",
+            [
+                f"السلام مول (بوابة 5 و 6) • السبت (المغرب إلى العشاء) — {UNIFIED_PRICE} ر.س",
+                f"توصيل مجاني داخل أحياء جدة — {UNIFIED_PRICE} ر.س"
+            ],
+            key="delivery_mode",
+            label_visibility="collapsed"
+        )
+
+        st.markdown("""
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:7px;text-align:center;font-size:0.73em;color:#94a3b8;margin:8px 0;">
+            🛡️ أصلي 100% • فحص العطر والفاتورة الأصلية قبل الدفع يد بيد
+        </div>
+        """, unsafe_allow_html=True)
+
+        hp = st.text_input("hp", label_visibility="collapsed")
+        submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
+
+        if submit_btn and not hp:
+            clean_name = f_name.strip()
+            clean_phone = sanitize_phone_number(f_phone)
+
+            fresh_bookings = get_confirmed_bookings(BASKET_ID)
+            existing_booking = next((b for b in fresh_bookings if b.get('phone') == clean_phone), None)
+
+            if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
+                st.markdown('<div class="warning-pill">⚠️ يرجى التأكد من كتابة الاسم الثنائي ورقم جوال سعودي يبدأ بـ 05.</div>', unsafe_allow_html=True)
+            elif existing_booking:
+                st.session_state["confirmed_deal"] = {
+                    "name": existing_booking.get("name"),
+                    "phone": existing_booking.get("phone"),
+                    "perfume": existing_booking.get("level"),
+                    "delivery": existing_booking.get("hear_about", delivery_mode),
+                    "price": UNIFIED_PRICE
+                }
+                st.rerun()
+            elif len(fresh_bookings) >= BASKET_CAPACITY:
+                st.markdown('<div class="warning-pill">⚠️ اكتملت هذه الباقة للتو بالكامل! جاري تجهيز باقة جديدة.</div>', unsafe_allow_html=True)
+            else:
+                if not supabase:
+                    st.error("تعذر الاتصال بقاعدة البيانات. يرجى مراجعة إعدادات Secrets.")
+                else:
+                    try:
+                        client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
+                        
+                        supabase.table("bookings").insert({
+                            "name": clean_name,
+                            "phone": clean_phone,
+                            "session_day": BASKET_ID,
+                            "court": 1,
+                            "level": chosen_perfume,
+                            "status": "confirmed",
+                            "payment_status": "pending",
+                            "hear_about": delivery_mode[:50],
+                            "player_note": client_note
+                        }).execute()
+
+                        st.cache_data.clear()
+                        st.session_state["confirmed_deal"] = {
+                            "name": clean_name,
+                            "phone": clean_phone,
+                            "perfume": chosen_perfume,
+                            "delivery": delivery_mode,
+                            "price": UNIFIED_PRICE
+                        }
+                        st.rerun()
+                    except Exception as db_err:
+                        st.error(f"تعذر إتمام التسجيل في السيرفر: {db_err}")
+
+# ==============================================================================
+# 7. لوحة المشرف المقفلة أمنياً
+# ==============================================================================
+if st.query_params.get("manage") == "faris":
+    st.markdown("---")
+    st.caption("لوحة الإدارة والتحليلات السريعة")
+    admin_pin = st.text_input("رمز الدخول السري:", type="password", key="adm_key")
+
+    input_pin_str = str(admin_pin or "").strip()
+    target_pwd_str = str(ADMIN_PASSWORD or "").strip()
+
+    if input_pin_str and target_pwd_str and hmac.compare_digest(input_pin_str, target_pwd_str):
+        bookings_list = get_confirmed_bookings(BASKET_ID)
+        total_count = len(bookings_list)
+        paid_count = sum(1 for b in bookings_list if b.get('payment_status') == 'paid')
+        total_val = total_count * UNIFIED_PRICE
+
+        k1, k2, k3 = st.columns(3)
+        k1.metric("المقاعد المحجوزة", f"{total_count} / {BASKET_CAPACITY}")
+        k2.metric("المحصل (مدفوع)", f"{paid_count * UNIFIED_PRICE} ر.س")
+        k3.metric("إجمالي السلة", f"{total_val} ر.س")
+
+        st.markdown("##### قائمة المشتركين:")
+        for b in bookings_list:
+            c1, c2 = st.columns([3, 1])
+            with c1:
+                st.write(f"**{b.get('name')}** | `{b.get('phone')}`\nالعطر: **{b.get('level')}**\nالتسليم: `{b.get('hear_about')}`")
+            with c2:
+                if b.get('payment_status') == 'paid':
+                    st.markdown("<span style='color:var(--primary); font-weight:700;'>مدفوع ✓</span>", unsafe_allow_html=True)
+                else:
+                    if st.button("اعتماد دفع", key=f"pay_{b.get('id')}"):
+                        if supabase:
+                            supabase.table("bookings").update({"payment_status": "paid"}).eq("id", b.get('id')).execute()
+                        st.cache_data.clear()
+                        st.rerun()
+
+                if st.button("إلغاء المقعد", key=f"cancel_{b.get('id')}"):
+                    if supabase:
+                        supabase.table("bookings").update({"status": "cancelled"}).eq("id", b.get('id')).execute()
+                    st.cache_data.clear()
+                    st.rerun()
+            st.divider()
+    elif input_pin_str:
+        st.error("رمز الدخول غير صحيح.")
