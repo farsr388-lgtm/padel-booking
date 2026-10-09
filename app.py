@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# تتبع Microsoft Clarity الأساسي
+# تتبع Microsoft Clarity
 components.html("""
 <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
@@ -28,7 +28,7 @@ components.html("""
 """, height=0, width=0)
 
 def sanitize_phone_number(raw_input: str) -> str:
-    """تحويل أرقام الجوال العربية وتنظيفها بدقة عالية دون مشاكل في المحرر."""
+    """تنظيف وتحويل أرقام الجوال بدقة عالية."""
     if not raw_input:
         return ""
     table = str.maketrans(
@@ -43,42 +43,43 @@ def sanitize_phone_number(raw_input: str) -> str:
     return cleaned
 
 # ==============================================================================
-# 2. أنماط الواجهة (الاستجابة لحواف الشاشة + شارات التحديد الواضحة)
+# 2. تصميم الواجهة 100% وإزالة التشتت وشارات Streamlit
 # ==============================================================================
 st.markdown("""
 <style>
-:root {
-    --primary-color: #10b981 !important;
-    accent-color: #10b981 !important;
-}
-input, select, textarea, button {
-    accent-color: #10b981 !important;
+/* 1. إخفاء كافة الشارات، الأزرار السفلية وشعار التاج الأحمر */
+header[data-testid="stHeader"], 
+#MainMenu, 
+footer,
+div[data-testid="stStatusWidget"],
+.stDeployButton,
+[data-testid="stToolbar"],
+div[class*="viewerBadge"],
+[class*="manageApp"],
+div[data-testid="stDecoration"] { 
+    display: none !important; 
 }
 
-header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
-
-/* إخفاء عبارات التعليمات التلقائية */
+/* 2. إخفاء عبارات التعليمات والـ Help */
 [data-testid="InputInstructions"],
 [data-testid="stWidgetInstructions"],
 div[data-testid="stTextInput"] small {
     display: none !important;
 }
 
-/* الاستغلال الكامل لحواف شاشة الجوال */
+/* 3. ضبط أبعاد الشاشة 100% بدون فراغات ميتة */
 .block-container {   
-    padding-top: 0.15rem !important; 
-    padding-bottom: 1.8rem !important; 
-    padding-left: 8px !important;
-    padding-right: 8px !important;
+    padding-top: 0.4rem !important; 
+    padding-bottom: 2.2rem !important; 
+    padding-left: 10px !important;
+    padding-right: 10px !important;
     max-width: 100% !important;
     width: 100% !important;
     margin: 0 auto !important;
 }
 @media (min-width: 480px) {
     .block-container {
-        max-width: 420px !important;
-        padding-left: 12px !important;
-        padding-right: 12px !important;
+        max-width: 410px !important;
     }
 }
 
@@ -91,14 +92,16 @@ html, body, [class*="css"] {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* بطاقة الهيدر العلوية */
+/* البطاقة العلوية الموحدة */
 .top-card {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 12px 14px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     text-align: center;
+    width: 100%;
+    box-sizing: border-box;
 }
 .brand-badge {
     color: #10b981;
@@ -112,7 +115,7 @@ html, body, [class*="css"] {
     margin-bottom: 5px;
 }
 .headline {
-    font-size: 1.28em;
+    font-size: 1.25em;
     font-weight: 900;
     color: #ffffff;
     margin: 0;
@@ -124,12 +127,12 @@ html, body, [class*="css"] {
     margin: 4px 0 8px 0;
 }
 
-/* شريط الحصص الأربعة */
+/* شريط الحصص */
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 5px;
-    margin-bottom: 4px;
+    gap: 6px;
+    margin-bottom: 2px;
 }
 .slot-pill {
     background: #030712;
@@ -149,26 +152,28 @@ html, body, [class*="css"] {
     border-color: #10b981;
     color: #10b981;
     background: rgba(16, 185, 129, 0.08);
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
 }
 .slot-pill.available {
     color: #64748b;
     border-style: dashed;
 }
 
-/* إلغاء دوائر الراديو التقليدية */
-div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child:not(:last-child),
+/* ==========================================================================
+   إلغاء التشتت في خيارات العطور والاستلام وتحويلها لبطاقات واضحة تماماً
+   ========================================================================== */
+div[data-testid="stRadio"] label div:first-child:not(:last-child),
 div[data-testid="stRadio"] input[type="radio"] + div {
     display: none !important;
 }
 
-/* شبكة اختيار العطور (أزرار تفاعلية) */
+/* شبكة العطور: بطاقات متناسقة 2x3 */
 div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 6px !important;
     width: 100% !important;
-    margin-bottom: 6px !important;
+    margin-bottom: 8px !important;
 }
 div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] > label {
     width: 100% !important;
@@ -176,7 +181,7 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="r
     background-color: #111827 !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 8px !important;
-    padding: 10px 8px !important;
+    padding: 10px 6px !important;
     min-height: 44px !important;
     display: flex !important;
     justify-content: center !important;
@@ -185,6 +190,7 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="r
     font-size: 0.82em !important;
     box-sizing: border-box !important;
     transition: all 0.2s ease !important;
+    text-align: center !important;
 }
 div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] > label:has(input:checked) {
     border-color: #10b981 !important;
@@ -194,15 +200,15 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="r
     font-weight: 800 !important;
 }
 
-/* خيارات الاستلام: بطاقات ذكية توضح التحديد بالكامل */
+/* خيارات الاستلام: بطاقات عريضة واضحة ومنفصلة بنسبة 100% */
 div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
-    gap: 6px !important;
+    gap: 8px !important;
+    width: 100% !important;
     margin-bottom: 8px !important;
 }
 div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label {
-    position: relative !important;
     background-color: #111827 !important;
     border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 10px !important;
@@ -213,6 +219,7 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     justify-content: space-between !important;
     align-items: center !important;
     transition: all 0.2s ease !important;
+    width: 100% !important;
     box-sizing: border-box !important;
 }
 div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label:has(input:checked) {
@@ -232,13 +239,12 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     border: 1px solid rgba(16, 185, 129, 0.4) !important;
     border-radius: 6px !important;
     padding: 3px 8px !important;
-    white-space: nowrap !important;
 }
 div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label:has(input:checked)::after {
     display: block !important;
 }
 
-/* بطاقة العطر التسويقية الفاخرة */
+/* بطاقة العطر */
 .sensory-card {
     background: #111827;
     border: 1px solid rgba(16, 185, 129, 0.3);
@@ -248,7 +254,8 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     display: flex;
     flex-direction: column;
     gap: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    width: 100%;
+    box-sizing: border-box;
 }
 .sensory-top-row {
     display: flex;
@@ -256,8 +263,8 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     gap: 12px;
 }
 .ingredient-thumb {
-    width: 72px;
-    height: 72px;
+    width: 68px;
+    height: 68px;
     border-radius: 10px;
     object-fit: cover;
     background-color: #030712;
@@ -285,7 +292,6 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     font-size: 0.76em;
     font-weight: 700;
 }
-
 .trust-bullets {
     display: flex;
     justify-content: space-between;
@@ -295,7 +301,6 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 6px;
     padding: 6px 8px;
-    margin-top: 2px;
 }
 
 /* حقول الإدخال */
@@ -308,6 +313,7 @@ div[data-testid="stTextInputRootElement"] > div,
     border-color: rgba(255, 255, 255, 0.12) !important;
     background-color: #111827 !important;
     box-shadow: none !important;
+    border-radius: 8px !important;
 }
 div[data-testid="stTextInput"]:focus-within div[data-baseweb="input"],
 div[data-testid="stTextInput"] input:focus,
@@ -327,7 +333,7 @@ input, textarea {
 }
 input::placeholder { color: #64748b !important; font-size: 0.9em !important; }
 
-/* زر التثبيت الكبير */
+/* زر التثبيت بكامل العرض */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
@@ -337,6 +343,7 @@ div[data-testid="stFormSubmitButton"] > button {
     border-radius: 10px !important;
     border: none !important;
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+    width: 100% !important;
 }
 
 .notice-card {
@@ -393,7 +400,7 @@ input[aria-label="hp"] { display: none !important; }
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. إعداد الاتصال وكتالوج المكونات الطبيعية
+# 3. إعداد الاتصال وكتالوج المكونات
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -418,16 +425,16 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 
-# الرابط المختصر الفخم للمشاركة في الواتساب
 LIVE_APP_URL = "https://dub.sh/mqsoom"
 
+# صور واضحة وعالية الجودة والمصداقية
 PERFUMES = {
     "عطر روميو (Romeo)": {
         "tag": "رجالي فاخر • الأكثر طلباً 🔥",
         "rating": "4.9 ★",
         "notes": "باتشولي نقي، فانيلا، ومسك فاخر",
         "ingredient_label": "خلاصة الباتشولي الطبيعي",
-        "img": "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=180&q=80"
+        "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=180&q=80"
     },
     "عطر يوجا (Yoga)": {
         "tag": "هادئ ومنعش • فوّاح",
@@ -510,7 +517,7 @@ def render_live_slots():
 render_live_slots()
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة (الموعد والمكان محددين بوضوح)
+# 5. شاشة تأكيد الحصة
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -529,7 +536,7 @@ if "confirmed_deal" in st.session_state:
     </div>
     <div class="notice-card">
         🤝 <b>الدفع يد بيد بعد المعاينة والفاتورة</b><br>
-        موعد الاستلام بالسلام مول: <b>السبت القادم (بين المغرب والعشاء: 6:30م – 9:00م) عند بوابة 5 و 6</b>.<br>
+        موعد الاستلام بالسلام مول: <b>السبت (المغرب إلى العشاء: 6:30م – 9:00م) عند بوابة 5 و 6</b>.<br>
         سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتنسيق اللقاء بدقة.
     </div>
     """, unsafe_allow_html=True)
@@ -566,7 +573,7 @@ if "confirmed_deal" in st.session_state:
 # 6. النموذج واختيار العطر وطريقة الاستلام
 # ==============================================================================
 else:
-    st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>1. اختر عِطرك من مجموعة نيوتن (Newton):</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:6px;'>1. اختر عِطرك من مجموعة نيوتن (Newton):</div>", unsafe_allow_html=True)
 
     chosen_perfume = st.radio(
         "اختر العطر:",
@@ -598,9 +605,8 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-top:8px;margin-bottom:4px;'>2. حدد موعد وطريقة الاستلام:</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-top:10px;margin-bottom:6px;'>2. حدد موعد وطريقة الاستلام:</div>", unsafe_allow_html=True)
 
-    # توضيح الموعد المظبوط والبوابة لرفع الالتزام
     delivery_mode = st.radio(
         "طريقة الاستلام والدفع:",
         [
@@ -612,9 +618,9 @@ else:
     )
 
     if "توصيل" in delivery_mode:
-        st.markdown("<div style='font-size:0.75em;color:#10b981;margin-bottom:6px;'>📍 اللوكيشن يتم إرساله مباشرة وسريعاً عبر الواتساب فور اكتمال الباقة.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.75em;color:#10b981;margin-bottom:8px;'>📍 اللوكيشن يتم إرساله مباشرة وسريعاً عبر الواتساب فور اكتمال الباقة.</div>", unsafe_allow_html=True)
     else:
-        st.markdown("<div style='font-size:0.75em;color:#10b981;margin-bottom:6px;'>📍 موعد التسليم: السبت (6:30م إلى 9:00م) عند بوابة 5 أو 6 لسهولة وسرعة الوقوف.</div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.75em;color:#10b981;margin-bottom:8px;'>📍 موعد التسليم: السبت (6:30م إلى 9:00م) عند بوابة 5 أو 6 لسهولة وسرعة الوقوف.</div>", unsafe_allow_html=True)
 
     with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
         st.markdown("<div style='font-size:0.84em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>بيانات التأكيد:</div>", unsafe_allow_html=True)
