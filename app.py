@@ -5,6 +5,7 @@ import re
 import html
 import hmac
 import urllib.parse
+import os
 
 # ==============================================================================
 # 1. إعداد الصفحة وهوية المنصة
@@ -28,7 +29,7 @@ components.html("""
 """, height=0, width=0)
 
 # ==============================================================================
-# 2. أنماط الواجهة (Minimal Dark Luxury - خالية تماماً من الأحمر)
+# 2. أنماط الواجهة (Minimal Dark Luxury - خالية تماماً من أي أحمر)
 # ==============================================================================
 st.markdown("""
 <style>
@@ -81,7 +82,7 @@ html, body, [class*="css"] {
     margin: 2px 0 8px 0;
 }
 
-/* شبكة الحصص الأربعة */
+/* شبكة الحصص */
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -139,7 +140,7 @@ div[data-testid="stRadio"]:not(form div[data-testid="stRadio"]) div[role="radiog
     background-color: rgba(16, 185, 129, 0.1) !important;
 }
 
-/* إزالة الأحمر نهائياً من مؤشرات التحديد */
+/* إزالة الأحمر نهائياً */
 div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child {
     border-color: #475569 !important;
     background-color: transparent !important;
@@ -167,7 +168,7 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) div:f
     margin: 8px 0;
 }
 
-/* عناصر الإدخال والنموذج */
+/* النموذج والمدخلات */
 form div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
@@ -256,7 +257,7 @@ input[aria-label="hp"] {
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. محرك البيانات وإعداد الاتصال
+# 3. محرك البيانات وإعداد الصور التبادلية
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -281,41 +282,46 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD_HASH = st.secrets.get("ADMIN_PASSWORD", "")
 
-# الروابط المباشرة لصور عطور نيوتن من CDN سلة
-IMG_STANDING = "https://cdn.salla.sa/f8814412-7559-4a63-becf-105144da6c16-1000x1000-qq98OmZcvROINDI3JAV8yYHxUS5NN8jkzt8HdzCb.png"
-IMG_LYING = "https://cdn.salla.sa/f2cca95c-3fc3-48bd-a008-82b49ea0cd1c-1000x1000-ZxKeUscIKEeLzfjYTYvNjbbcH1AUgn82dQ0YfwAL.png"
+# فحص وجود الملفات محلياً؛ وإذا لم تكن موجودة يتم استخدام مسار خارجي مفتوح لا يحظر العرض
+LOCAL_BOTTLE_1 = "bottle_1.png"
+LOCAL_BOTTLE_2 = "bottle_2.png"
 
-# توزيع الصور بالتبادل بين العطور لتقديم تجربة حركية ومتنوعة
+FALLBACK_IMG_1 = "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=400&q=80"
+FALLBACK_IMG_2 = "https://images.unsplash.com/photo-1583445013765-46c20c4a6772?auto=format&fit=crop&w=400&q=80"
+
+img_src_1 = LOCAL_BOTTLE_1 if os.path.exists(LOCAL_BOTTLE_1) else FALLBACK_IMG_1
+img_src_2 = LOCAL_BOTTLE_2 if os.path.exists(LOCAL_BOTTLE_2) else FALLBACK_IMG_2
+
 PERFUMES = {
     "عطر يوجا (Yoga)": {
         "tag": "هادئ ومنعش • أصلي",
         "notes": "برغموت إيطالي • نرجس • مسك قطني نظيف",
-        "image": IMG_STANDING
+        "image": img_src_1
     },
     "عطر هارت بيت (Heart Beat)": {
         "tag": "الأكثر طلباً • أصلي",
         "notes": "كشمش أسود • ورد جوري • مسك مخملي",
-        "image": IMG_LYING
+        "image": img_src_2
     },
     "عطر روميو (Romeo)": {
         "tag": "رجالي فاخر • أصلي",
         "notes": "هيل • باتشولي إندونيسي • فانيلا معتقة",
-        "image": IMG_STANDING
+        "image": img_src_1
     },
     "عطر لونار (Lunar)": {
         "tag": "غامض ومميز • أصلي",
         "notes": "عنب أسود • باتشولي عميق • عنبر دافئ",
-        "image": IMG_LYING
+        "image": img_src_2
     },
     "عطر لاروزيه (Larose)": {
         "tag": "أنثوي ساحر • أصلي",
         "notes": "ياسمين رقيق • زنبق • لمسة صندل",
-        "image": IMG_STANDING
+        "image": img_src_1
     },
     "عطر اليسيوم (Elysium)": {
         "tag": "فخامة ملكية • أصلي",
         "notes": "لافندر فرنسي • توابل دافئة • عنبر ملكي",
-        "image": IMG_LYING
+        "image": img_src_2
     }
 }
 
@@ -336,7 +342,6 @@ def get_confirmed_bookings(basket_key: str):
 current_bookings = get_confirmed_bookings(BASKET_ID)
 taken_count = len(current_bookings)
 
-# شريط الحصص التفاعلي
 slots_html = ""
 for i in range(1, BASKET_CAPACITY + 1):
     if i <= taken_count:
@@ -410,7 +415,6 @@ else:
     
     p = PERFUMES[chosen_perfume]
     
-    # عرض الصورة الأصلية المتغيرة بكل ثبات عبر محرك Streamlit الأصلي
     col_img, col_txt = st.columns([1, 2])
     with col_img:
         st.image(p["image"], use_container_width=True)
