@@ -43,14 +43,25 @@ def sanitize_phone_number(raw_input: str) -> str:
     return cleaned
 
 # ==============================================================================
-# 2. أنماط الواجهة والقضاء على اللون الأحمر وتداخل النصوص
+# 2. أنماط الواجهة (إلغاء الأحمر والدوائر المزعجة نهائياً)
 # ==============================================================================
 st.markdown("""
 <style>
+/* فرض اللون الأخضر الزمردي في المتصفح عالمياً */
+:root {
+    --primary-color: #10b981 !important;
+    accent-color: #10b981 !important;
+}
+input, select, textarea, button {
+    accent-color: #10b981 !important;
+}
+
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 
-/* 1. إخفاء عبارة Press Enter to submit form نهائياً ومنع تداخلها مع النصوص */
-div[data-testid="InputInstructions"] {
+/* إخفاء عبارة Press Enter التعليمية */
+[data-testid="InputInstructions"],
+[data-testid="stWidgetInstructions"],
+div[data-testid="stTextInput"] small {
     display: none !important;
 }
 
@@ -102,7 +113,7 @@ html, body, [class*="css"] {
     margin: 3px 0 8px 0;
 }
 
-/* شريط الحصص */
+/* شريط الحصص الأربعة */
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -133,7 +144,15 @@ html, body, [class*="css"] {
     border-style: dashed;
 }
 
-/* شبكة اختيار العطور */
+/* ==========================================================================
+   إلغاء دوائر الراديو الحمراء بالكامل وتحويلها لبطاقات تفاعلية أنيقة
+   ========================================================================== */
+div[data-testid="stRadio"] div[role="radiogroup"] label div:first-child:not(:last-child),
+div[data-testid="stRadio"] input[type="radio"] + div {
+    display: none !important;
+}
+
+/* شبكة العطور (3 يمين و 3 يسار كأزرار متناسقة) */
 div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -147,20 +166,25 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="r
     background-color: #111827 !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 8px !important;
-    padding: 8px !important;
+    padding: 9px 8px !important;
     min-height: 42px !important;
     display: flex !important;
+    justify-content: center !important;
     align-items: center !important;
     cursor: pointer !important;
     font-size: 0.82em !important;
     box-sizing: border-box !important;
+    transition: all 0.2s ease !important;
 }
 div[data-testid="stRadio"]:not(:has(input[name*="delivery_choice"])) div[role="radiogroup"] > label:has(input:checked) {
     border-color: #10b981 !important;
-    background-color: rgba(16, 185, 129, 0.1) !important;
+    background-color: rgba(16, 185, 129, 0.14) !important;
+    box-shadow: 0 0 0 1px #10b981 !important;
+    color: #10b981 !important;
+    font-weight: 700 !important;
 }
 
-/* خيارات الاستلام */
+/* خيارات الاستلام كبطاقات مباشرة خضراء عند التحديد */
 div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
@@ -171,16 +195,16 @@ div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogr
     background-color: #111827 !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: 8px !important;
-    padding: 8px 10px !important;
+    padding: 10px 12px !important;
     font-size: 0.82em !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
 }
-
-/* 2. إلغاء اللون الأحمر من دوائر الاختيار (Radio buttons) */
-div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] {
+div[data-testid="stRadio"]:has(input[name*="delivery_choice"]) div[role="radiogroup"] > label:has(input:checked) {
     border-color: #10b981 !important;
-}
-div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"] div {
-    background-color: #10b981 !important;
+    background-color: rgba(16, 185, 129, 0.14) !important;
+    box-shadow: 0 0 0 1px #10b981 !important;
+    color: #ffffff !important;
 }
 
 /* بطاقة المكون الحسي العطري */
@@ -230,21 +254,39 @@ div[data-testid="stRadio"] div[role="radiogroup"] label div[aria-checked="true"]
     font-weight: 700;
 }
 
-/* 3. إلغاء المربع والإطار الأحمر في حقول الإدخال واستبداله باللون الزمردي */
-div[data-baseweb="input"],
-div[data-baseweb="base-input"] {
+/* ==========================================================================
+   إلغاء الإطار والظل الأحمر من حقول الإدخال وفرض التوهج الزمردي
+   ========================================================================== */
+div[data-testid="stTextInput"] * {
+    outline: none !important;
+}
+div[data-testid="stTextInput"] div[data-baseweb="input"],
+div[data-testid="stTextInput"] div[data-baseweb="base-input"],
+div[data-testid="stTextInputRootElement"],
+div[data-testid="stTextInputRootElement"] > div,
+.stTextInput div[data-baseweb="input"] {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    border-top-color: rgba(255, 255, 255, 0.12) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+    border-left-color: rgba(255, 255, 255, 0.12) !important;
+    border-right-color: rgba(255, 255, 255, 0.12) !important;
     background-color: #111827 !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 8px !important;
-    transition: all 0.2s ease !important;
+    box-shadow: none !important;
 }
 
-div[data-baseweb="input"]:focus-within,
-div[data-baseweb="base-input"]:focus-within,
-input:focus, textarea:focus {
+div[data-testid="stTextInput"]:focus-within div[data-baseweb="input"],
+div[data-testid="stTextInput"]:focus-within div[data-baseweb="base-input"],
+div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within,
+div[data-testid="stTextInput"] div[data-baseweb="base-input"]:focus-within,
+div[data-testid="stTextInput"] [data-testid="stTextInputRootElement"]:focus-within,
+div[data-testid="stTextInput"] input:focus,
+.stTextInput input:focus {
     border-color: #10b981 !important;
+    border-top-color: #10b981 !important;
+    border-bottom-color: #10b981 !important;
+    border-left-color: #10b981 !important;
+    border-right-color: #10b981 !important;
     box-shadow: 0 0 0 1px #10b981, 0 0 10px rgba(16, 185, 129, 0.25) !important;
-    outline: none !important;
 }
 
 input, textarea { 
@@ -261,7 +303,6 @@ input::placeholder {
     font-size: 0.9em !important;
 }
 
-/* أزرار الإرسال */
 div[data-testid="stFormSubmitButton"] > button {
     background: #10b981 !important;
     color: #022c22 !important;
@@ -335,7 +376,7 @@ input[aria-label="hp"] { display: none !important; }
 """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 3. إعداد الاتصال وكتالوج المكونات الطبيعية
+# 3. إعداد الاتصال وكتالوج المكونات الطبيعية (صورة لونار الحقيقية)
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client:
@@ -379,9 +420,10 @@ PERFUMES = {
     "عطر لونار (Lunar)": {
         "tag": "أناقة للجنسين • أصلي",
         "rating": "4.9 ★",
-        "notes": "عنب أسود، باتشولي، وعنبر",
-        "ingredient_label": "راتنج العنبر الدافئ",
-        "img": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80"
+        "notes": "عنب أسود، باتشولي، وعنبر دافئ",
+        "ingredient_label": "راتنج العنبر الطبيعي وخلاصة العنب",
+        # صورة طبيعية راقية لبلورات العنبر الحقيقي
+        "img": "https://images.unsplash.com/photo-1509783236416-c9ad59bae472?auto=format&fit=crop&w=150&q=80"
     },
     "عطر لاروزيه (Larose)": {
         "tag": "أنثوي ساحر • أصلي",
@@ -422,7 +464,7 @@ def get_confirmed_bookings(basket_key: str):
         return []
 
 # ==============================================================================
-# 4. الرأسية التسويقية وتحديث المقاعد اللحظي
+# 4. الرأسية التسويقية الدقيقة (تقاسم السعر بين 4 أشخاص بالتساوي)
 # ==============================================================================
 @st.fragment(run_every="6s")
 def render_live_slots():
@@ -440,7 +482,7 @@ def render_live_slots():
     <div class="top-card">
         <div class="brand-badge">قسم مشترياتك • عروض بلوم (2+2 مجاناً)</div>
         <div class="headline">تقاسم عروض بلوم Blom</div>
-        <div class="sub-headline">تقاسم السعر أنت و 4 أشخاص بالتساوي</div>
+        <div class="sub-headline">تقاسم السعر بين 4 أشخاص بالتساوي (أنت و 3 معك)</div>
         <div class="slots-container">
             {slots_markup}
         </div>
@@ -489,7 +531,7 @@ if "confirmed_deal" in st.session_state:
     st.markdown(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>', unsafe_allow_html=True)
 
     share_msg = (
-        f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نتقاسمها سوا بالتساوي.\n"
+        f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نتقاسمها بين 4 بالتساوي.\n"
         f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية في جدة والتوصيل مجاني أول ما تكتمل.\n\n"
         f"حجزت حصتي وباقي مقاعد بسيطة، ادخل اختر عطرك وقفل الباقة معنا هنا:\n"
         f"{LIVE_APP_URL}"
@@ -547,7 +589,7 @@ else:
     if "توصيل" in delivery_mode:
         st.markdown("<div style='font-size:0.75em;color:#10b981;margin-bottom:6px;'>📍 اللوكيشن يتم إرساله مباشرة وسريعاً عبر الواتساب عند اكتمال الباقة.</div>", unsafe_allow_html=True)
 
-    with st.form("quick_order_form"):
+    with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
         st.markdown("<div style='font-size:0.82em;font-weight:700;color:#cbd5e1;margin-bottom:4px;'>بيانات التأكيد:</div>", unsafe_allow_html=True)
 
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
@@ -632,8 +674,7 @@ if st.query_params.get("manage") == "faris":
 
         k1, k2, k3 = st.columns(3)
         k1.metric("المقاعد المحجوزة", f"{total_count} / {BASKET_CAPACITY}")
-        k1_paid = f"{paid_count * UNIFIED_PRICE} ر.س"
-        k2.metric("المحصل (مدفوع)", k1_paid)
+        k2.metric("المحصل (مدفوع)", f"{paid_count * UNIFIED_PRICE} ر.س")
         k3.metric("إجمالي السلة", f"{total_val} ر.س")
 
         st.markdown("##### قائمة المشتركين:")
