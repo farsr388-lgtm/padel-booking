@@ -1,60 +1,87 @@
-import streamlit as st
-import streamlit.components.v1 as components
-from supabase import create_client, Client
-import re
 import html
 import hmac
+import re
 import urllib.parse
+from typing import Any
+
+import streamlit as st
+import streamlit.components.v1 as components
+from supabase import Client, create_client
 
 # ==============================================================================
-# 1. إعداد الصفحة ودوال التنظيف والحماية الصارمة
+# 1. إعداد الصفحة ودوال التنظيف والحماية الصارمة (Python 3.12 Engine)
 # ==============================================================================
 st.set_page_config(
     page_title="مَقسوم | تقاسم عروض بلوم - نيوتن",
     page_icon="🌿",
     layout="centered",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
+
 def clean_html(raw_html: str) -> str:
-    """
-    تجريد صارم للمسافات البادئة والأسطر الفارغة لكل سطر على حدة.
-    يمنع نهائياً قراءة نصوص HTML/CSS ككتل برمجية مشوهة (<pre><code>) بواسطة محرك الماركداون.
-    """
+    """تجريد صارم للمسافات البادئة والأسطر الفارغة لكل سطر على حدة لمنع تحويلها لـ pre/code."""
     if not raw_html:
         return ""
-    return "\n".join(line.strip() for line in raw_html.strip().splitlines() if line.strip())
+    return "\n".join(
+        line.strip() for line in raw_html.strip().splitlines() if line.strip()
+    )
+
 
 def sanitize_phone_number(raw_input: str) -> str:
-    """تنظيف وتوحيد أرقام الجوال ومعالجة الأرقام العربية والرموز ومفتاح الدولة 966."""
+    """تنظيف وتوحيد أرقام الجوال ومعالجة كافة البادئات الدولية (00966، 966) والأرقام العربية."""
     if not raw_input:
         return ""
-    table = str.maketrans(
-        "\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667\u0668\u0669\u06f0\u06f1\u06f2\u06f3\u06f4\u06f5\u06f6\u06f7\u06f8\u06f9",
-        "01234567890123456789"
-    )
-    cleaned = re.sub(r'[\s\-\+]', '', raw_input.strip().translate(table))
-    if cleaned.startswith("966"):
-        cleaned = "0" + cleaned[3:]
-    elif cleaned.startswith("5"):
-        cleaned = "0" + cleaned
-    return cleaned
 
-# تتبع تجربة المستخدم ومسار التحويل عبر Microsoft Clarity
-components.html(clean_html("""
+    # تحويل الأرقام العربية والفارسية إلى أرقام قياسية
+    arabic_indic_table = str.maketrans(
+        "٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹",
+        "01234567890123456789",
+    )
+    # استخلاص الأرقام فقط وتجاهل الرموز والفراغات وعلامة +
+    digits = re.sub(r"\D", "", raw_input.strip().translate(arabic_indic_table))
+
+    # معالجة البادئات الدولية المختلفة
+    if digits.startswith("00966"):
+        digits = digits[5:]
+    elif digits.startswith("966"):
+        digits = digits[3:]
+
+    # توحيد الرقم للصيغة الوطنية 05xxxxxxxx
+    if digits.startswith("05"):
+        return digits
+    elif digits.startswith("5"):
+        return f"0{digits}"
+    elif digits.startswith("0") and len(digits) == 10:
+        return digits
+
+    return digits
+
+
+# تتبع تجربة المستخدم ومسار التحويل عبر Microsoft Clarity مع حماية المتصفح
+components.html(
+    clean_html("""
     <script type="text/javascript">
-        (function(c,l,a,r,i,t,y){
-            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-        })(window.parent, window.parent.document, "clarity", "script", "ytjnujh8td");
+        try {
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window.parent, window.parent.document, "clarity", "script", "ytjnujh8td");
+        } catch (e) {
+            console.warn("Clarity initialization bypassed sandbox restrictions.");
+        }
     </script>
-"""), height=0, width=0)
+"""),
+    height=0,
+    width=0,
+)
 
 # ==============================================================================
 # 2. محرك الأنماط البصرية (Mobile-First CSS & Neutral Carbon Indicators)
 # ==============================================================================
-st.markdown(clean_html("""
+st.markdown(
+    clean_html("""
 <style>
 :root {
     color-scheme: dark;
@@ -183,11 +210,12 @@ html, body, [class*="css"] {
 }
 
 /* ==========================================================================
-   شبكة العطور (3 يمين و 3 يسار): استئصال اللون الأحمر واعتماد النقطة الكربونية
+   شبكة العطور المعتمدة (3 يمين مقابل 3 يسار): النقطة الكربونية واستبعاد اللون الأحمر
    ========================================================================== */
 div[data-testid="stRadio"] { width: 100% !important; }
 
-div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] {
+/* تطبيق الشبكة الثنائية على خيارات العطور خارج النموذج تلقائياً */
+div:not([data-testid="stForm"]) > div[data-testid="stRadio"] div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 8px !important;
@@ -196,7 +224,7 @@ div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="rad
     box-sizing: border-box !important;
 }
 
-div[data-testid="stRadio"]:not(:has(input[name*="delivery_mode"])) div[role="radiogroup"] > label {
+div[data-testid="stRadio"] div[role="radiogroup"] > label {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
@@ -224,7 +252,7 @@ div[data-testid="stRadio"] label > div:first-child:not(:only-child) {
     display: none !important;
 }
 
-/* مؤشر دائري كربوني محايد وهادئ في الحالة غير المحددة */
+/* مؤشر دائري كربوني هادئ ومحايد يحل محل النقاط الحمراء الافتراضية */
 div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
     content: "" !important;
     display: inline-block !important;
@@ -241,7 +269,7 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
     transition: all 0.2s ease !important;
 }
 
-/* التوهج الزمردي والنقطة الخضراء فقط عند التحديد */
+/* التحول إلى اللون الزمردي والتوهج الأخضر عند التحديد فقط */
 div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
     background-color: var(--active-bg) !important;
     border: 2px solid var(--primary) !important;
@@ -253,7 +281,7 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked)::be
     box-shadow: 0 0 10px var(--primary) !important;
 }
 
-/* حماية النصوص العربية من الانهيار */
+/* حماية النصوص من الانهيار */
 div[data-testid="stRadio"] label p,
 div[data-testid="stRadio"] label span,
 div[data-testid="stRadio"] label div {
@@ -272,8 +300,7 @@ div[data-testid="stRadio"] label:has(input:checked) span {
     font-weight: 900 !important;
 }
 
-/* بطاقات الاستلام والتسليم داخل النموذج */
-form div[data-testid="stRadio"] div[role="radiogroup"],
+/* بطاقات الاستلام والتسليم داخل النموذج (Flex Column كامل العرض) */
 div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
@@ -283,21 +310,9 @@ div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
     margin-bottom: 8px !important;
 }
 
-form div[data-testid="stRadio"] div[role="radiogroup"] > label,
 div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] > label {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    background-color: var(--card-bg) !important;
-    border: 1.5px solid var(--border-color) !important;
-    border-radius: 10px !important;
     padding: 12px 14px !important;
     min-height: 48px !important;
-    cursor: pointer !important;
-    box-sizing: border-box !important;
-    width: 100% !important;
-    margin: 0 !important;
 }
 div[data-testid="stForm"] div[data-testid="stRadio"] label p,
 div[data-testid="stForm"] div[data-testid="stRadio"] label span {
@@ -482,15 +497,18 @@ div[data-testid="stFormSubmitButton"] > button {
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { display: none !important; }
 </style>
-"""), unsafe_allow_html=True)
+"""),
+    unsafe_allow_html=True,
+)
 
 # ==============================================================================
 # 3. محرك الربط والبيانات (Supabase & Catalog Engine)
 # ==============================================================================
 @st.cache_resource
-def get_supabase_client() -> Client:
+def get_supabase_client() -> Client | None:
+    """تهيئة عميل Supabase مع التحقق الصارم من صحة الرابط ومفتاح الاتصال."""
     try:
-        url = str(st.secrets.get("SUPABASE_URL", "")).strip().rstrip('/')
+        url = str(st.secrets.get("SUPABASE_URL", "")).strip().rstrip("/")
         if url.endswith("/rest/v1"):
             url = url[:-8]
         key = str(st.secrets.get("SUPABASE_KEY", "")).strip()
@@ -499,6 +517,7 @@ def get_supabase_client() -> Client:
         return create_client(url, key)
     except Exception:
         return None
+
 
 supabase = get_supabase_client()
 
@@ -512,82 +531,92 @@ ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 LIVE_APP_URL = "https://dub.sh/mqsoom"
 
 # كتالوج العطور الستة المعتمدة
-PERFUMES = {
+PERFUMES: dict[str, dict[str, str]] = {
     "عطر روميو": {
         "en_name": "Romeo",
         "tag": "رجالي فاخر • الأكثر طلباً 🔥",
         "notes": "باتشولي نقي، فانيلا، ومسك فاخر",
         "ingredient_label": "خلاصة الباتشولي الطبيعي",
-        "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=180&q=80"
+        "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=180&q=80",
     },
     "عطر يوجا": {
         "en_name": "Yoga",
         "tag": "هادئ ومنعش • فوّاح",
         "notes": "برغموت إيطالي، مسك نقي، ونرجس",
         "ingredient_label": "البرغموت الإيطالي النقي",
-        "img": "https://images.unsplash.com/photo-1582281298055-e25b84a30b0b?auto=format&fit=crop&w=180&q=80"
+        "img": "https://images.unsplash.com/photo-1582281298055-e25b84a30b0b?auto=format&fit=crop&w=180&q=80",
     },
     "عطر لونار": {
         "en_name": "Lunar",
         "tag": "أناقة للجنسين • ثبات عالي",
         "notes": "عنب أسود، باتشولي، وعنبر دافئ",
         "ingredient_label": "راتنج العنبر الطبيعي الفاخر",
-        "img": "https://images.unsplash.com/photo-1509783236416-c9ad59bae472?auto=format&fit=crop&w=180&q=80"
+        "img": "https://images.unsplash.com/photo-1509783236416-c9ad59bae472?auto=format&fit=crop&w=180&q=80",
     },
     "عطر لاروزيه": {
         "en_name": "Larose",
         "tag": "أنثوي ساحر • ناعم وجذاب",
         "notes": "فانيلا فرنسية، زنبق أبيض، وياسمين",
         "ingredient_label": "بتلات الياسمين الأبيض",
-        "img": "https://images.unsplash.com/photo-1596438459194-f275f413d6ff?auto=format&fit=crop&w=180&q=80"
+        "img": "https://images.unsplash.com/photo-1596438459194-f275f413d6ff?auto=format&fit=crop&w=180&q=80",
     },
     "عطر إليسيوم": {
         "en_name": "Elysium",
         "tag": "فخامة ملكية • للمناسبات",
         "notes": "عنبر ملكي، فانيلا، ولافندر بارد",
         "ingredient_label": "زهور الخزامى واللافندر النقي",
-        "img": "https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?auto=format&fit=crop&w=180&q=80"
+        "img": "https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?auto=format&fit=crop&w=180&q=80",
     },
     "عطر هارت بيت": {
         "en_name": "Heart Beat",
         "tag": "حيوي ورومانسي • جذاب",
         "notes": "كشمش أسود، مسك أبيض، وورد مخملي",
         "ingredient_label": "الكشمش الأسود والورد المخملي",
-        "img": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=180&q=80"
-    }
+        "img": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=180&q=80",
+    },
 }
 
-@st.cache_data(ttl=3)
-def get_confirmed_bookings(basket_key: str):
+
+@st.cache_data(ttl=5)
+def get_confirmed_bookings(basket_key: str) -> list[dict[str, Any]]:
+    """جلب قائمة الحجوزات النشطة للسلة الحالية مع كاش خفيف."""
     if not supabase:
         return []
     try:
-        res = supabase.table("bookings") \
-            .select("*") \
-            .eq("session_day", basket_key) \
-            .neq("status", "cancelled") \
-            .order("id") \
+        res = (
+            supabase.table("bookings")
+            .select("*")
+            .eq("session_day", basket_key)
+            .neq("status", "cancelled")
+            .order("id")
             .execute()
+        )
         return res.data or []
     except Exception:
         return []
 
+
 # ==============================================================================
-# 4. الرأسية التسويقية (تحديث لحظي كل 15 ثانية لترشيد استهلاك السيرفر)
+# 4. الرأسية التسويقية (تحديث لحظي كل 15 ثانية لترشيد السيرفر)
 # ==============================================================================
 @st.fragment(run_every="15s")
-def render_live_slots():
+def render_live_slots() -> None:
     current_bookings = get_confirmed_bookings(BASKET_ID)
     taken_count = len(current_bookings)
 
-    slots_markup = "".join([
-        f'<div class="slot-pill taken">حصة {i} مكتملة ✓</div>' if i <= taken_count else
-        '<div class="slot-pill current">حصتك الآن 🔥</div>' if i == taken_count + 1 else
-        f'<div class="slot-pill available">متاح {i}</div>'
-        for i in range(1, BASKET_CAPACITY + 1)
-    ])
+    slots_markup = "".join(
+        [
+            f'<div class="slot-pill taken">حصة {i} مكتملة ✓</div>'
+            if i <= taken_count
+            else '<div class="slot-pill current">حصتك الآن 🔥</div>'
+            if i == taken_count + 1
+            else f'<div class="slot-pill available">متاح {i}</div>'
+            for i in range(1, BASKET_CAPACITY + 1)
+        ]
+    )
 
-    st.markdown(clean_html(f"""
+    st.markdown(
+        clean_html(f"""
         <div class="top-card">
             <div class="brand-badge">قسم مشترياتك • عروض بلوم (2+2 مجاناً)</div>
             <div class="headline">تقاسم عروض بلوم Blom</div>
@@ -596,7 +625,10 @@ def render_live_slots():
                 {slots_markup}
             </div>
         </div>
-    """), unsafe_allow_html=True)
+    """),
+        unsafe_allow_html=True,
+    )
+
 
 render_live_slots()
 
@@ -605,27 +637,37 @@ render_live_slots()
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
-    safe_name = html.escape(deal['name'])
-    safe_perfume = html.escape(deal['perfume'])
-    safe_delivery = html.escape(deal['delivery'])
+    safe_name = html.escape(str(deal.get("name", "")))
+    safe_perfume = html.escape(str(deal.get("perfume", "")))
+    safe_delivery = html.escape(str(deal.get("delivery", "")))
 
     fresh_list = get_confirmed_bookings(BASKET_ID)
     current_taken = len(fresh_list)
     remaining_seats = max(0, BASKET_CAPACITY - current_taken)
 
-    if remaining_seats > 0:
-        seats_status_msg = f"⏳ باقي {remaining_seats} وينقفل القروب ونطلب فوراً."
-    else:
-        seats_status_msg = "🔥 اكتملت الـ 4 مقاعد بالكامل وجاري تنفيذ الطلب!"
+    seats_status_msg = (
+        f"⏳ باقي {remaining_seats} وينقفل القروب ونطلب فوراً."
+        if remaining_seats > 0
+        else "🔥 اكتملت الـ 4 مقاعد بالكامل وجاري تنفيذ الطلب!"
+    )
 
-    if "توصيل" in deal['delivery']:
-        delivery_instruction = "📍 موقع التوصيل: (برسل لك اللوكيشن في هذه المحادثة مباشرة)"
-        card_delivery_note = "سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد اللوكيشن والتوصيل."
+    if "توصيل" in deal.get("delivery", ""):
+        delivery_instruction = (
+            "📍 موقع التوصيل: (برسل لك اللوكيشن في هذه المحادثة مباشرة)"
+        )
+        card_delivery_note = (
+            "سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد اللوكيشن والتوصيل."
+        )
     else:
-        delivery_instruction = "📍 الاستلام: السلام مول (بوابة 5 و 6) - السبت بين المغرب والعشاء"
-        card_delivery_note = "موعد الاستلام بالسلام مول: <b>السبت (المغرب إلى العشاء: 6:30م – 9:00م) عند بوابة 5 أو 6</b>."
+        delivery_instruction = (
+            "📍 الاستلام: السلام مول (بوابة 5 و 6) - السبت بين المغرب والعشاء"
+        )
+        card_delivery_note = (
+            "موعد الاستلام بالسلام مول: <b>السبت (المغرب إلى العشاء: 6:30م – 9:00م) عند بوابة 5 أو 6</b>."
+        )
 
-    st.markdown(clean_html(f"""
+    st.markdown(
+        clean_html(f"""
         <div class="top-card" style="border-color:var(--primary);">
             <div class="brand-badge">تم تأكيد حصتك بنجاح 🌿</div>
             <div class="headline" style="font-size:1.15em;">{safe_perfume}</div>
@@ -638,10 +680,13 @@ if "confirmed_deal" in st.session_state:
             🤝 <b>الدفع يد بيد بعد المعاينة والفاتورة الأصلية</b><br>
             {card_delivery_note}
         </div>
-    """), unsafe_allow_html=True)
+    """),
+        unsafe_allow_html=True,
+    )
 
-    # إرسال حدث التحويل النهائي المخصص لـ Microsoft Clarity
-    components.html(clean_html("""
+    # إرسال حدث التحويل النهائي المخصص لـ Microsoft Clarity مع الحماية
+    components.html(
+        clean_html("""
         <script>
             try {
                 if (window.parent && window.parent.clarity) {
@@ -649,20 +694,30 @@ if "confirmed_deal" in st.session_state:
                 }
             } catch(e) {}
         </script>
-    """), height=0, width=0)
+    """),
+        height=0,
+        width=0,
+    )
 
     wa_admin_msg = (
         f"مرحباً 🌿\n"
         f"حجزت حصتي في تطبيق مَقسوم ({UNIFIED_PRICE} ر.س):\n\n"
-        f"• الاسم: {deal['name']}\n"
-        f"• الجوال: {deal['phone']}\n"
-        f"• العطر: {deal['perfume']}\n"
+        f"• الاسم: {deal.get('name')}\n"
+        f"• الجوال: {deal.get('phone')}\n"
+        f"• العطر: {deal.get('perfume')}\n"
         f"• {delivery_instruction}\n\n"
         f"{seats_status_msg}\n"
         f"بانتظار تأكيدك واستلام الفاتورة الأصلية وفحص العطر يد بيد."
     )
-    admin_link = f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
-    st.markdown(clean_html(f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>'), unsafe_allow_html=True)
+    admin_link = (
+        f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
+    )
+    st.markdown(
+        clean_html(
+            f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>'
+        ),
+        unsafe_allow_html=True,
+    )
 
     share_msg = (
         f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نتقاسمها بين 4 بالتساوي.\n"
@@ -671,27 +726,39 @@ if "confirmed_deal" in st.session_state:
         f"{LIVE_APP_URL}"
     )
     share_link = f"https://wa.me/?text={urllib.parse.quote(share_msg)}"
-    st.markdown(clean_html(f'<a href="{share_link}" target="_blank" class="wa-share-btn">👥 شارك العرض مع خويك لتكتمل الباقة أسرع</a>'), unsafe_allow_html=True)
+    st.markdown(
+        clean_html(
+            f'<a href="{share_link}" target="_blank" class="wa-share-btn">👥 شارك العرض مع خويك لتكتمل الباقة أسرع</a>'
+        ),
+        unsafe_allow_html=True,
+    )
 
     if st.button("تعديل الاختيار أو حجز مقعد آخر", use_container_width=True):
-        del st.session_state["confirmed_deal"]
+        st.session_state.pop("confirmed_deal", None)
         st.rerun()
 
 # ==============================================================================
 # 6. النموذج وتجربة الاختيار السلسة (High-Conversion UX)
 # ==============================================================================
 else:
-    st.markdown(clean_html('<div class="centered-section-title">اختر عطرك من باقة نيوتن</div>'), unsafe_allow_html=True)
+    st.markdown(
+        clean_html(
+            '<div class="centered-section-title">اختر عطرك من باقة نيوتن</div>'
+        ),
+        unsafe_allow_html=True,
+    )
 
+    # الراديو خارج الفورم يُطبق عليه شبكة 3 يمين و 3 يسار بدقة
     chosen_perfume = st.radio(
         "اختر العطر:",
         options=list(PERFUMES.keys()),
-        label_visibility="collapsed"
+        label_visibility="collapsed",
     )
 
     p = PERFUMES[chosen_perfume]
-    
-    st.markdown(clean_html(f"""
+
+    st.markdown(
+        clean_html(f"""
         <div class="sensory-card">
             <div class="sensory-top-row">
                 <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" loading="eager" />
@@ -706,53 +773,77 @@ else:
                 <span style="color:var(--primary);font-weight:800;">وفرت {SAVINGS_AMOUNT} ر.س (خصم 50%)</span>
             </div>
         </div>
-    """), unsafe_allow_html=True)
+    """),
+        unsafe_allow_html=True,
+    )
 
-    with st.form("quick_order_form", clear_on_submit=False, enter_to_submit=False, border=False):
-        st.markdown(clean_html('<div class="centered-section-title" style="margin-top:0;">بيانات التأكيد والاستلام</div>'), unsafe_allow_html=True)
+    with st.form(
+        "quick_order_form",
+        clear_on_submit=False,
+        enter_to_submit=False,
+        border=False,
+    ):
+        st.markdown(
+            clean_html(
+                '<div class="centered-section-title" style="margin-top:0;">بيانات التأكيد والاستلام</div>'
+            ),
+            unsafe_allow_html=True,
+        )
 
         alert_placeholder = st.empty()
 
         f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
         f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
 
-        st.markdown(clean_html('<div class="centered-section-title" style="font-size:0.88em;margin-top:8px;margin-bottom:4px;">حدد طريقة وموعد الاستلام</div>'), unsafe_allow_html=True)
+        st.markdown(
+            clean_html(
+                '<div class="centered-section-title" style="font-size:0.88em;margin-top:8px;margin-bottom:4px;">حدد طريقة وموعد الاستلام</div>'
+            ),
+            unsafe_allow_html=True,
+        )
 
         delivery_mode = st.radio(
             "طريقة وموعد الاستلام:",
             [
                 f"السلام مول (بوابة 5 و 6) • السبت (المغرب إلى العشاء) — {UNIFIED_PRICE} ر.س",
-                f"توصيل مجاني داخل أحياء جدة — {UNIFIED_PRICE} ر.س"
+                f"توصيل مجاني داخل أحياء جدة — {UNIFIED_PRICE} ر.س",
             ],
             key="delivery_mode",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
         )
 
-        st.markdown(clean_html("""
+        st.markdown(
+            clean_html("""
             <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:7px;text-align:center;font-size:0.73em;color:#94a3b8;margin:8px 0;">
                 🛡️ أصلي 100% • فحص العطر والفاتورة الأصلية قبل الدفع يد بيد
             </div>
-        """), unsafe_allow_html=True)
+        """),
+            unsafe_allow_html=True,
+        )
 
         # مصيدة الروبوتات البرمجية (Honeypot)
         hp = st.text_input("hp", label_visibility="collapsed")
-        submit_btn = st.form_submit_button(f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)", use_container_width=True)
+        submit_btn = st.form_submit_button(
+            f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)",
+            use_container_width=True,
+        )
 
         if submit_btn and not hp:
             clean_name = f_name.strip()
             clean_phone = sanitize_phone_number(f_phone)
 
-            fresh_bookings = get_confirmed_bookings(BASKET_ID)
-            existing_booking = next((b for b in fresh_bookings if b.get('phone') == clean_phone), None)
-
-            # 1. التحقق الصارم من صحة البيانات
-            if len(clean_name) < 2 or not re.match(r"^05[0-9]{8}$", clean_phone):
-                alert_placeholder.markdown(clean_html("""
+            # 1. التحقق الصارم من صحة البيانات (الاسم ورقم الجوال السعودي)
+            if len(clean_name) < 2 or not re.match(r"^05\d{8}$", clean_phone):
+                alert_placeholder.markdown(
+                    clean_html("""
                     <div id="form-top-alert" class="warning-pill-shake">
                         ⚠️ يرجى التأكد من كتابة اسمك الكريم ورقم جوالك السعودي (05xxxxxxxx)
                     </div>
-                """), unsafe_allow_html=True)
-                components.html(clean_html("""
+                """),
+                    unsafe_allow_html=True,
+                )
+                components.html(
+                    clean_html("""
                     <script>
                         setTimeout(() => {
                             try {
@@ -763,72 +854,98 @@ else:
                             } catch(e) {}
                         }, 50);
                     </script>
-                """), height=0, width=0)
+                """),
+                    height=0,
+                    width=0,
+                )
 
-            # 2. في حال كان العميل مسجلاً مسبقاً بنفس رقم الجوال
-            elif existing_booking:
-                st.session_state["confirmed_deal"] = {
-                    "name": existing_booking.get("name"),
-                    "phone": existing_booking.get("phone"),
-                    "perfume": existing_booking.get("level"),
-                    "delivery": existing_booking.get("hear_about", delivery_mode),
-                    "price": UNIFIED_PRICE
-                }
-                st.rerun()
-
-            # 3. في حال اكتمال الباقة: بطاقة التقدير وقائمة الانتظار
-            elif len(fresh_bookings) >= BASKET_CAPACITY:
-                alert_placeholder.markdown(clean_html("""
-                    <div class="waitlist-card">
-                        ✨ <b>شكراً جزيلاً لثقتك واهتمامك يا غالي 🌿</b>
-                        مقاعد هذه الباقة اكتملت للتو بالكامل، وسعداء جداً باختيارك.<br>
-                        سنتواصل معك عبر الواتساب فوراً في حال اعتذر أحد المشتركين أو مع إطلاق السلة القادمة مباشرة.
-                    </div>
-                """), unsafe_allow_html=True)
-                components.html(clean_html("""
-                    <script>
-                        setTimeout(() => {
-                            try {
-                                const banner = window.parent.document.querySelector('.waitlist-card');
-                                if (banner) {
-                                    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }
-                            } catch(e) {}
-                        }, 50);
-                    </script>
-                """), height=0, width=0)
-
-            # 4. إتمام الحجز بنجاح
             else:
-                if not supabase:
-                    alert_placeholder.error("تعذر الاتصال بقاعدة البيانات. يرجى مراجعة إعدادات Secrets.")
-                else:
-                    try:
-                        client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
-                        
-                        supabase.table("bookings").insert({
-                            "name": clean_name,
-                            "phone": clean_phone,
-                            "session_day": BASKET_ID,
-                            "court": 1,
-                            "level": chosen_perfume,
-                            "status": "confirmed",
-                            "payment_status": "pending",
-                            "hear_about": delivery_mode[:50],
-                            "player_note": client_note
-                        }).execute()
+                # التحقق المباشر من قاعدة البيانات لمنع مشاكل التزامن
+                fresh_bookings = get_confirmed_bookings(BASKET_ID)
+                existing_booking = next(
+                    (b for b in fresh_bookings if b.get("phone") == clean_phone),
+                    None,
+                )
 
-                        st.cache_data.clear()
-                        st.session_state["confirmed_deal"] = {
-                            "name": clean_name,
-                            "phone": clean_phone,
-                            "perfume": chosen_perfume,
-                            "delivery": delivery_mode,
-                            "price": UNIFIED_PRICE
-                        }
-                        st.rerun()
-                    except Exception as db_err:
-                        alert_placeholder.error(f"تعذر إتمام التسجيل في السيرفر: {db_err}")
+                # 2. في حال كان العميل مسجلاً مسبقاً بنفس رقم الجوال
+                if existing_booking:
+                    st.session_state["confirmed_deal"] = {
+                        "name": existing_booking.get("name"),
+                        "phone": existing_booking.get("phone"),
+                        "perfume": existing_booking.get("level"),
+                        "delivery": existing_booking.get(
+                            "hear_about", delivery_mode
+                        ),
+                        "price": UNIFIED_PRICE,
+                    }
+                    st.rerun()
+
+                # 3. في حال اكتمال الباقة: بطاقة التقدير وقائمة الانتظار
+                elif len(fresh_bookings) >= BASKET_CAPACITY:
+                    alert_placeholder.markdown(
+                        clean_html("""
+                        <div class="waitlist-card">
+                            ✨ <b>شكراً جزيلاً لثقتك واهتمامك يا غالي 🌿</b>
+                            مقاعد هذه الباقة اكتملت للتو بالكامل، وسعداء جداً باختيارك.<br>
+                            سنتواصل معك عبر الواتساب فوراً في حال اعتذر أحد المشتركين أو مع إطلاق السلة القادمة مباشرة.
+                        </div>
+                    """),
+                        unsafe_allow_html=True,
+                    )
+                    components.html(
+                        clean_html("""
+                        <script>
+                            setTimeout(() => {
+                                try {
+                                    const banner = window.parent.document.querySelector('.waitlist-card');
+                                    if (banner) {
+                                        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }
+                                } catch(e) {}
+                            }, 50);
+                        </script>
+                    """),
+                        height=0,
+                        width=0,
+                    )
+
+                # 4. إتمام الحجز بنجاح
+                else:
+                    if not supabase:
+                        alert_placeholder.error(
+                            "تعذر الاتصال بقاعدة البيانات. يرجى مراجعة إعدادات Secrets."
+                        )
+                    else:
+                        try:
+                            client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
+
+                            supabase.table("bookings").insert({
+                                "name": clean_name,
+                                "phone": clean_phone,
+                                "session_day": BASKET_ID,
+                                "court": 1,
+                                "level": chosen_perfume,
+                                "status": "confirmed",
+                                "payment_status": "pending",
+                                "hear_about": delivery_mode[:50],
+                                "player_note": client_note,
+                            }).execute()
+
+                            # تفريغ موضعي لكاش الدالة فقط بدلاً من حذف كامل الكاش
+                            get_confirmed_bookings.clear()
+
+                            st.session_state["confirmed_deal"] = {
+                                "name": clean_name,
+                                "phone": clean_phone,
+                                "perfume": chosen_perfume,
+                                "delivery": delivery_mode,
+                                "price": UNIFIED_PRICE,
+                            }
+                            st.rerun()
+                        except Exception as db_err:
+                            alert_placeholder.error(
+                                f"تعذر إتمام التسجيل في السيرفر: {db_err}"
+                            )
 
 # ==============================================================================
 # 7. لوحة المشرف المحصنة بنظام التشفير الثنائي UTF-8 (Timing-Attack Resilient)
@@ -836,7 +953,9 @@ else:
 if st.query_params.get("manage") == "faris":
     st.markdown("---")
     st.caption("لوحة الإدارة والتحليلات السريعة")
-    admin_pin = st.text_input("رمز الدخول السري:", type="password", key="adm_key")
+    admin_pin = st.text_input(
+        "رمز الدخول السري:", type="password", key="adm_key"
+    )
 
     input_pin_str = str(admin_pin or "").strip()
     target_pwd_str = str(ADMIN_PASSWORD or "").strip()
@@ -845,8 +964,7 @@ if st.query_params.get("manage") == "faris":
     if input_pin_str and target_pwd_str:
         try:
             is_authenticated = hmac.compare_digest(
-                input_pin_str.encode("utf-8"),
-                target_pwd_str.encode("utf-8")
+                input_pin_str.encode("utf-8"), target_pwd_str.encode("utf-8")
             )
         except Exception:
             is_authenticated = False
@@ -854,7 +972,9 @@ if st.query_params.get("manage") == "faris":
     if is_authenticated:
         bookings_list = get_confirmed_bookings(BASKET_ID)
         total_count = len(bookings_list)
-        paid_count = sum(1 for b in bookings_list if b.get('payment_status') == 'paid')
+        paid_count = sum(
+            1 for b in bookings_list if b.get("payment_status") == "paid"
+        )
         total_val = total_count * UNIFIED_PRICE
 
         k1, k2, k3 = st.columns(3)
@@ -866,21 +986,30 @@ if st.query_params.get("manage") == "faris":
         for b in bookings_list:
             c1, c2 = st.columns([3, 1])
             with c1:
-                st.write(f"**{b.get('name')}** | `{b.get('phone')}`\nالعطر: **{b.get('level')}**\nالتسليم: `{b.get('hear_about')}`")
+                st.write(
+                    f"**{b.get('name')}** | `{b.get('phone')}`\nالعطر: **{b.get('level')}**\nالتسليم: `{b.get('hear_about')}`"
+                )
             with c2:
-                if b.get('payment_status') == 'paid':
-                    st.markdown("<span style='color:var(--primary); font-weight:700;'>مدفوع ✓</span>", unsafe_allow_html=True)
+                if b.get("payment_status") == "paid":
+                    st.markdown(
+                        "<span style='color:var(--primary); font-weight:700;'>مدفوع ✓</span>",
+                        unsafe_allow_html=True,
+                    )
                 else:
                     if st.button("اعتماد دفع", key=f"pay_{b.get('id')}"):
                         if supabase:
-                            supabase.table("bookings").update({"payment_status": "paid"}).eq("id", b.get('id')).execute()
-                        st.cache_data.clear()
+                            supabase.table("bookings").update(
+                                {"payment_status": "paid"}
+                            ).eq("id", b.get("id")).execute()
+                        get_confirmed_bookings.clear()
                         st.rerun()
 
                 if st.button("إلغاء المقعد", key=f"cancel_{b.get('id')}"):
                     if supabase:
-                        supabase.table("bookings").update({"status": "cancelled"}).eq("id", b.get('id')).execute()
-                    st.cache_data.clear()
+                        supabase.table("bookings").update(
+                            {"status": "cancelled"}
+                        ).eq("id", b.get("id")).execute()
+                    get_confirmed_bookings.clear()
                     st.rerun()
             st.divider()
     elif input_pin_str:
