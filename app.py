@@ -32,7 +32,7 @@ def sanitize_phone_number(raw_input: str) -> str:
     """تنظيف وتوحيد أرقام الجوال ومعالجة الأرقام العربية والرموز ومفتاح الدولة 966."""
     if not raw_input:
         return ""
-    
+
     arabic_indic_table = str.maketrans(
         "٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹",
         "01234567890123456789",
@@ -40,14 +40,17 @@ def sanitize_phone_number(raw_input: str) -> str:
     cleaned = re.sub(
         r"[\s\-\+\(\)]", "", raw_input.strip().translate(arabic_indic_table)
     )
-    
+
     if cleaned.startswith("00966"):
-        cleaned = "0" + cleaned[5:]
+        cleaned = cleaned[5:]
     elif cleaned.startswith("966"):
-        cleaned = "0" + cleaned[3:]
-    elif cleaned.startswith("5"):
-        cleaned = "0" + cleaned
-        
+        cleaned = cleaned[3:]
+
+    if cleaned.startswith("5"):
+        cleaned = f"0{cleaned}"
+    elif not cleaned.startswith("0") and len(cleaned) == 9:
+        cleaned = f"0{cleaned}"
+
     return cleaned
 
 
@@ -200,7 +203,7 @@ html, body, [class*="css"] {
     margin-bottom: 8px !important;
 }
 
-/* شبكة العطور: 3 يمين و 3 يسار بمؤشر كربوني (تطبق خارج الفورم فقط) */
+/* شبكة العطور: 3 يمين و 3 يسار بمؤشر كربوني خارج النموذج */
 div[data-testid="stRadio"] { width: 100% !important; }
 
 div:not([data-testid="stForm"]) > div[data-testid="stRadio"] div[role="radiogroup"] {
@@ -257,6 +260,7 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
     transition: all 0.2s ease !important;
 }
 
+/* التحول إلى الزمردي عند التحديد فقط */
 div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
     background-color: var(--active-bg) !important;
     border: 2px solid var(--primary) !important;
@@ -286,7 +290,7 @@ div[data-testid="stRadio"] label:has(input:checked) span {
     font-weight: 900 !important;
 }
 
-/* بطاقات الاستلام داخل النموذج (شكل عمودي متناسق) */
+/* بطاقات الاستلام داخل النموذج */
 div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
@@ -659,6 +663,7 @@ if "confirmed_deal" in st.session_state:
         unsafe_allow_html=True,
     )
 
+    # حدث التحويل في Clarity
     components.html(
         clean_html("""
         <script>
@@ -708,11 +713,13 @@ if "confirmed_deal" in st.session_state:
     )
 
     if st.button("تعديل الاختيار أو حجز مقعد آخر", use_container_width=True):
+        st.session_state["saved_name"] = deal.get("name", "")
+        st.session_state["saved_phone"] = deal.get("phone", "")
         st.session_state.pop("confirmed_deal", None)
         st.rerun()
 
 # ==============================================================================
-# 6. النموذج وتجربة الاختيار السلسة
+# 6. النموذج وتجربة الاختيار السلسة (High-Conversion Form)
 # ==============================================================================
 else:
     st.markdown(
@@ -765,8 +772,16 @@ else:
 
         alert_placeholder = st.empty()
 
-        f_name = st.text_input("الاسم الكريم:", placeholder="الاسم الثنائي")
-        f_phone = st.text_input("رقم الجوال:", placeholder="05xxxxxxxx")
+        f_name = st.text_input(
+            "الاسم الكريم:",
+            value=st.session_state.get("saved_name", ""),
+            placeholder="الاسم الثنائي",
+        )
+        f_phone = st.text_input(
+            "رقم الجوال:",
+            value=st.session_state.get("saved_phone", ""),
+            placeholder="05xxxxxxxx",
+        )
 
         st.markdown(
             clean_html(
@@ -832,10 +847,14 @@ else:
                 )
 
             else:
+                # حفظ البيانات الحالية في الجلسة لاستخدامها مستقبلاً
+                st.session_state["saved_name"] = clean_name
+                st.session_state["saved_phone"] = clean_phone
+
                 # 2. حل مشكلة التزامن وتجاوز الكاش بشكل حقيقي ولحظي (Race Condition Prevention)
-                get_confirmed_bookings.clear()  # تفريغ الكاش الموضعي قبل قراءة قاعدة البيانات
-                fresh_bookings = get_confirmed_bookings(BASKET_ID) # جلب بيانات حديثة تماماً
-                
+                get_confirmed_bookings.clear()
+                fresh_bookings = get_confirmed_bookings(BASKET_ID)
+
                 existing_booking = next(
                     (b for b in fresh_bookings if b.get("phone") == clean_phone),
                     None,
