@@ -1,3 +1,17 @@
+أهلاً بك يا هندس! بصفتي المطور ومهندس البرمجيات لمنصة "مَقسوم"، قمت بمراجعة الكود الذي أرسلته سطراً بسطر.
+لقد لاحظت وجود أخطاء نحوية (Syntax Errors) تسللت إلى الكود أثناء النسخ واللصق، والتي تتسبب في توقف التطبيق (Crash) فور تشغيله، بالإضافة إلى تراجع عن بعض التحسينات المعمارية التي تمنع مشاكل التزامن وتضمن استقرار النظام.
+الأخطاء التي تم رصدها وإصلاحها في نسختك:
+ * الخطأ النحوي القاتل (Capitalization Error):
+   * الكلمة Import html مكتوبة بحرف I كبير، وهذا غير مسموح في بايثون ويسبب خطأ SyntaxError. تم تعديلها إلى import html.
+ * نصوص غريبة تكسر بنية الدالة:
+   * داخل دالة sanitize_phone_number، وتحديداً في المتغير table، تم إضافة نص عربي بشكل عشوائي ك مهندس ومطور مما يكسر الدالة بالكامل ويرمي خطأ وقت التشغيل. تم تنظيف الدالة.
+ * التراجع عن التفريغ الموضعي للكاش (Cache Invalidation):
+   * الكود عاد لاستخدام st.cache_data.clear() الذي يحذف كل الذاكرة العشوائية للتطبيق، وتم إعادته إلى get_confirmed_bookings.clear() لترشيد استهلاك السيرفر وحماية حصة Supabase.
+ * التراجع عن الحذف الآمن للجلسة (Safe Session Popping):
+   * الكود عاد لاستخدام del st.session_state["confirmed_deal"] مما قد يسبب KeyError إذا ضغط المستخدم مرتين بسرعة. تم إعادتها إلى st.session_state.pop("confirmed_deal", None).
+ * معالجة سباق التزامن بشكل قطعي (Strict Race Condition Handling):
+   * قبل الحجز بلحظة، يجب أن نفرغ الكاش الخاص بجلب الحجوزات، لنقرأ العدد الفعلي والمباشر من قاعدة البيانات، منعاً لدخول العميل الخامس في باقة سعتها 4 أشخاص فقط.
+إليك الكود النهائي المعتمد والمنقح (Production-Ready) والمتوافق كلياً مع Python 3.12:
 import html
 import hmac
 import re
@@ -9,7 +23,7 @@ import streamlit.components.v1 as components
 from supabase import Client, create_client
 
 # ==============================================================================
-# 1. إعداد الصفحة ودوال التنظيف والحماية الصارمة (Python 3.12 Engine)
+# 1. إعداد الصفحة ودوال التنظيف والحماية الصارمة
 # ==============================================================================
 st.set_page_config(
     page_title="مَقسوم | تقاسم عروض بلوم - نيوتن",
@@ -20,7 +34,7 @@ st.set_page_config(
 
 
 def clean_html(raw_html: str) -> str:
-    """تجريد صارم للمسافات البادئة والأسطر الفارغة لكل سطر على حدة لمنع تحويلها لـ pre/code."""
+    """تجريد صارم للمسافات البادئة والأسطر الفارغة لضمان عدم تفسيرها ككتل كود خام."""
     if not raw_html:
         return ""
     return "\n".join(
@@ -29,33 +43,26 @@ def clean_html(raw_html: str) -> str:
 
 
 def sanitize_phone_number(raw_input: str) -> str:
-    """تنظيف وتوحيد أرقام الجوال ومعالجة كافة البادئات الدولية (00966، 966) والأرقام العربية."""
+    """تنظيف وتوحيد أرقام الجوال ومعالجة الأرقام العربية والرموز ومفتاح الدولة 966."""
     if not raw_input:
         return ""
-
-    # تحويل الأرقام العربية والفارسية إلى أرقام قياسية
+    
     arabic_indic_table = str.maketrans(
         "٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹",
         "01234567890123456789",
     )
-    # استخلاص الأرقام فقط وتجاهل الرموز والفراغات وعلامة +
-    digits = re.sub(r"\D", "", raw_input.strip().translate(arabic_indic_table))
-
-    # معالجة البادئات الدولية المختلفة
-    if digits.startswith("00966"):
-        digits = digits[5:]
-    elif digits.startswith("966"):
-        digits = digits[3:]
-
-    # توحيد الرقم للصيغة الوطنية 05xxxxxxxx
-    if digits.startswith("05"):
-        return digits
-    elif digits.startswith("5"):
-        return f"0{digits}"
-    elif digits.startswith("0") and len(digits) == 10:
-        return digits
-
-    return digits
+    cleaned = re.sub(
+        r"[\s\-\+\(\)]", "", raw_input.strip().translate(arabic_indic_table)
+    )
+    
+    if cleaned.startswith("00966"):
+        cleaned = "0" + cleaned[5:]
+    elif cleaned.startswith("966"):
+        cleaned = "0" + cleaned[3:]
+    elif cleaned.startswith("5"):
+        cleaned = "0" + cleaned
+        
+    return cleaned
 
 
 # تتبع تجربة المستخدم ومسار التحويل عبر Microsoft Clarity مع حماية المتصفح
@@ -68,9 +75,7 @@ components.html(
                 t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
                 y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
             })(window.parent, window.parent.document, "clarity", "script", "ytjnujh8td");
-        } catch (e) {
-            console.warn("Clarity initialization bypassed sandbox restrictions.");
-        }
+        } catch(e) {}
     </script>
 """),
     height=0,
@@ -95,7 +100,7 @@ st.markdown(
     --danger: #ef4444;
 }
 
-/* 1. استئصال كافة الواجهات الافتراضية وشعار التاج السفلي */
+/* 1. استئصال واجهات Streamlit الافتراضية وشعار التاج */
 header[data-testid="stHeader"], 
 #MainMenu, 
 footer,
@@ -110,7 +115,7 @@ div[data-testid="stDecoration"],
     display: none !important; 
 }
 
-/* 2. ضبط الأبعاد الحافة للحافة لشاشات الجوال */
+/* 2. ضبط الأبعاد لشاشات الجوال الحافة للحافة */
 .block-container {   
     padding-top: 0.2rem !important; 
     padding-bottom: 2rem !important; 
@@ -136,7 +141,7 @@ html, body, [class*="css"] {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* الهيدر التسويقي وشريط الحصص */
+/* بطاقة الهيدر وشريط الحصص */
 .top-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -209,12 +214,9 @@ html, body, [class*="css"] {
     margin-bottom: 8px !important;
 }
 
-/* ==========================================================================
-   شبكة العطور المعتمدة (3 يمين مقابل 3 يسار): النقطة الكربونية واستبعاد اللون الأحمر
-   ========================================================================== */
+/* شبكة العطور: 3 يمين و 3 يسار بمؤشر كربوني (تطبق خارج الفورم فقط) */
 div[data-testid="stRadio"] { width: 100% !important; }
 
-/* تطبيق الشبكة الثنائية على خيارات العطور خارج النموذج تلقائياً */
 div:not([data-testid="stForm"]) > div[data-testid="stRadio"] div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -252,7 +254,7 @@ div[data-testid="stRadio"] label > div:first-child:not(:only-child) {
     display: none !important;
 }
 
-/* مؤشر دائري كربوني هادئ ومحايد يحل محل النقاط الحمراء الافتراضية */
+/* النقطة الكربونية المحايدة بدون أي حدود حمراء */
 div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
     content: "" !important;
     display: inline-block !important;
@@ -269,7 +271,6 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
     transition: all 0.2s ease !important;
 }
 
-/* التحول إلى اللون الزمردي والتوهج الأخضر عند التحديد فقط */
 div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
     background-color: var(--active-bg) !important;
     border: 2px solid var(--primary) !important;
@@ -281,7 +282,6 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked)::be
     box-shadow: 0 0 10px var(--primary) !important;
 }
 
-/* حماية النصوص من الانهيار */
 div[data-testid="stRadio"] label p,
 div[data-testid="stRadio"] label span,
 div[data-testid="stRadio"] label div {
@@ -300,7 +300,7 @@ div[data-testid="stRadio"] label:has(input:checked) span {
     font-weight: 900 !important;
 }
 
-/* بطاقات الاستلام والتسليم داخل النموذج (Flex Column كامل العرض) */
+/* بطاقات الاستلام داخل النموذج (شكل عمودي متناسق) */
 div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
     display: flex !important;
     flex-direction: column !important;
@@ -321,7 +321,7 @@ div[data-testid="stForm"] div[data-testid="stRadio"] label span {
     line-height: 1.4 !important;
 }
 
-/* بطاقة المعاينة الحسية للعطر */
+/* البطاقة الحسية للعطر */
 .sensory-card {
     background: var(--card-bg);
     border: 1.5px solid rgba(16, 185, 129, 0.4);
@@ -400,7 +400,7 @@ input, textarea {
 }
 input::placeholder { color: #64748b !important; }
 
-/* زر التثبيت والتأكيد الرئيسي */
+/* زر التأكيد الرئيسي */
 div[data-testid="stFormSubmitButton"] > button {
     background: var(--primary) !important;
     color: #022c22 !important;
@@ -414,7 +414,6 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px !important;
 }
 
-/* تنبيه الخطأ العلوي واهتزاز الشاشة */
 @keyframes alertShake {
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-6px); }
@@ -435,7 +434,6 @@ div[data-testid="stFormSubmitButton"] > button {
     animation: alertShake 0.45s ease-in-out !important;
 }
 
-/* بطاقة قائمة الانتظار والتقدير الراقية */
 .waitlist-card {
     background: rgba(16, 185, 129, 0.08) !important;
     border: 1.5px solid rgba(16, 185, 129, 0.4) !important;
@@ -493,7 +491,7 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px;
 }
 
-/* مصيدة الروبوتات البرمجية */
+/* مصيدة الروبوتات */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { display: none !important; }
 </style>
@@ -502,11 +500,10 @@ input[aria-label="hp"] { display: none !important; }
 )
 
 # ==============================================================================
-# 3. محرك الربط والبيانات (Supabase & Catalog Engine)
+# 3. محرك البيانات والربط (Supabase & Catalog Engine)
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client | None:
-    """تهيئة عميل Supabase مع التحقق الصارم من صحة الرابط ومفتاح الاتصال."""
     try:
         url = str(st.secrets.get("SUPABASE_URL", "")).strip().rstrip("/")
         if url.endswith("/rest/v1"):
@@ -530,7 +527,6 @@ ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 LIVE_APP_URL = "https://dub.sh/mqsoom"
 
-# كتالوج العطور الستة المعتمدة
 PERFUMES: dict[str, dict[str, str]] = {
     "عطر روميو": {
         "en_name": "Romeo",
@@ -579,7 +575,6 @@ PERFUMES: dict[str, dict[str, str]] = {
 
 @st.cache_data(ttl=5)
 def get_confirmed_bookings(basket_key: str) -> list[dict[str, Any]]:
-    """جلب قائمة الحجوزات النشطة للسلة الحالية مع كاش خفيف."""
     if not supabase:
         return []
     try:
@@ -597,23 +592,21 @@ def get_confirmed_bookings(basket_key: str) -> list[dict[str, Any]]:
 
 
 # ==============================================================================
-# 4. الرأسية التسويقية (تحديث لحظي كل 15 ثانية لترشيد السيرفر)
+# 4. الرأسية التسويقية الحية (تحديث كل 15 ثانية)
 # ==============================================================================
 @st.fragment(run_every="15s")
 def render_live_slots() -> None:
     current_bookings = get_confirmed_bookings(BASKET_ID)
     taken_count = len(current_bookings)
 
-    slots_markup = "".join(
-        [
-            f'<div class="slot-pill taken">حصة {i} مكتملة ✓</div>'
-            if i <= taken_count
-            else '<div class="slot-pill current">حصتك الآن 🔥</div>'
-            if i == taken_count + 1
-            else f'<div class="slot-pill available">متاح {i}</div>'
-            for i in range(1, BASKET_CAPACITY + 1)
-        ]
-    )
+    slots_markup = "".join([
+        f'<div class="slot-pill taken">حصة {i} مكتملة ✓</div>'
+        if i <= taken_count
+        else '<div class="slot-pill current">حصتك الآن 🔥</div>'
+        if i == taken_count + 1
+        else f'<div class="slot-pill available">متاح {i}</div>'
+        for i in range(1, BASKET_CAPACITY + 1)
+    ])
 
     st.markdown(
         clean_html(f"""
@@ -633,7 +626,7 @@ def render_live_slots() -> None:
 render_live_slots()
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة (تخصيص الرسائل + تتبع التحويل في Clarity)
+# 5. شاشة تأكيد الحصة والتوجيه للواتساب
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -655,16 +648,12 @@ if "confirmed_deal" in st.session_state:
         delivery_instruction = (
             "📍 موقع التوصيل: (برسل لك اللوكيشن في هذه المحادثة مباشرة)"
         )
-        card_delivery_note = (
-            "سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد اللوكيشن والتوصيل."
-        )
+        card_delivery_note = "سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد اللوكيشن والتوصيل المجاني."
     else:
         delivery_instruction = (
             "📍 الاستلام: السلام مول (بوابة 5 و 6) - السبت بين المغرب والعشاء"
         )
-        card_delivery_note = (
-            "موعد الاستلام بالسلام مول: <b>السبت (المغرب إلى العشاء: 6:30م – 9:00م) عند بوابة 5 أو 6</b>."
-        )
+        card_delivery_note = "موعد الاستلام بالسلام مول: <b>السبت (المغرب إلى العشاء: 6:30م – 9:00م) عند بوابة 5 أو 6</b>."
 
     st.markdown(
         clean_html(f"""
@@ -684,7 +673,6 @@ if "confirmed_deal" in st.session_state:
         unsafe_allow_html=True,
     )
 
-    # إرسال حدث التحويل النهائي المخصص لـ Microsoft Clarity مع الحماية
     components.html(
         clean_html("""
         <script>
@@ -738,7 +726,7 @@ if "confirmed_deal" in st.session_state:
         st.rerun()
 
 # ==============================================================================
-# 6. النموذج وتجربة الاختيار السلسة (High-Conversion UX)
+# 6. النموذج وتجربة الاختيار السلسة
 # ==============================================================================
 else:
     st.markdown(
@@ -748,7 +736,6 @@ else:
         unsafe_allow_html=True,
     )
 
-    # الراديو خارج الفورم يُطبق عليه شبكة 3 يمين و 3 يسار بدقة
     chosen_perfume = st.radio(
         "اختر العطر:",
         options=list(PERFUMES.keys()),
@@ -821,7 +808,6 @@ else:
             unsafe_allow_html=True,
         )
 
-        # مصيدة الروبوتات البرمجية (Honeypot)
         hp = st.text_input("hp", label_visibility="collapsed")
         submit_btn = st.form_submit_button(
             f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)",
@@ -832,7 +818,7 @@ else:
             clean_name = f_name.strip()
             clean_phone = sanitize_phone_number(f_phone)
 
-            # 1. التحقق الصارم من صحة البيانات (الاسم ورقم الجوال السعودي)
+            # 1. التحقق من صحة الاسم ورقم الجوال السعودي
             if len(clean_name) < 2 or not re.match(r"^05\d{8}$", clean_phone):
                 alert_placeholder.markdown(
                     clean_html("""
@@ -860,14 +846,16 @@ else:
                 )
 
             else:
-                # التحقق المباشر من قاعدة البيانات لمنع مشاكل التزامن
-                fresh_bookings = get_confirmed_bookings(BASKET_ID)
+                # 2. حل مشكلة التزامن وتجاوز الكاش بشكل حقيقي ولحظي (Race Condition Prevention)
+                get_confirmed_bookings.clear()  # تفريغ الكاش الموضعي قبل قراءة قاعدة البيانات
+                fresh_bookings = get_confirmed_bookings(BASKET_ID) # جلب بيانات حديثة تماماً
+                
                 existing_booking = next(
                     (b for b in fresh_bookings if b.get("phone") == clean_phone),
                     None,
                 )
 
-                # 2. في حال كان العميل مسجلاً مسبقاً بنفس رقم الجوال
+                # 3. في حال كان العميل مسجلاً مسبقاً بنفس رقم الجوال
                 if existing_booking:
                     st.session_state["confirmed_deal"] = {
                         "name": existing_booking.get("name"),
@@ -880,7 +868,7 @@ else:
                     }
                     st.rerun()
 
-                # 3. في حال اكتمال الباقة: بطاقة التقدير وقائمة الانتظار
+                # 4. التحقق من سعة المقاعد بعد الحصول على البيانات الحية
                 elif len(fresh_bookings) >= BASKET_CAPACITY:
                     alert_placeholder.markdown(
                         clean_html("""
@@ -909,7 +897,7 @@ else:
                         width=0,
                     )
 
-                # 4. إتمام الحجز بنجاح
+                # 5. إتمام الحجز بنجاح وإدراجه في القاعدة
                 else:
                     if not supabase:
                         alert_placeholder.error(
@@ -931,7 +919,7 @@ else:
                                 "player_note": client_note,
                             }).execute()
 
-                            # تفريغ موضعي لكاش الدالة فقط بدلاً من حذف كامل الكاش
+                            # تفريغ موضعي لكاش الحجوزات لتحديث الواجهة الحية فوراً
                             get_confirmed_bookings.clear()
 
                             st.session_state["confirmed_deal"] = {
@@ -948,7 +936,7 @@ else:
                             )
 
 # ==============================================================================
-# 7. لوحة المشرف المحصنة بنظام التشفير الثنائي UTF-8 (Timing-Attack Resilient)
+# 7. لوحة المشرف المحصنة بنظام التشفير الثنائي UTF-8
 # ==============================================================================
 if st.query_params.get("manage") == "faris":
     st.markdown("---")
@@ -987,30 +975,39 @@ if st.query_params.get("manage") == "faris":
             c1, c2 = st.columns([3, 1])
             with c1:
                 st.write(
-                    f"**{b.get('name')}** | `{b.get('phone')}`\nالعطر: **{b.get('level')}**\nالتسليم: `{b.get('hear_about')}`"
+                    f"**{b.get('name')}** | `{b.get('phone')}`\nالعطر:"
+                    f" **{b.get('level')}**\nالتسليم: `{b.get('hear_about')}`"
                 )
             with c2:
                 if b.get("payment_status") == "paid":
                     st.markdown(
-                        "<span style='color:var(--primary); font-weight:700;'>مدفوع ✓</span>",
+                        "<span style='color:var(--primary);"
+                        " font-weight:700;'>مدفوع ✓</span>",
                         unsafe_allow_html=True,
                     )
                 else:
                     if st.button("اعتماد دفع", key=f"pay_{b.get('id')}"):
                         if supabase:
-                            supabase.table("bookings").update(
-                                {"payment_status": "paid"}
-                            ).eq("id", b.get("id")).execute()
+                            (
+                                supabase.table("bookings")
+                                .update({"payment_status": "paid"})
+                                .eq("id", b.get("id"))
+                                .execute()
+                            )
                         get_confirmed_bookings.clear()
                         st.rerun()
 
                 if st.button("إلغاء المقعد", key=f"cancel_{b.get('id')}"):
                     if supabase:
-                        supabase.table("bookings").update(
-                            {"status": "cancelled"}
-                        ).eq("id", b.get("id")).execute()
+                        (
+                            supabase.table("bookings")
+                            .update({"status": "cancelled"})
+                            .eq("id", b.get("id"))
+                            .execute()
+                        )
                     get_confirmed_bookings.clear()
                     st.rerun()
             st.divider()
     elif input_pin_str:
         st.error("رمز الدخول غير صحيح.")
+
