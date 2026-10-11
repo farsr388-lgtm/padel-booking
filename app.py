@@ -72,7 +72,7 @@ components.html(
 )
 
 # ==============================================================================
-# 2. محرك الأنماط البصرية (Mobile-First CSS & Neutral Carbon Indicators)
+# 2. محرك الأنماط البصرية (Mobile-First CSS & Ergonomic Focus Indicator)
 # ==============================================================================
 st.markdown(
     clean_html("""
@@ -80,7 +80,7 @@ st.markdown(
 :root {
     color-scheme: dark;
     --primary: #10b981;
-    --primary-glow: rgba(16, 185, 129, 0.35);
+    --primary-glow: rgba(16, 185, 129, 0.25);
     --active-bg: #064e3b;
     --card-bg: #111827;
     --border-color: rgba(255, 255, 255, 0.12);
@@ -364,7 +364,7 @@ div[data-testid="stForm"] div[data-testid="stRadio"] label span {
     font-weight: 700;
 }
 
-/* حقول الإدخال */
+/* حقول الإدخال وتلطيف مؤشر التحديد (Active Focus Ergonomics) */
 div[data-testid="stTextInput"] * { outline: none !important; }
 div[data-testid="stTextInput"] div[data-baseweb="input"],
 div[data-testid="stTextInput"] div[data-baseweb="base-input"],
@@ -374,13 +374,14 @@ div[data-testid="stTextInputRootElement"] > div,
     border: 1.5px solid var(--border-color) !important;
     background-color: var(--card-bg) !important;
     border-radius: 8px !important;
+    transition: all 0.2s ease !important;
 }
 div[data-testid="stTextInput"]:focus-within div[data-baseweb="input"],
 div[data-testid="stTextInput"] input:focus,
 .stTextInput input:focus {
-    border: 2px solid var(--primary) !important;
-    background-color: #062b23 !important;
-    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3), 0 0 12px var(--primary-glow) !important;
+    border: 1.5px solid var(--primary) !important;
+    background-color: rgba(16, 185, 129, 0.05) !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15) !important;
 }
 input, textarea { 
     caret-color: var(--primary) !important; 
@@ -405,6 +406,39 @@ div[data-testid="stFormSubmitButton"] > button {
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35) !important;
     width: 100% !important;
     margin-top: 6px !important;
+}
+
+/* شريط إرشادي لوضع التعديل */
+.edit-mode-pill {
+    background: rgba(16, 185, 129, 0.08) !important;
+    border: 1px solid rgba(16, 185, 129, 0.35) !important;
+    color: #cbd5e1 !important;
+    padding: 9px 12px !important;
+    border-radius: 8px !important;
+    font-size: 0.78em !important;
+    font-weight: 600 !important;
+    margin-bottom: 8px !important;
+    text-align: center !important;
+    line-height: 1.45 !important;
+}
+.edit-mode-pill b { color: var(--primary) !important; }
+
+/* بطاقة تقدير إلغاء الحجز الراقية */
+.cancellation-card {
+    background: rgba(16, 185, 129, 0.08) !important;
+    border: 1.5px solid rgba(16, 185, 129, 0.35) !important;
+    color: #f8fafc !important;
+    padding: 13px 15px !important;
+    border-radius: 10px !important;
+    font-size: 0.86em !important;
+    line-height: 1.55 !important;
+    text-align: center !important;
+    margin-bottom: 12px !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+}
+.cancellation-card b {
+    color: var(--primary) !important;
+    font-size: 1.02em !important;
 }
 
 @keyframes alertShake {
@@ -506,7 +540,7 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 
-# كتالوج العطور الستة المعتمدة بروابط ماكرو سينمائية متطابقة
+# كتالوج العطور الستة المعتمدة: مكونات ماكرو طبيعية وسينمائية 100% بدون أي عناصر بشرية
 PERFUMES: dict[str, dict[str, str]] = {
     "عطر روميو": {
         "en_name": "Romeo",
@@ -533,8 +567,8 @@ PERFUMES: dict[str, dict[str, str]] = {
         "en_name": "Larose",
         "tag": "أنثوي ساحر • ناعم وجذاب",
         "notes": "فانيلا فرنسية، زنبق أبيض، وياسمين",
-        "ingredient_label": "بتلات الياسمين الأبيض",
-        "img": "https://images.unsplash.com/photo-1596438459194-f275f413d6ff?auto=format&fit=crop&w=400&h=400&q=80",
+        "ingredient_label": "بتلات الياسمين الأبيض والزنبق",
+        "img": "https://images.unsplash.com/photo-1597848212624-a19eb35e2651?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر إليسيوم": {
         "en_name": "Elysium",
@@ -606,7 +640,7 @@ def render_live_slots() -> None:
 render_live_slots()
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة (Primary CTA + أزرار التحكم الصريحة)
+# 5. شاشة تأكيد الحصة (Primary CTA + أزرار التحكم الصريحة ودورة الإلغاء)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -692,18 +726,20 @@ if "confirmed_deal" in st.session_state:
 
     st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-    # صف أزرار التحكم الصريحة والشفافة
+    # أزرار التحكم الصريحة والشفافة في صف متناسق
     col_edit, col_cancel = st.columns(2)
 
     with col_edit:
         if st.button("✏️ تعديل بيانات الطلب", use_container_width=True):
             st.session_state["saved_name"] = deal.get("name", "")
             st.session_state["saved_phone"] = deal.get("phone", "")
+            st.session_state["is_editing"] = True
+            st.session_state.pop("just_cancelled", None)
             st.session_state.pop("confirmed_deal", None)
             st.rerun()
 
     with col_cancel:
-        if st.button("❌ إلغاء وحذف الحجز", use_container_width=True):
+        if st.button("❌ إلغاء الحجز", use_container_width=True):
             booking_id = deal.get("id")
             if supabase:
                 if booking_id:
@@ -719,12 +755,26 @@ if "confirmed_deal" in st.session_state:
 
             get_confirmed_bookings.clear()
             st.session_state.pop("confirmed_deal", None)
+            st.session_state.pop("is_editing", None)
+            st.session_state["just_cancelled"] = True
             st.rerun()
 
 # ==============================================================================
 # 6. النموذج وتجربة الاختيار السلسة (High-Conversion Form)
 # ==============================================================================
 else:
+    # إظهار بطاقة تقدير وإلغاء راقية في حال ألغى العميل حجزه مؤخراً
+    if st.session_state.get("just_cancelled"):
+        st.markdown(
+            clean_html("""
+            <div class="cancellation-card">
+                🌿 <b>تم إلغاء حجزك بنجاح</b><br>
+                نقدّر وقتك وثقتك يا غالي، ومقعدك متاح الآن. نتشرف بك في أي وقت.
+            </div>
+        """),
+            unsafe_allow_html=True,
+        )
+
     st.markdown(
         clean_html(
             '<div class="centered-section-title">اختر عطرك من باقة نيوتن</div>'
@@ -740,7 +790,7 @@ else:
 
     p = PERFUMES[chosen_perfume]
 
-    # البطاقة الحسية مع صور الماكرو السينمائية بدقة Retina وأبعاد ثابتة
+    # البطاقة الحسية مع صور الماكرو السينمائية الطبيعية بنسبة أبعاد ثابتة 1:1
     st.markdown(
         clean_html(f"""
         <div class="sensory-card">
@@ -773,6 +823,17 @@ else:
             ),
             unsafe_allow_html=True,
         )
+
+        # التغذية الراجعة اللحظية في حال كان العميل في وضع التعديل
+        if st.session_state.get("is_editing"):
+            st.markdown(
+                clean_html("""
+                <div class="edit-mode-pill">
+                    ✏️ <b>وضع التعديل:</b> بياناتك محفوظة ومُعبأة تلقائياً، يمكنك تغيير خياراتك والضغط على زر الحفظ مباشرة.
+                </div>
+            """),
+                unsafe_allow_html=True,
+            )
 
         alert_placeholder = st.empty()
 
@@ -853,6 +914,7 @@ else:
             else:
                 st.session_state["saved_name"] = clean_name
                 st.session_state["saved_phone"] = clean_phone
+                st.session_state.pop("just_cancelled", None)
 
                 # 2. حماية التزامن وقراءة مباشرة من قاعدة البيانات
                 get_confirmed_bookings.clear()
@@ -863,16 +925,28 @@ else:
                     None,
                 )
 
-                # 3. العميل مسجل مسبقاً بنفس رقم الجوال
+                # 3. العميل مسجل مسبقاً بنفس رقم الجوال (تحديث الحجز وتثبيت التعديل)
                 if existing_booking:
+                    client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
+                    if supabase:
+                        try:
+                            supabase.table("bookings").update({
+                                "name": clean_name,
+                                "level": chosen_perfume,
+                                "hear_about": delivery_mode[:50],
+                                "player_note": client_note,
+                            }).eq("id", existing_booking.get("id")).execute()
+                        except Exception:
+                            pass
+
+                    get_confirmed_bookings.clear()
+                    st.session_state.pop("is_editing", None)
                     st.session_state["confirmed_deal"] = {
                         "id": existing_booking.get("id"),
-                        "name": existing_booking.get("name"),
-                        "phone": existing_booking.get("phone"),
-                        "perfume": existing_booking.get("level"),
-                        "delivery": existing_booking.get(
-                            "hear_about", delivery_mode
-                        ),
+                        "name": clean_name,
+                        "phone": clean_phone,
+                        "perfume": chosen_perfume,
+                        "delivery": delivery_mode,
                         "price": UNIFIED_PRICE,
                     }
                     st.rerun()
@@ -935,6 +1009,7 @@ else:
                             )
 
                             get_confirmed_bookings.clear()
+                            st.session_state.pop("is_editing", None)
 
                             st.session_state["confirmed_deal"] = {
                                 "id": new_id,
