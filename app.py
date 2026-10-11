@@ -311,7 +311,7 @@ div[data-testid="stForm"] div[data-testid="stRadio"] label span {
     line-height: 1.4 !important;
 }
 
-/* البطاقة الحسية للعطر */
+/* البطاقة الحسية للعطر وضبط الأبعاد الصارمة للصور لمنع اهتزاز الشاشة CLS */
 .sensory-card {
     background: var(--card-bg);
     border: 1.5px solid rgba(16, 185, 129, 0.4);
@@ -331,13 +331,16 @@ div[data-testid="stForm"] div[data-testid="stRadio"] label span {
     gap: 12px;
 }
 .ingredient-thumb {
-    width: 66px;
-    height: 66px;
-    border-radius: 10px;
-    object-fit: cover;
-    background-color: #030712;
-    border: 2px solid var(--primary);
-    flex-shrink: 0;
+    width: 72px !important;
+    height: 72px !important;
+    aspect-ratio: 1 / 1 !important;
+    min-width: 72px !important;
+    min-height: 72px !important;
+    border-radius: 12px !important;
+    object-fit: cover !important;
+    background-color: #030712 !important;
+    border: 1.5px solid var(--primary) !important;
+    flex-shrink: 0 !important;
 }
 .sensory-details {
     flex-grow: 1;
@@ -467,19 +470,6 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px;
     box-shadow: 0 4px 14px var(--primary-glow);
 }
-.wa-share-btn {
-    display: block;
-    background: #030712;
-    border: 1.5px solid var(--primary);
-    color: var(--primary) !important;
-    text-align: center;
-    padding: 12px;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.9em;
-    text-decoration: none;
-    margin-top: 6px;
-}
 
 /* مصيدة الروبوتات */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
@@ -515,50 +505,50 @@ ORIGINAL_RETAIL = 265
 SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
-LIVE_APP_URL = "https://dub.sh/mqsoom"
 
+# كتالوج العطور الستة المعتمدة بروابط ماكرو سينمائية متطابقة
 PERFUMES: dict[str, dict[str, str]] = {
     "عطر روميو": {
         "en_name": "Romeo",
         "tag": "رجالي فاخر • الأكثر طلباً 🔥",
         "notes": "باتشولي نقي، فانيلا، ومسك فاخر",
         "ingredient_label": "خلاصة الباتشولي الطبيعي",
-        "img": "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=180&q=80",
+        "img": "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر يوجا": {
         "en_name": "Yoga",
         "tag": "هادئ ومنعش • فوّاح",
         "notes": "برغموت إيطالي، مسك نقي، ونرجس",
         "ingredient_label": "البرغموت الإيطالي النقي",
-        "img": "https://images.unsplash.com/photo-1582281298055-e25b84a30b0b?auto=format&fit=crop&w=180&q=80",
+        "img": "https://images.unsplash.com/photo-1582281298055-e25b84a30b0b?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر لونار": {
         "en_name": "Lunar",
         "tag": "أناقة للجنسين • ثبات عالي",
         "notes": "عنب أسود، باتشولي، وعنبر دافئ",
         "ingredient_label": "راتنج العنبر الطبيعي الفاخر",
-        "img": "https://images.unsplash.com/photo-1509783236416-c9ad59bae472?auto=format&fit=crop&w=180&q=80",
+        "img": "https://images.unsplash.com/photo-1509783236416-c9ad59bae472?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر لاروزيه": {
         "en_name": "Larose",
         "tag": "أنثوي ساحر • ناعم وجذاب",
         "notes": "فانيلا فرنسية، زنبق أبيض، وياسمين",
         "ingredient_label": "بتلات الياسمين الأبيض",
-        "img": "https://images.unsplash.com/photo-1596438459194-f275f413d6ff?auto=format&fit=crop&w=180&q=80",
+        "img": "https://images.unsplash.com/photo-1596438459194-f275f413d6ff?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر إليسيوم": {
         "en_name": "Elysium",
         "tag": "فخامة ملكية • للمناسبات",
         "notes": "عنبر ملكي، فانيلا، ولافندر بارد",
         "ingredient_label": "زهور الخزامى واللافندر النقي",
-        "img": "https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?auto=format&fit=crop&w=180&q=80",
+        "img": "https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر هارت بيت": {
         "en_name": "Heart Beat",
         "tag": "حيوي ورومانسي • جذاب",
         "notes": "كشمش أسود، مسك أبيض، وورد مخملي",
         "ingredient_label": "الكشمش الأسود والورد المخملي",
-        "img": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=180&q=80",
+        "img": "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=400&h=400&q=80",
     },
 }
 
@@ -616,7 +606,7 @@ def render_live_slots() -> None:
 render_live_slots()
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة والتوجيه للواتساب
+# 5. شاشة تأكيد الحصة (Primary CTA + أزرار التحكم الصريحة)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -663,7 +653,7 @@ if "confirmed_deal" in st.session_state:
         unsafe_allow_html=True,
     )
 
-    # حدث التحويل في Clarity
+    # حدث التحويل المخصص في Clarity
     components.html(
         clean_html("""
         <script>
@@ -691,6 +681,8 @@ if "confirmed_deal" in st.session_state:
     admin_link = (
         f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
     )
+
+    # زر الواتساب الرئيسي والأوحد للتحويل
     st.markdown(
         clean_html(
             f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>'
@@ -698,25 +690,36 @@ if "confirmed_deal" in st.session_state:
         unsafe_allow_html=True,
     )
 
-    share_msg = (
-        f"يا غالي، داخلين في باقة عطور بلوم (عرض 2+2 مجاناً) نتقاسمها بين 4 بالتساوي.\n"
-        f"العطر يطلع بـ {UNIFIED_PRICE} ر.س بدل {ORIGINAL_RETAIL} ر.س، والدفع يد بيد بعد فحص الفاتورة الأصلية في جدة.\n\n"
-        f"حجزت حصتي وباقي مقاعد بسيطة، ادخل اختر عطرك وقفل الباقة معنا هنا:\n"
-        f"{LIVE_APP_URL}"
-    )
-    share_link = f"https://wa.me/?text={urllib.parse.quote(share_msg)}"
-    st.markdown(
-        clean_html(
-            f'<a href="{share_link}" target="_blank" class="wa-share-btn">👥 شارك العرض مع خويك لتكتمل الباقة أسرع</a>'
-        ),
-        unsafe_allow_html=True,
-    )
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-    if st.button("تعديل الاختيار أو حجز مقعد آخر", use_container_width=True):
-        st.session_state["saved_name"] = deal.get("name", "")
-        st.session_state["saved_phone"] = deal.get("phone", "")
-        st.session_state.pop("confirmed_deal", None)
-        st.rerun()
+    # صف أزرار التحكم الصريحة والشفافة
+    col_edit, col_cancel = st.columns(2)
+
+    with col_edit:
+        if st.button("✏️ تعديل بيانات الطلب", use_container_width=True):
+            st.session_state["saved_name"] = deal.get("name", "")
+            st.session_state["saved_phone"] = deal.get("phone", "")
+            st.session_state.pop("confirmed_deal", None)
+            st.rerun()
+
+    with col_cancel:
+        if st.button("❌ إلغاء وحذف الحجز", use_container_width=True):
+            booking_id = deal.get("id")
+            if supabase:
+                if booking_id:
+                    supabase.table("bookings").update(
+                        {"status": "cancelled"}
+                    ).eq("id", booking_id).execute()
+                else:
+                    supabase.table("bookings").update(
+                        {"status": "cancelled"}
+                    ).eq("phone", deal.get("phone")).eq(
+                        "session_day", BASKET_ID
+                    ).execute()
+
+            get_confirmed_bookings.clear()
+            st.session_state.pop("confirmed_deal", None)
+            st.rerun()
 
 # ==============================================================================
 # 6. النموذج وتجربة الاختيار السلسة (High-Conversion Form)
@@ -737,11 +740,12 @@ else:
 
     p = PERFUMES[chosen_perfume]
 
+    # البطاقة الحسية مع صور الماكرو السينمائية بدقة Retina وأبعاد ثابتة
     st.markdown(
         clean_html(f"""
         <div class="sensory-card">
             <div class="sensory-top-row">
-                <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" loading="eager" />
+                <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" width="72" height="72" loading="eager" />
                 <div class="sensory-details">
                     <div class="sensory-name">{chosen_perfume} <span style="font-size:0.8em;color:#94a3b8;font-weight:500;">({p['en_name']})</span></div>
                     <div class="sensory-tag">🌿 {p['ingredient_label']}</div>
@@ -819,7 +823,7 @@ else:
             clean_name = f_name.strip()
             clean_phone = sanitize_phone_number(f_phone)
 
-            # 1. التحقق من صحة الاسم ورقم الجوال السعودي
+            # 1. التحقق من صحة البيانات
             if len(clean_name) < 2 or not re.match(r"^05\d{8}$", clean_phone):
                 alert_placeholder.markdown(
                     clean_html("""
@@ -847,11 +851,10 @@ else:
                 )
 
             else:
-                # حفظ البيانات الحالية في الجلسة لاستخدامها مستقبلاً
                 st.session_state["saved_name"] = clean_name
                 st.session_state["saved_phone"] = clean_phone
 
-                # 2. حل مشكلة التزامن وتجاوز الكاش بشكل حقيقي ولحظي (Race Condition Prevention)
+                # 2. حماية التزامن وقراءة مباشرة من قاعدة البيانات
                 get_confirmed_bookings.clear()
                 fresh_bookings = get_confirmed_bookings(BASKET_ID)
 
@@ -860,9 +863,10 @@ else:
                     None,
                 )
 
-                # 3. في حال كان العميل مسجلاً مسبقاً بنفس رقم الجوال
+                # 3. العميل مسجل مسبقاً بنفس رقم الجوال
                 if existing_booking:
                     st.session_state["confirmed_deal"] = {
+                        "id": existing_booking.get("id"),
                         "name": existing_booking.get("name"),
                         "phone": existing_booking.get("phone"),
                         "perfume": existing_booking.get("level"),
@@ -873,7 +877,7 @@ else:
                     }
                     st.rerun()
 
-                # 4. التحقق من سعة المقاعد بعد الحصول على البيانات الحية
+                # 4. اكتمال الباقة في نفس اللحظة
                 elif len(fresh_bookings) >= BASKET_CAPACITY:
                     alert_placeholder.markdown(
                         clean_html("""
@@ -902,7 +906,7 @@ else:
                         width=0,
                     )
 
-                # 5. إتمام الحجز بنجاح وإدراجه في القاعدة
+                # 5. إتمام الحجز بنجاح وحفظ المعرف للتحكم والإلغاء
                 else:
                     if not supabase:
                         alert_placeholder.error(
@@ -912,7 +916,7 @@ else:
                         try:
                             client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
 
-                            supabase.table("bookings").insert({
+                            insert_res = supabase.table("bookings").insert({
                                 "name": clean_name,
                                 "phone": clean_phone,
                                 "session_day": BASKET_ID,
@@ -924,10 +928,16 @@ else:
                                 "player_note": client_note,
                             }).execute()
 
-                            # تفريغ موضعي لكاش الحجوزات لتحديث الواجهة الحية فوراً
+                            new_id = (
+                                insert_res.data[0].get("id")
+                                if insert_res.data
+                                else None
+                            )
+
                             get_confirmed_bookings.clear()
 
                             st.session_state["confirmed_deal"] = {
+                                "id": new_id,
                                 "name": clean_name,
                                 "phone": clean_phone,
                                 "perfume": chosen_perfume,
