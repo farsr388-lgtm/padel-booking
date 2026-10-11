@@ -640,7 +640,7 @@ def render_live_slots() -> None:
 render_live_slots()
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة (Primary CTA + أزرار التحكم الصريحة ودورة الإلغاء)
+# 5. شاشة تأكيد الحصة (تخصيص الرسائل بلسان العميل + أزرار التحكم الصريحة)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -652,20 +652,25 @@ if "confirmed_deal" in st.session_state:
     current_taken = len(fresh_list)
     remaining_seats = max(0, BASKET_CAPACITY - current_taken)
 
-    seats_status_msg = (
-        f"⏳ باقي {remaining_seats} وينقفل القروب ونطلب فوراً."
-        if remaining_seats > 0
-        else "🔥 اكتملت الـ 4 مقاعد بالكامل وجاري تنفيذ الطلب!"
-    )
+    # 1. دمج حالة المقاعد المتبقية بدقة
+    if remaining_seats > 0:
+        seats_status_msg = f"⏳ باقي {remaining_seats} وينقفل القروب ونطلب فوراً."
+    else:
+        seats_status_msg = "🔥 اكتملت الـ 4 مقاعد وجاري تنفيذ الطلب!"
 
+    # 2. تخصيص النص منطوقاً بلسان العميل حسب طريقة الاستلام
     if "توصيل" in deal.get("delivery", ""):
-        delivery_instruction = (
-            "📍 موقع التوصيل: (برسل لك اللوكيشن في هذه المحادثة مباشرة)"
+        delivery_details_msg = (
+            "• طريقة الاستلام: توصيل مجاني بجدة 🚗\n"
+            "• اللوكيشن: (برسل لك دبوس الموقع تحت هذي الرسالة الحين 📍)\n"
+            f"• الدفع: {UNIFIED_PRICE} ر.س يد بيد عند الاستلام بعد فحص العطر والفاتورة الأصلية 🤝"
         )
         card_delivery_note = "سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد اللوكيشن والتوصيل المجاني."
     else:
-        delivery_instruction = (
-            "📍 الاستلام: السلام مول (بوابة 5 و 6) - السبت بين المغرب والعشاء"
+        delivery_details_msg = (
+            "• طريقة الاستلام: السلام مول (بوابة 5 و 6) 📍\n"
+            "• الموعد: السبت (المغرب إلى العشاء: 6:30م – 9:00م) ⏰\n"
+            f"• الدفع: {UNIFIED_PRICE} ر.س يد بيد في المول بعد فحص العطر والفاتورة الأصلية 🤝"
         )
         card_delivery_note = "موعد الاستلام بالسلام مول: <b>السبت (المغرب إلى العشاء: 6:30م – 9:00م) عند بوابة 5 أو 6</b>."
 
@@ -702,15 +707,16 @@ if "confirmed_deal" in st.session_state:
         width=0,
     )
 
+    # صياغة رسالة الواتساب النهائية
     wa_admin_msg = (
         f"مرحباً 🌿\n"
         f"حجزت حصتي في تطبيق مَقسوم ({UNIFIED_PRICE} ر.س):\n\n"
         f"• الاسم: {deal.get('name')}\n"
         f"• الجوال: {deal.get('phone')}\n"
         f"• العطر: {deal.get('perfume')}\n"
-        f"• {delivery_instruction}\n\n"
-        f"{seats_status_msg}\n"
-        f"بانتظار تأكيدك واستلام الفاتورة الأصلية وفحص العطر يد بيد."
+        f"{delivery_details_msg}\n\n"
+        f"{seats_status_msg}\n\n"
+        f"بانتظار تأكيدك واعتماد حصتي 🌿"
     )
     admin_link = (
         f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
