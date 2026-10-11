@@ -446,10 +446,12 @@ div[data-testid="stFormSubmitButton"] > button {
     20%, 60% { transform: translateX(-6px); }
     40%, 80% { transform: translateX(6px); }
 }
+
+/* تنبيه التحقق العلوي (Warm Amber Ergonomics) */
 .warning-pill-shake {
-    background: rgba(239, 68, 68, 0.18) !important;
-    border: 1.5px solid #ef4444 !important;
-    color: #fecaca !important;
+    background: rgba(245, 158, 11, 0.10) !important;
+    border: 1.5px solid rgba(245, 158, 11, 0.45) !important;
+    color: #fef3c7 !important;
     padding: 12px 14px !important;
     border-radius: 10px !important;
     font-size: 0.88em !important;
@@ -457,7 +459,7 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-bottom: 12px !important;
     text-align: center !important;
     line-height: 1.4 !important;
-    box-shadow: 0 0 18px rgba(239, 68, 68, 0.35) !important;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.18) !important;
     animation: alertShake 0.45s ease-in-out !important;
 }
 
@@ -890,12 +892,12 @@ else:
             clean_name = f_name.strip()
             clean_phone = sanitize_phone_number(f_phone)
 
-            # 1. التحقق من صحة البيانات
+            # 1. التحقق من صحة البيانات بنص كهرماني إرشادي دافئ
             if len(clean_name) < 2 or not re.match(r"^05\d{8}$", clean_phone):
                 alert_placeholder.markdown(
                     clean_html("""
                     <div id="form-top-alert" class="warning-pill-shake">
-                        ⚠️ يرجى التأكد من كتابة اسمك الكريم ورقم جوالك السعودي (05xxxxxxxx)
+                        🌿 خطوة أخيرة يا غالي: تأكد من كتابة اسمك الكريم ورقم جوالك (05xxxxxxxx) لنثبت مقعدك فوراً
                     </div>
                 """),
                     unsafe_allow_html=True,
