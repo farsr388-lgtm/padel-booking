@@ -20,11 +20,12 @@ st.set_page_config(
 
 
 def clean_html(raw_html: str) -> str:
-    """تجريد صارم للمسافات البادئة والأسطر الفارغة لضمان عدم تفسيرها ككتل كود خام."""
+    """تنظيف صارم للمسافات البادئة والمسافات غير المرئية لضمان عمل الـ CSS والـ HTML بنسبة 100%."""
     if not raw_html:
         return ""
+    normalized = raw_html.replace("\u00a0", " ")
     return "\n".join(
-        line.strip() for line in raw_html.strip().splitlines() if line.strip()
+        line.strip() for line in normalized.strip().splitlines() if line.strip()
     )
 
 
@@ -54,7 +55,7 @@ def sanitize_phone_number(raw_input: str) -> str:
     return cleaned
 
 
-# تتبع تجربة المستخدم ومسار التحويل عبر Microsoft Clarity مع حماية المتصفح
+# تتبع Clarity + حارس JavaScript الحي لاستئصال اللون الأحمر من BaseWeb وتثبيت بطاقات الاختيار
 components.html(
     clean_html("""
     <script type="text/javascript">
@@ -64,6 +65,34 @@ components.html(
                 t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
                 y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
             })(window.parent, window.parent.document, "clarity", "script", "ytjnujh8td");
+
+            const doc = window.parent.document;
+            const enforceEmeraldUI = () => {
+                const radios = doc.querySelectorAll('label[data-baseweb="radio"]');
+                radios.forEach(label => {
+                    const input = label.querySelector('input[type="radio"]');
+                    const mark = label.querySelector('div:first-child');
+                    const isChecked = input && input.checked;
+
+                    label.style.setProperty('background-color', isChecked ? '#064e3b' : '#111827', 'important');
+                    label.style.setProperty('border', isChecked ? '2px solid #10b981' : '1.5px solid rgba(255,255,255,0.14)', 'important');
+                    label.style.setProperty('border-radius', '10px', 'important');
+                    label.style.setProperty('padding', '10px 12px', 'important');
+                    label.style.setProperty('width', '100%', 'important');
+                    label.style.setProperty('box-sizing', 'border-box', 'important');
+                    label.style.setProperty('margin', '0', 'important');
+                    label.style.setProperty('box-shadow', isChecked ? '0 0 14px rgba(16,185,129,0.25)' : 'none', 'important');
+
+                    if (mark) {
+                        mark.style.setProperty('background-color', isChecked ? '#10b981' : 'rgba(255,255,255,0.08)', 'important');
+                        mark.style.setProperty('border-color', isChecked ? '#10b981' : 'rgba(255,255,255,0.3)', 'important');
+                    }
+                });
+            };
+
+            enforceEmeraldUI();
+            const observer = new MutationObserver(() => enforceEmeraldUI());
+            observer.observe(doc.body, { childList: true, subtree: true, attributes: true });
         } catch(e) {}
     </script>
 """),
@@ -72,7 +101,7 @@ components.html(
 )
 
 # ==============================================================================
-# 2. محرك الأنماط البصرية (Click-Lock, Zero Red Accent & Amber Alert)
+# 2. محرك الأنماط البصرية الجذري (Unified Progress Bar & Zero Red Accent)
 # ==============================================================================
 st.markdown(
     clean_html("""
@@ -80,94 +109,60 @@ st.markdown(
 :root {
     color-scheme: dark;
     --primary: #10b981;
-    --primary-glow: rgba(16, 185, 129, 0.25);
+    --primary-glow: rgba(16, 185, 129, 0.28);
     --active-bg: #064e3b;
     --card-bg: #111827;
-    --border-color: rgba(255, 255, 255, 0.12);
-    --neutral-dot: rgba(255, 255, 255, 0.25);
-    --neutral-dot-bg: rgba(255, 255, 255, 0.05);
+    --border-color: rgba(255, 255, 255, 0.14);
 }
 
-/* 1. استئصال واجهات Streamlit الافتراضية وشعار التاج */
-header[data-testid="stHeader"], 
-#MainMenu, 
+/* 1. إخفاء كافة أشرطة وشعارات Streamlit الافتراضية */
+header[data-testid="stHeader"],
+#MainMenu,
 footer,
 div[data-testid="stStatusWidget"],
 .stDeployButton,
 [data-testid="stToolbar"],
 div[class*="viewerBadge"],
+[class*="viewerBadge"],
 [class*="manageApp"],
 div[data-testid="stDecoration"],
 [data-testid="InputInstructions"],
-[data-testid="stWidgetInstructions"] { 
-    display: none !important; 
+[data-testid="stWidgetInstructions"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
 }
 
-/* 2. ضبط الأبعاد لشاشات الجوال الحافة للحافة */
-.block-container {   
-    padding-top: 0.2rem !important; 
-    padding-bottom: 2rem !important; 
-    padding-left: 8px !important; 
-    padding-right: 8px !important;
+/* 2. ضبط عرض الصفحة لشاشات الجوال */
+.block-container {
+    padding-top: 0.3rem !important;
+    padding-bottom: 2rem !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
     max-width: 100% !important;
     margin: 0 auto !important;
 }
 @media (min-width: 480px) {
     .block-container {
-        max-width: 425px !important;
+        max-width: 430px !important;
         padding-left: 12px !important;
         padding-right: 12px !important;
     }
 }
 
-html, body, [class*="css"] { 
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Cairo", sans-serif; 
-    direction: rtl; 
-    text-align: right; 
+html, body, [class*="css"] {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Cairo", sans-serif;
+    direction: rtl;
+    text-align: right;
     background-color: #0b0f19 !important;
     color: #f8fafc !important;
     -webkit-tap-highlight-color: transparent;
 }
 
-/* بطاقة الهيدر وشريط الحصص */
-.top-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    text-align: center;
-    width: 100%;
-    box-sizing: border-box;
-}
-.brand-badge {
-    color: var(--primary);
-    background: rgba(16, 185, 129, 0.12);
-    border: 1px solid rgba(16, 185, 129, 0.28);
-    border-radius: 20px;
-    padding: 3px 12px;
-    font-size: 0.74em;
-    font-weight: 700;
-    display: inline-block;
-    margin-bottom: 4px;
-}
-.headline {
-    font-size: 1.25em;
-    font-weight: 900;
-    color: #ffffff;
-    margin: 0;
-}
-.sub-headline {
-    font-size: 0.82em;
-    font-weight: 700;
-    color: #94a3b8;
-    margin: 3px 0 8px 0;
-}
-
-/* التجميد الصارم للنقر (CSS Click-Lock لمنع النقرات الوهمية) */
-.slots-container,
-.slot-pill,
-.sensory-card,
+/* 3. البطاقة العلوية وشريط التقدم المتصل (لا يوحي بالنقر نهائياً) */
+.top-card,
+.progress-wrapper,
+.sensory-strip,
 .ingredient-thumb {
     pointer-events: none !important;
     user-select: none !important;
@@ -175,76 +170,97 @@ html, body, [class*="css"] {
     cursor: default !important;
 }
 
-.slots-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 5px;
-}
-.slot-pill {
-    background: #030712;
+.top-card {
+    background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 7px 2px;
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
     text-align: center;
-    font-size: 0.72em;
-    font-weight: 700;
+    width: 100%;
+    box-sizing: border-box;
 }
-.slot-pill.taken {
-    background: rgba(16, 185, 129, 0.18);
-    border-color: var(--primary);
+.brand-badge {
     color: var(--primary);
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 0.75em;
+    font-weight: 800;
+    display: inline-block;
+    margin-bottom: 5px;
 }
-.slot-pill.current {
-    border-color: var(--primary);
+.headline {
+    font-size: 1.22em;
+    font-weight: 900;
     color: #ffffff;
-    background: var(--active-bg);
-    box-shadow: 0 0 12px var(--primary-glow);
+    margin: 0;
 }
-.slot-pill.available {
-    color: #64748b;
-    border-style: dashed;
+.sub-headline {
+    font-size: 0.82em;
+    font-weight: 600;
+    color: #94a3b8;
+    margin: 4px 0 10px 0;
+}
+
+/* شريط التقدم الأفقي المتصل بدلاً من المربعات الـ 4 المشتتة */
+.progress-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78em;
+    font-weight: 800;
+    margin-bottom: 6px;
+    color: #e2e8f0;
+}
+.progress-track {
+    width: 100%;
+    height: 10px;
+    background: #030712;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+    border-radius: 999px;
+    box-shadow: 0 0 10px var(--primary-glow);
+    transition: width 0.4s ease;
 }
 
 .centered-section-title {
     text-align: center !important;
-    font-size: 0.96em !important;
+    font-size: 0.95em !important;
     font-weight: 900 !important;
     color: #ffffff !important;
-    margin-top: 10px !important;
+    margin-top: 8px !important;
     margin-bottom: 8px !important;
 }
 
-/* استئصال النقطة الحمراء وفرض الزمردي الصافي */
-div[data-testid="stRadio"] input[type="radio"],
-div[data-testid="stRadio"] input[type="radio"]:checked,
-input[type="radio"],
-div[data-baseweb="radio"] input {
-    accent-color: #10b981 !important;
+/* 4. تحويل خيارات الراديو إلى بطاقات أزرار زمردية واستئصال النقطة الحمراء */
+div[data-testid="stRadio"] {
+    width: 100% !important;
 }
-div[data-baseweb="radio"] div {
-    border-color: rgba(255, 255, 255, 0.25) !important;
+div[data-testid="stRadio"] > div {
+    width: 100% !important;
 }
-div[data-baseweb="radio"]:has(input:checked) div {
-    border-color: #10b981 !important;
-    background-color: #10b981 !important;
-}
-div[data-testid="stRadio"] svg {
-    fill: #10b981 !important;
-}
-
-/* شبكة العطور: عمودان بمؤشر كربوني خارج النموذج */
-div[data-testid="stRadio"] { width: 100% !important; }
-
-div:not([data-testid="stForm"]) > div[data-testid="stRadio"] div[role="radiogroup"] {
+div[data-testid="stRadio"] div[role="radiogroup"] {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 8px !important;
     width: 100% !important;
-    margin-bottom: 10px !important;
     box-sizing: border-box !important;
 }
+div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+}
 
-div[data-testid="stRadio"] div[role="radiogroup"] > label {
+label[data-baseweb="radio"] {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
@@ -252,183 +268,115 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label {
     background-color: var(--card-bg) !important;
     border: 1.5px solid var(--border-color) !important;
     border-radius: 10px !important;
-    padding: 10px 12px !important;
+    padding: 11px 12px !important;
     min-height: 48px !important;
-    cursor: pointer !important;
-    box-sizing: border-box !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
     width: 100% !important;
     margin: 0 !important;
-}
-
-div[data-testid="stRadio"] input[type="radio"] {
-    position: absolute !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
-    pointer-events: none !important;
-}
-div[data-testid="stRadio"] label > div:first-child:not(:only-child) {
-    display: none !important;
-}
-
-/* النقطة الكربونية المحايدة */
-div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
-    content: "" !important;
-    display: inline-block !important;
-    width: 13px !important;
-    height: 13px !important;
-    min-width: 13px !important;
-    min-height: 13px !important;
-    border-radius: 50% !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    margin-left: 10px !important;
-    margin-right: 0 !important;
-    flex-shrink: 0 !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
     transition: all 0.2s ease !important;
 }
 
-div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
+label[data-baseweb="radio"] > div:first-child {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    margin-left: 8px !important;
+    margin-right: 0 !important;
+    flex-shrink: 0 !important;
+}
+
+label[data-baseweb="radio"]:has(input:checked) {
     background-color: var(--active-bg) !important;
     border: 2px solid var(--primary) !important;
     box-shadow: 0 0 14px var(--primary-glow) !important;
 }
-div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked)::before {
-    border-color: var(--primary) !important;
+
+label[data-baseweb="radio"]:has(input:checked) > div:first-child {
     background-color: var(--primary) !important;
-    box-shadow: 0 0 10px var(--primary) !important;
+    border-color: var(--primary) !important;
 }
 
-div[data-testid="stRadio"] label p,
-div[data-testid="stRadio"] label span,
-div[data-testid="stRadio"] label div {
-    color: #cbd5e1 !important;
+label[data-baseweb="radio"] p,
+label[data-baseweb="radio"] span {
+    color: #e2e8f0 !important;
     font-size: 0.88em !important;
-    font-weight: 700 !important;
-    line-height: 1.3 !important;
+    font-weight: 800 !important;
     margin: 0 !important;
-    padding: 0 !important;
-    white-space: nowrap !important;
-    word-break: keep-all !important;
-}
-div[data-testid="stRadio"] label:has(input:checked) p,
-div[data-testid="stRadio"] label:has(input:checked) span {
-    color: #ffffff !important;
-    font-weight: 900 !important;
 }
 
-/* بطاقات الاستلام داخل النموذج */
-div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    width: 100% !important;
-    margin-top: 4px !important;
-    margin-bottom: 8px !important;
-}
-
-div[data-testid="stForm"] div[data-testid="stRadio"] div[role="radiogroup"] > label {
-    padding: 12px 14px !important;
-    min-height: 48px !important;
-}
-div[data-testid="stForm"] div[data-testid="stRadio"] label p,
-div[data-testid="stForm"] div[data-testid="stRadio"] label span {
-    white-space: normal !important;
-    font-size: 0.84em !important;
-    line-height: 1.4 !important;
-}
-
-/* البطاقة الحسية للعطر وضبط الأبعاد الصارمة للصور */
-.sensory-card {
-    background: var(--card-bg);
-    border: 1.5px solid rgba(16, 185, 129, 0.4);
-    border-radius: 12px;
-    padding: 11px 13px;
-    margin-bottom: 10px;
+/* 5. شريط مواصفات العطر المختار (مدمج وغير قابل للنقر) */
+.sensory-strip {
+    background: rgba(17, 24, 39, 0.75);
+    border-right: 3.5px solid var(--primary);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    border-left: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 8px 0 12px 0;
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     width: 100%;
     box-sizing: border-box;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
 }
-.sensory-top-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-.ingredient-thumb {
-    width: 72px !important;
-    height: 72px !important;
-    aspect-ratio: 1 / 1 !important;
-    min-width: 72px !important;
-    min-height: 72px !important;
-    border-radius: 12px !important;
-    object-fit: cover !important;
-    background-color: #030712 !important;
-    border: 1.5px solid var(--primary) !important;
-    flex-shrink: 0 !important;
-}
-.sensory-details {
-    flex-grow: 1;
+.sensory-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
 }
-.sensory-name { font-size: 0.98em; font-weight: 900; color: #ffffff; }
-.sensory-tag { font-size: 0.74em; color: var(--primary); font-weight: 800; }
-.sensory-notes { font-size: 0.77em; color: #94a3b8; line-height: 1.35; }
-
-.price-chip {
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.3);
+.sensory-title {
+    font-size: 0.92em;
+    font-weight: 900;
+    color: #ffffff;
+}
+.sensory-notes {
+    font-size: 0.76em;
+    color: #94a3b8;
+}
+.sensory-price-badge {
+    background: rgba(16, 185, 129, 0.14);
+    border: 1px solid rgba(16, 185, 129, 0.35);
     border-radius: 8px;
-    padding: 7px 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.78em;
-    font-weight: 700;
+    padding: 6px 10px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.sensory-price-badge b {
+    color: var(--primary);
+    font-size: 1.05em;
+    display: block;
+}
+.sensory-price-badge span {
+    color: #94a3b8;
+    font-size: 0.7em;
+    text-decoration: line-through;
 }
 
-/* حقول الإدخال وتلطيف مؤشر التحديد */
-div[data-testid="stTextInput"] * { outline: none !important; }
-div[data-testid="stTextInput"] div[data-baseweb="input"],
-div[data-testid="stTextInput"] div[data-baseweb="base-input"],
-div[data-testid="stTextInputRootElement"],
-div[data-testid="stTextInputRootElement"] > div,
-.stTextInput div[data-baseweb="input"] {
+/* 6. حقول الإدخال وزر التثبيت */
+div[data-testid="stTextInput"] div[data-baseweb="input"] {
     border: 1.5px solid var(--border-color) !important;
     background-color: var(--card-bg) !important;
     border-radius: 8px !important;
-    transition: all 0.2s ease !important;
 }
-div[data-testid="stTextInput"]:focus-within div[data-baseweb="input"],
-div[data-testid="stTextInput"] input:focus,
-.stTextInput input:focus {
+div[data-testid="stTextInput"]:focus-within div[data-baseweb="input"] {
     border: 1.5px solid var(--primary) !important;
-    background-color: rgba(16, 185, 129, 0.05) !important;
     box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15) !important;
 }
-input, textarea { 
-    caret-color: var(--primary) !important; 
-    border-radius: 8px !important; 
-    font-size: 0.88em !important; 
-    padding: 10px 12px !important;
-    border: none !important;
-    background-color: transparent !important;
+input {
+    caret-color: var(--primary) !important;
     color: #ffffff !important;
+    font-size: 0.9em !important;
+    padding: 10px 12px !important;
 }
-input::placeholder { color: #64748b !important; }
 
-/* زر التأكيد الرئيسي */
 div[data-testid="stFormSubmitButton"] > button {
     background: var(--primary) !important;
     color: #022c22 !important;
     font-size: 0.98em !important;
     font-weight: 900 !important;
-    height: 48px !important;
+    height: 50px !important;
     border-radius: 10px !important;
     border: none !important;
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35) !important;
@@ -436,7 +384,11 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px !important;
 }
 
-/* زر الواتساب الرئيسي البارز */
+/* 7. زر الواتساب النابض في شاشة الخطوة الأخيرة */
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55), 0 4px 18px rgba(16, 185, 129, 0.35); transform: scale(1); }
+    50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0), 0 6px 24px rgba(16, 185, 129, 0.5); transform: scale(1.015); }
+}
 .wa-link-btn {
     display: block;
     background: var(--primary);
@@ -445,15 +397,24 @@ div[data-testid="stFormSubmitButton"] > button {
     padding: 16px 14px;
     border-radius: 12px;
     font-weight: 900;
-    font-size: 1.05em;
+    font-size: 1.04em;
     text-decoration: none;
-    margin-top: 10px;
-    margin-bottom: 6px;
-    box-shadow: 0 4px 18px var(--primary-glow);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    margin-top: 12px;
+    margin-bottom: 8px;
+    animation: pulseGlow 2s infinite ease-in-out;
 }
-.wa-link-btn:active {
-    transform: scale(0.98);
+
+/* شارة الخطوة الأخيرة التحذيرية الدافئة في شاشة الواتساب */
+.pending-step-badge {
+    color: #fef3c7;
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.78em;
+    font-weight: 800;
+    display: inline-block;
+    margin-bottom: 6px;
 }
 
 /* رابط الإلغاء الهادئ الصغير في أقصى أسفل شاشة التأكيد */
@@ -461,97 +422,51 @@ div:has(> #cancel-link-hook) ~ div[data-testid="stButton"] button {
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
-    padding: 6px 12px !important;
+    padding: 4px 10px !important;
     height: auto !important;
     min-height: auto !important;
-    margin: 14px auto 0 auto !important;
+    margin: 16px auto 0 auto !important;
     display: block !important;
     width: auto !important;
-    cursor: pointer !important;
 }
 div:has(> #cancel-link-hook) ~ div[data-testid="stButton"] button p {
     color: #64748b !important;
-    font-size: 0.78em !important;
+    font-size: 0.76em !important;
     text-decoration: underline !important;
     font-weight: 500 !important;
-    transition: color 0.2s ease !important;
-}
-div:has(> #cancel-link-hook) ~ div[data-testid="stButton"] button:hover p {
-    color: #94a3b8 !important;
 }
 
-/* بطاقة تقدير إلغاء الحجز الراقية */
-.cancellation-card {
-    background: rgba(16, 185, 129, 0.08) !important;
-    border: 1.5px solid rgba(16, 185, 129, 0.35) !important;
-    color: #f8fafc !important;
-    padding: 13px 15px !important;
-    border-radius: 10px !important;
-    font-size: 0.86em !important;
-    line-height: 1.55 !important;
-    text-align: center !important;
-    margin-bottom: 12px !important;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
-}
-.cancellation-card b {
-    color: var(--primary) !important;
-    font-size: 1.02em !important;
-}
-
+/* تنبيه التحقق الكهرماني الدافئ */
 @keyframes alertShake {
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-6px); }
     40%, 80% { transform: translateX(6px); }
 }
-
-/* تنبيه التحقق العلوي الدافئ (Warm Amber Ergonomics) */
 .warning-pill-shake {
-    background: rgba(245, 158, 11, 0.10) !important;
-    border: 1.5px solid rgba(245, 158, 11, 0.45) !important;
+    background: rgba(245, 158, 11, 0.12) !important;
+    border: 1.5px solid rgba(245, 158, 11, 0.5) !important;
     color: #fef3c7 !important;
     padding: 12px 14px !important;
     border-radius: 10px !important;
-    font-size: 0.88em !important;
+    font-size: 0.86em !important;
     font-weight: 800 !important;
     margin-bottom: 12px !important;
     text-align: center !important;
-    line-height: 1.4 !important;
-    box-shadow: 0 0 16px rgba(245, 158, 11, 0.18) !important;
     animation: alertShake 0.45s ease-in-out !important;
 }
 
-.waitlist-card {
-    background: rgba(16, 185, 129, 0.08) !important;
-    border: 1.5px solid rgba(16, 185, 129, 0.4) !important;
-    color: #f8fafc !important;
-    padding: 14px 16px !important;
-    border-radius: 10px !important;
-    font-size: 0.88em !important;
-    line-height: 1.6 !important;
-    text-align: center !important;
-    margin-bottom: 12px !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
-}
-.waitlist-card b {
-    color: #10b981 !important;
-    font-size: 1.05em !important;
-    display: block;
-    margin-bottom: 4px;
-}
-
-.notice-card {
+.cancellation-card, .waitlist-card, .notice-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 11px;
-    font-size: 0.82em;
-    color: #94a3b8;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 0.84em;
+    color: #cbd5e1;
     text-align: center;
-    line-height: 1.5;
-    margin: 6px 0;
+    line-height: 1.55;
+    margin: 8px 0;
 }
 
-/* مصيدة الروبوتات */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
 input[aria-label="hp"] { display: none !important; }
 </style>
@@ -586,49 +501,36 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 
-# كتالوج العطور الستة المعتمدة: مكونات ماكرو طبيعية وسينمائية 100%
 PERFUMES: dict[str, dict[str, str]] = {
     "عطر روميو": {
         "en_name": "Romeo",
-        "tag": "رجالي فاخر • الأكثر طلباً 🔥",
+        "tag": "رجالي فاخر • الأكثر طلباً",
         "notes": "باتشولي نقي، فانيلا، ومسك فاخر",
-        "ingredient_label": "خلاصة الباتشولي الطبيعي",
-        "img": "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر يوجا": {
         "en_name": "Yoga",
         "tag": "هادئ ومنعش • فوّاح",
         "notes": "برغموت إيطالي، مسك نقي، ونرجس",
-        "ingredient_label": "البرغموت الإيطالي النقي",
-        "img": "https://images.unsplash.com/photo-1582281298055-e25b84a30b0b?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر لونار": {
         "en_name": "Lunar",
         "tag": "أناقة للجنسين • ثبات عالي",
         "notes": "عنب أسود، باتشولي، وعنبر دافئ",
-        "ingredient_label": "راتنج العنبر الطبيعي الفاخر",
-        "img": "https://images.unsplash.com/photo-1509783236416-c9ad59bae472?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر لاروزيه": {
         "en_name": "Larose",
         "tag": "أنثوي ساحر • ناعم وجذاب",
         "notes": "فانيلا فرنسية، زنبق أبيض، وياسمين",
-        "ingredient_label": "بتلات الياسمين الأبيض والزنبق",
-        "img": "https://images.unsplash.com/photo-1597848212624-a19eb35e2651?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر إليسيوم": {
         "en_name": "Elysium",
         "tag": "فخامة ملكية • للمناسبات",
         "notes": "عنبر ملكي، فانيلا، ولافندر بارد",
-        "ingredient_label": "زهور الخزامى واللافندر النقي",
-        "img": "https://images.unsplash.com/photo-1528722828814-77b9b83aafb2?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر هارت بيت": {
         "en_name": "Heart Beat",
         "tag": "حيوي ورومانسي • جذاب",
         "notes": "كشمش أسود، مسك أبيض، وورد مخملي",
-        "ingredient_label": "الكشمش الأسود والورد المخملي",
-        "img": "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=400&h=400&q=80",
     },
 }
 
@@ -652,30 +554,35 @@ def get_confirmed_bookings(basket_key: str) -> list[dict[str, Any]]:
 
 
 # ==============================================================================
-# 4. الرأسية التسويقية الحية (تعمل كل 15 ثانية داخل شاشة الحجز فقط)
+# 4. الرأسية التسويقية وشريط التقدم المتصل (لا يوحي بوجود أزرار نهائياً)
 # ==============================================================================
 @st.fragment(run_every="15s")
 def render_live_slots() -> None:
     current_bookings = get_confirmed_bookings(BASKET_ID)
-    taken_count = len(current_bookings)
+    taken_count = min(len(current_bookings), BASKET_CAPACITY)
+    remaining = max(0, BASKET_CAPACITY - taken_count)
+    progress_pct = int((taken_count / BASKET_CAPACITY) * 100)
 
-    slots_markup = "".join([
-        f'<div class="slot-pill taken">حصة {i} مكتملة ✓</div>'
-        if i <= taken_count
-        else '<div class="slot-pill current">حصتك الآن 🔥</div>'
-        if i == taken_count + 1
-        else f'<div class="slot-pill available">متاح {i}</div>'
-        for i in range(1, BASKET_CAPACITY + 1)
-    ])
+    status_label = (
+        f"🔥 باقي {remaining} مقاعد وتكتمل الباقة"
+        if remaining > 0
+        else "✅ اكتملت الباقة بالكامل"
+    )
 
     st.markdown(
         clean_html(f"""
         <div class="top-card">
-            <div class="brand-badge">قسم مشترياتك • عروض بلوم (2+2 مجاناً)</div>
-            <div class="headline">تقاسم عروض بلوم Blom</div>
-            <div class="sub-headline">السعر بالتساوي بين 4 أشخاص ({UNIFIED_PRICE} ر.س للعبوة)</div>
-            <div class="slots-container">
-                {slots_markup}
+            <div class="brand-badge">عروض بلوم (2+2 مجاناً) • جدة</div>
+            <div class="headline">تقاسم باقة عطور نيوتن Blom</div>
+            <div class="sub-headline">العطر الأصلي بـ <b style="color:#10b981;">{UNIFIED_PRICE} ر.س</b> بدلاً من {ORIGINAL_RETAIL} ر.س (توفير 50%)</div>
+            <div class="progress-wrapper">
+                <div class="progress-status-row">
+                    <span>حالة الباقة: {taken_count} من {BASKET_CAPACITY} محجوز</span>
+                    <span style="color:#10b981;">{status_label}</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: {max(12, progress_pct)}%;"></div>
+                </div>
             </div>
         </div>
     """),
@@ -684,7 +591,7 @@ def render_live_slots() -> None:
 
 
 # ==============================================================================
-# 5. شاشة تأكيد الحصة (Single Primary CTA + رابط الإلغاء الهادئ بدون شريط الحصص)
+# 5. شاشة الخطوة الأخيرة: إرسال رسالة الواتساب لتثبيت المقعد
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -701,41 +608,38 @@ if "confirmed_deal" in st.session_state:
     else:
         seats_status_msg = "🔥 اكتملت الـ 4 مقاعد وجاري تنفيذ الطلب!"
 
-    # تخصيص النص منطوقاً بلسان العميل حسب طريقة الاستلام
     if "توصيل" in deal.get("delivery", ""):
         delivery_details_msg = (
             "• طريقة الاستلام: توصيل مجاني بجدة 🚗\n"
             "• موقعي: (برسل لك دبوس الموقع تحت هذي الرسالة الحين 📍)\n"
             f"• الدفع: {UNIFIED_PRICE} ر.س يد بيد بعد فحص العطر والفاتورة الأصلية 🤝"
         )
-        card_delivery_note = "سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد اللوكيشن والتوصيل المجاني."
+        card_delivery_note = "اضغط الزر الأخضر بالأسفل لإرسال طلبك وموقعك عبر الواتساب وتثبيت مقعدك رسمياً."
     else:
         delivery_details_msg = (
             "• طريقة الاستلام: السلام مول (بوابة 5 و 6) 📍\n"
             "• الموعد: السبت (المغرب إلى العشاء: 6:30م – 9:00م) ⏰\n"
             f"• الدفع: {UNIFIED_PRICE} ر.س يد بيد بعد فحص العطر والفاتورة الأصلية 🤝"
         )
-        card_delivery_note = "موعد الاستلام بالسلام مول: <b>السبت (المغرب إلى العشاء: 6:30م – 9:00م) عند بوابة 5 أو 6</b>."
+        card_delivery_note = "اضغط الزر الأخضر بالأسفل لإرسال رسالة التثبيت عبر الواتساب وتأكيد موعد السلام مول."
 
     st.markdown(
         clean_html(f"""
         <div class="top-card" style="border-color:var(--primary);">
-            <div class="brand-badge">تم تأكيد حصتك بنجاح 🌿</div>
-            <div class="headline" style="font-size:1.15em;">{safe_perfume}</div>
-            <div class="sub-headline" style="color:#cbd5e1 !important;">{safe_delivery}</div>
-            <div style="font-size:1.15em;font-weight:800;color:#ffffff;margin-top:5px;">
-                المطلوب عند الاستلام: <span style="color:var(--primary);">{UNIFIED_PRICE} ر.س فقط</span>
+            <div class="pending-step-badge">⏳ خطوة أخيرة لتثبيت مقعدك</div>
+            <div class="headline" style="font-size:1.15em;">يا {safe_name}، أرسل رسالة التأكيد بالواتساب الآن</div>
+            <div class="sub-headline" style="color:#cbd5e1 !important; margin-top:6px;">
+                العطر المختار: <b style="color:#ffffff;">{safe_perfume}</b> ({UNIFIED_PRICE} ر.س عند الاستلام)
             </div>
         </div>
         <div class="notice-card">
-            🤝 <b>الدفع يد بيد بعد المعاينة والفاتورة الأصلية</b><br>
+            📲 <b>الرسالة جاهزة ومكتوبة تلقائياً:</b><br>
             {card_delivery_note}
         </div>
     """),
         unsafe_allow_html=True,
     )
 
-    # حدث التحويل المخصص في Clarity
     components.html(
         clean_html("""
         <script>
@@ -750,7 +654,6 @@ if "confirmed_deal" in st.session_state:
         width=0,
     )
 
-    # صياغة رسالة الواتساب النهائية بلسان العميل
     wa_admin_msg = (
         f"مرحباً 🌿\n"
         f"حجزت حصتي في تطبيق مَقسوم ({UNIFIED_PRICE} ر.س):\n\n"
@@ -765,17 +668,15 @@ if "confirmed_deal" in st.session_state:
         f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
     )
 
-    # زر الواتساب الرئيسي والأوحد للتحويل (Primary CTA)
     st.markdown(
         clean_html(
-            f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب (الخطوة الأخيرة)</a>'
+            f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 اضغط هنا لإرسال رسالة التثبيت عبر واتساب الآن</a>'
         ),
         unsafe_allow_html=True,
     )
 
-    # رابط الإلغاء الهادئ الصغير في أقصى أسفل الصفحة
     st.markdown('<div id="cancel-link-hook"></div>', unsafe_allow_html=True)
-    if st.button("تراجعت عن الحجز؟ اضغط هنا لإلغاء المقعد", use_container_width=True):
+    if st.button("تراجعت عن الحجز؟ اضغط هنا لإلغاء المقعد والعودة", use_container_width=True):
         booking_id = deal.get("id")
         if supabase:
             if booking_id:
@@ -795,19 +696,17 @@ if "confirmed_deal" in st.session_state:
         st.rerun()
 
 # ==============================================================================
-# 6. النموذج وتجربة الاختيار السلسة (High-Conversion Form)
+# 6. شاشة الحجز الرئيسية (بطاقات أزرار واضحة بدون صور مشتتة)
 # ==============================================================================
 else:
-    # شريط الحصص يظهر حصراً في صفحة الحجز لعدم تشتيت العميل المؤكد
     render_live_slots()
 
-    # إظهار بطاقة تقدير راقية في حال ألغى العميل حجزه
     if st.session_state.get("just_cancelled"):
         st.markdown(
             clean_html("""
-            <div class="cancellation-card">
+            <div class="cancellation-card" style="border-color:#10b981;">
                 🌿 <b>تم إلغاء حجزك بنجاح</b><br>
-                نقدّر وقتك وثقتك يا غالي، ومقعدك متاح الآن في الباقة. نتشرف بك في أي وقت.
+                مقعدك متاح الآن في الباقة، ويمكنك اختيار عطرك من جديد في أي وقت.
             </div>
         """),
             unsafe_allow_html=True,
@@ -815,7 +714,7 @@ else:
 
     st.markdown(
         clean_html(
-            '<div class="centered-section-title">اختر عطرك من باقة نيوتن</div>'
+            '<div class="centered-section-title">1. اضغط على العطر المفضل لك:</div>'
         ),
         unsafe_allow_html=True,
     )
@@ -828,21 +727,17 @@ else:
 
     p = PERFUMES[chosen_perfume]
 
-    # البطاقة الحسية مع صور الماكرو الطبيعية بنسبة أبعاد ثابتة 1:1
+    # شريط معلوماتي أنيق وهادئ بدون صورة مربعة تشتت نقرات العميل
     st.markdown(
         clean_html(f"""
-        <div class="sensory-card">
-            <div class="sensory-top-row">
-                <img src="{p['img']}" class="ingredient-thumb" alt="{p['ingredient_label']}" width="72" height="72" loading="eager" />
-                <div class="sensory-details">
-                    <div class="sensory-name">{chosen_perfume} <span style="font-size:0.8em;color:#94a3b8;font-weight:500;">({p['en_name']})</span></div>
-                    <div class="sensory-tag">🌿 {p['ingredient_label']}</div>
-                    <div class="sensory-notes">المكونات: {p['notes']}</div>
-                </div>
+        <div class="sensory-strip">
+            <div class="sensory-info">
+                <div class="sensory-title">🌿 {chosen_perfume} ({p['en_name']}) — <span style="color:#10b981;font-size:0.85em;">{p['tag']}</span></div>
+                <div class="sensory-notes">المكونات: {p['notes']}</div>
             </div>
-            <div class="price-chip">
-                <span style="color:#cbd5e1;">السعر الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:var(--primary);font-size:1.15em;">{UNIFIED_PRICE} ر.س</b></span>
-                <span style="color:var(--primary);font-weight:800;">وفرت {SAVINGS_AMOUNT} ر.س (خصم 50%)</span>
+            <div class="sensory-price-badge">
+                <b>{UNIFIED_PRICE} ر.س</b>
+                <span>{ORIGINAL_RETAIL} ر.س</span>
             </div>
         </div>
     """),
@@ -857,7 +752,7 @@ else:
     ):
         st.markdown(
             clean_html(
-                '<div class="centered-section-title" style="margin-top:0;">بيانات التأكيد والاستلام</div>'
+                '<div class="centered-section-title" style="margin-top:0;">2. سجل اسمك ورقمك لتثبيت الحصة:</div>'
             ),
             unsafe_allow_html=True,
         )
@@ -877,7 +772,7 @@ else:
 
         st.markdown(
             clean_html(
-                '<div class="centered-section-title" style="font-size:0.88em;margin-top:8px;margin-bottom:4px;">حدد طريقة وموعد الاستلام</div>'
+                '<div class="centered-section-title" style="font-size:0.88em;margin-top:8px;margin-bottom:4px;">3. اختر طريقة الاستلام في جدة:</div>'
             ),
             unsafe_allow_html=True,
         )
@@ -903,7 +798,7 @@ else:
 
         hp = st.text_input("hp", label_visibility="collapsed")
         submit_btn = st.form_submit_button(
-            f"تثبيت حصتك في العرض ({UNIFIED_PRICE} ر.س عند الاستلام)",
+            f"تثبيت حصتك الآن ({UNIFIED_PRICE} ر.س عند الاستلام)",
             use_container_width=True,
         )
 
@@ -911,7 +806,6 @@ else:
             clean_name = f_name.strip()
             clean_phone = sanitize_phone_number(f_phone)
 
-            # 1. التحقق من صحة البيانات بنص كهرماني إرشادي دافئ ومريح
             if len(clean_name) < 2 or not re.match(r"^05\d{8}$", clean_phone):
                 alert_placeholder.markdown(
                     clean_html("""
@@ -943,7 +837,6 @@ else:
                 st.session_state["saved_phone"] = clean_phone
                 st.session_state.pop("just_cancelled", None)
 
-                # 2. حماية التزامن وقراءة مباشرة ولحظية من قاعدة البيانات
                 get_confirmed_bookings.clear()
                 fresh_bookings = get_confirmed_bookings(BASKET_ID)
 
@@ -952,7 +845,6 @@ else:
                     None,
                 )
 
-                # 3. العميل مسجل مسبقاً بنفس رقم الجوال (تحديث الحجز وتثبيت الخيارات)
                 if existing_booking:
                     client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
                     if supabase:
@@ -977,36 +869,17 @@ else:
                     }
                     st.rerun()
 
-                # 4. اكتمال الباقة في نفس اللحظة
                 elif len(fresh_bookings) >= BASKET_CAPACITY:
                     alert_placeholder.markdown(
                         clean_html("""
                         <div class="waitlist-card">
-                            ✨ <b>شكراً جزيلاً لثقتك واهتمامك يا غالي 🌿</b>
-                            مقاعد هذه الباقة اكتملت للتو بالكامل، وسعداء جداً باختيارك.<br>
-                            سنتواصل معك عبر الواتساب فوراً في حال اعتذر أحد المشتركين أو مع إطلاق السلة القادمة مباشرة.
+                            ✨ <b>شكراً جزيلاً لثقتك واهتمامك يا غالي 🌿</b><br>
+                            مقاعد هذه الباقة اكتملت للتو بالكامل، وسنتواصل معك عبر الواتساب مع إطلاق السلة القادمة مباشرة.
                         </div>
                     """),
                         unsafe_allow_html=True,
                     )
-                    components.html(
-                        clean_html("""
-                        <script>
-                            setTimeout(() => {
-                                try {
-                                    const banner = window.parent.document.querySelector('.waitlist-card');
-                                    if (banner) {
-                                        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    }
-                                } catch(e) {}
-                            }, 50);
-                        </script>
-                    """),
-                        height=0,
-                        width=0,
-                    )
 
-                # 5. إتمام الحجز بنجاح وحفظ المعرف للتحكم والإلغاء
                 else:
                     if not supabase:
                         alert_placeholder.error(
