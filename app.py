@@ -86,7 +86,6 @@ st.markdown(
     --border-color: rgba(255, 255, 255, 0.12);
     --neutral-dot: rgba(255, 255, 255, 0.25);
     --neutral-dot-bg: rgba(255, 255, 255, 0.05);
-    --danger: #ef4444;
 }
 
 /* 1. استئصال واجهات Streamlit الافتراضية وشعار التاج */
@@ -130,7 +129,7 @@ html, body, [class*="css"] {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* بطاقة الهيدر وشريط الحصص (تجميد تام للنقر لمنع النقرات الوهمية) */
+/* بطاقة الهيدر وشريط الحصص */
 .top-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -165,7 +164,7 @@ html, body, [class*="css"] {
     margin: 3px 0 8px 0;
 }
 
-/* التجميد الصارم للنقر (CSS Click-Lock) */
+/* التجميد الصارم للنقر (CSS Click-Lock لمنع النقرات الوهمية) */
 .slots-container,
 .slot-pill,
 .sensory-card,
@@ -215,7 +214,7 @@ html, body, [class*="css"] {
     margin-bottom: 8px !important;
 }
 
-/* القضاء التام على النقطة الحمراء وفرض اللون الزمردي */
+/* استئصال النقطة الحمراء وفرض الزمردي الصافي */
 div[data-testid="stRadio"] input[type="radio"],
 div[data-testid="stRadio"] input[type="radio"]:checked,
 input[type="radio"],
@@ -233,7 +232,7 @@ div[data-testid="stRadio"] svg {
     fill: #10b981 !important;
 }
 
-/* شبكة العطور: 2 أعمدة بمؤشر كربوني خارج النموذج */
+/* شبكة العطور: عمودان بمؤشر كربوني خارج النموذج */
 div[data-testid="stRadio"] { width: 100% !important; }
 
 div:not([data-testid="stForm"]) > div[data-testid="stRadio"] div[role="radiogroup"] {
@@ -769,7 +768,7 @@ if "confirmed_deal" in st.session_state:
     # زر الواتساب الرئيسي والأوحد للتحويل (Primary CTA)
     st.markdown(
         clean_html(
-            f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 اضغط هنا لتأكيد حجزك عبر واتساب (خطوة أخيرة لتثبيت الحصة)</a>'
+            f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب (الخطوة الأخيرة)</a>'
         ),
         unsafe_allow_html=True,
     )
