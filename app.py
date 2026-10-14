@@ -218,14 +218,22 @@ html, body, [class*="css"] {
 /* القضاء التام على النقطة الحمراء وفرض اللون الزمردي */
 div[data-testid="stRadio"] input[type="radio"],
 div[data-testid="stRadio"] input[type="radio"]:checked,
-input[type="radio"] {
+input[type="radio"],
+div[data-baseweb="radio"] input {
     accent-color: #10b981 !important;
+}
+div[data-baseweb="radio"] div {
+    border-color: rgba(255, 255, 255, 0.25) !important;
+}
+div[data-baseweb="radio"]:has(input:checked) div {
+    border-color: #10b981 !important;
+    background-color: #10b981 !important;
 }
 div[data-testid="stRadio"] svg {
     fill: #10b981 !important;
 }
 
-/* شبكة العطور: 3 يمين و 3 يسار بمؤشر كربوني خارج النموذج */
+/* شبكة العطور: 2 أعمدة بمؤشر كربوني خارج النموذج */
 div[data-testid="stRadio"] { width: 100% !important; }
 
 div:not([data-testid="stForm"]) > div[data-testid="stRadio"] div[role="radiogroup"] {
