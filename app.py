@@ -72,7 +72,7 @@ components.html(
 )
 
 # ==============================================================================
-# 2. محرك الأنماط البصرية (Mobile-First CSS & Ergonomic Focus Indicator)
+# 2. محرك الأنماط البصرية (Click-Lock, Zero Red Accent & Amber Alert)
 # ==============================================================================
 st.markdown(
     clean_html("""
@@ -108,7 +108,7 @@ div[data-testid="stDecoration"],
 .block-container {   
     padding-top: 0.2rem !important; 
     padding-bottom: 2rem !important; 
-    padding-left: 8px !important;
+    padding-left: 8px !important; 
     padding-right: 8px !important;
     max-width: 100% !important;
     margin: 0 auto !important;
@@ -130,7 +130,7 @@ html, body, [class*="css"] {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* بطاقة الهيدر وشريط الحصص */
+/* بطاقة الهيدر وشريط الحصص (تجميد تام للنقر لمنع النقرات الوهمية) */
 .top-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -164,6 +164,18 @@ html, body, [class*="css"] {
     color: #94a3b8;
     margin: 3px 0 8px 0;
 }
+
+/* التجميد الصارم للنقر (CSS Click-Lock) */
+.slots-container,
+.slot-pill,
+.sensory-card,
+.ingredient-thumb {
+    pointer-events: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    cursor: default !important;
+}
+
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -201,6 +213,16 @@ html, body, [class*="css"] {
     color: #ffffff !important;
     margin-top: 10px !important;
     margin-bottom: 8px !important;
+}
+
+/* القضاء التام على النقطة الحمراء وفرض اللون الزمردي */
+div[data-testid="stRadio"] input[type="radio"],
+div[data-testid="stRadio"] input[type="radio"]:checked,
+input[type="radio"] {
+    accent-color: #10b981 !important;
+}
+div[data-testid="stRadio"] svg {
+    fill: #10b981 !important;
 }
 
 /* شبكة العطور: 3 يمين و 3 يسار بمؤشر كربوني خارج النموذج */
@@ -243,7 +265,7 @@ div[data-testid="stRadio"] label > div:first-child:not(:only-child) {
     display: none !important;
 }
 
-/* النقطة الكربونية المحايدة بدون أي حدود حمراء */
+/* النقطة الكربونية المحايدة */
 div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
     content: "" !important;
     display: inline-block !important;
@@ -260,7 +282,6 @@ div[data-testid="stRadio"] div[role="radiogroup"] > label::before {
     transition: all 0.2s ease !important;
 }
 
-/* التحول إلى الزمردي عند التحديد فقط */
 div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
     background-color: var(--active-bg) !important;
     border: 2px solid var(--primary) !important;
@@ -311,7 +332,7 @@ div[data-testid="stForm"] div[data-testid="stRadio"] label span {
     line-height: 1.4 !important;
 }
 
-/* البطاقة الحسية للعطر وضبط الأبعاد الصارمة للصور لمنع اهتزاز الشاشة CLS */
+/* البطاقة الحسية للعطر وضبط الأبعاد الصارمة للصور */
 .sensory-card {
     background: var(--card-bg);
     border: 1.5px solid rgba(16, 185, 129, 0.4);
@@ -364,7 +385,7 @@ div[data-testid="stForm"] div[data-testid="stRadio"] label span {
     font-weight: 700;
 }
 
-/* حقول الإدخال وتلطيف مؤشر التحديد (Active Focus Ergonomics) */
+/* حقول الإدخال وتلطيف مؤشر التحديد */
 div[data-testid="stTextInput"] * { outline: none !important; }
 div[data-testid="stTextInput"] div[data-baseweb="input"],
 div[data-testid="stTextInput"] div[data-baseweb="base-input"],
@@ -408,20 +429,49 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 6px !important;
 }
 
-/* شريط إرشادي لوضع التعديل */
-.edit-mode-pill {
-    background: rgba(16, 185, 129, 0.08) !important;
-    border: 1px solid rgba(16, 185, 129, 0.35) !important;
-    color: #cbd5e1 !important;
-    padding: 9px 12px !important;
-    border-radius: 8px !important;
-    font-size: 0.78em !important;
-    font-weight: 600 !important;
-    margin-bottom: 8px !important;
-    text-align: center !important;
-    line-height: 1.45 !important;
+/* زر الواتساب الرئيسي البارز */
+.wa-link-btn {
+    display: block;
+    background: var(--primary);
+    color: #022c22 !important;
+    text-align: center;
+    padding: 16px 14px;
+    border-radius: 12px;
+    font-weight: 900;
+    font-size: 1.05em;
+    text-decoration: none;
+    margin-top: 10px;
+    margin-bottom: 6px;
+    box-shadow: 0 4px 18px var(--primary-glow);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.edit-mode-pill b { color: var(--primary) !important; }
+.wa-link-btn:active {
+    transform: scale(0.98);
+}
+
+/* رابط الإلغاء الهادئ الصغير في أقصى أسفل شاشة التأكيد */
+div:has(> #cancel-link-hook) ~ div[data-testid="stButton"] button {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 6px 12px !important;
+    height: auto !important;
+    min-height: auto !important;
+    margin: 14px auto 0 auto !important;
+    display: block !important;
+    width: auto !important;
+    cursor: pointer !important;
+}
+div:has(> #cancel-link-hook) ~ div[data-testid="stButton"] button p {
+    color: #64748b !important;
+    font-size: 0.78em !important;
+    text-decoration: underline !important;
+    font-weight: 500 !important;
+    transition: color 0.2s ease !important;
+}
+div:has(> #cancel-link-hook) ~ div[data-testid="stButton"] button:hover p {
+    color: #94a3b8 !important;
+}
 
 /* بطاقة تقدير إلغاء الحجز الراقية */
 .cancellation-card {
@@ -447,7 +497,7 @@ div[data-testid="stFormSubmitButton"] > button {
     40%, 80% { transform: translateX(6px); }
 }
 
-/* تنبيه التحقق العلوي (Warm Amber Ergonomics) */
+/* تنبيه التحقق العلوي الدافئ (Warm Amber Ergonomics) */
 .warning-pill-shake {
     background: rgba(245, 158, 11, 0.10) !important;
     border: 1.5px solid rgba(245, 158, 11, 0.45) !important;
@@ -493,19 +543,6 @@ div[data-testid="stFormSubmitButton"] > button {
     line-height: 1.5;
     margin: 6px 0;
 }
-.wa-link-btn {
-    display: block;
-    background: var(--primary);
-    color: #022c22 !important;
-    text-align: center;
-    padding: 13px;
-    border-radius: 10px;
-    font-weight: 800;
-    font-size: 0.96em;
-    text-decoration: none;
-    margin-top: 6px;
-    box-shadow: 0 4px 14px var(--primary-glow);
-}
 
 /* مصيدة الروبوتات */
 div[data-testid="stTextInput"]:has(input[aria-label="hp"]),
@@ -542,7 +579,7 @@ SAVINGS_AMOUNT = ORIGINAL_RETAIL - UNIFIED_PRICE
 ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 
-# كتالوج العطور الستة المعتمدة: مكونات ماكرو طبيعية وسينمائية 100% بدون أي عناصر بشرية
+# كتالوج العطور الستة المعتمدة: مكونات ماكرو طبيعية وسينمائية 100%
 PERFUMES: dict[str, dict[str, str]] = {
     "عطر روميو": {
         "en_name": "Romeo",
@@ -608,7 +645,7 @@ def get_confirmed_bookings(basket_key: str) -> list[dict[str, Any]]:
 
 
 # ==============================================================================
-# 4. الرأسية التسويقية الحية (تحديث كل 15 ثانية)
+# 4. الرأسية التسويقية الحية (تعمل كل 15 ثانية داخل شاشة الحجز فقط)
 # ==============================================================================
 @st.fragment(run_every="15s")
 def render_live_slots() -> None:
@@ -639,10 +676,8 @@ def render_live_slots() -> None:
     )
 
 
-render_live_slots()
-
 # ==============================================================================
-# 5. شاشة تأكيد الحصة (تخصيص الرسائل بلسان العميل + أزرار التحكم الصريحة)
+# 5. شاشة تأكيد الحصة (Single Primary CTA + رابط الإلغاء الهادئ بدون شريط الحصص)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -654,25 +689,24 @@ if "confirmed_deal" in st.session_state:
     current_taken = len(fresh_list)
     remaining_seats = max(0, BASKET_CAPACITY - current_taken)
 
-    # 1. دمج حالة المقاعد المتبقية بدقة
     if remaining_seats > 0:
         seats_status_msg = f"⏳ باقي {remaining_seats} وينقفل القروب ونطلب فوراً."
     else:
         seats_status_msg = "🔥 اكتملت الـ 4 مقاعد وجاري تنفيذ الطلب!"
 
-    # 2. تخصيص النص منطوقاً بلسان العميل حسب طريقة الاستلام
+    # تخصيص النص منطوقاً بلسان العميل حسب طريقة الاستلام
     if "توصيل" in deal.get("delivery", ""):
         delivery_details_msg = (
             "• طريقة الاستلام: توصيل مجاني بجدة 🚗\n"
-            "• اللوكيشن: (برسل لك دبوس الموقع تحت هذي الرسالة الحين 📍)\n"
-            f"• الدفع: {UNIFIED_PRICE} ر.س يد بيد عند الاستلام بعد فحص العطر والفاتورة الأصلية 🤝"
+            "• موقعي: (برسل لك دبوس الموقع تحت هذي الرسالة الحين 📍)\n"
+            f"• الدفع: {UNIFIED_PRICE} ر.س يد بيد بعد فحص العطر والفاتورة الأصلية 🤝"
         )
         card_delivery_note = "سنتواصل معك عبر الواتساب فور اكتمال الأربعة لتأكيد اللوكيشن والتوصيل المجاني."
     else:
         delivery_details_msg = (
             "• طريقة الاستلام: السلام مول (بوابة 5 و 6) 📍\n"
             "• الموعد: السبت (المغرب إلى العشاء: 6:30م – 9:00م) ⏰\n"
-            f"• الدفع: {UNIFIED_PRICE} ر.س يد بيد في المول بعد فحص العطر والفاتورة الأصلية 🤝"
+            f"• الدفع: {UNIFIED_PRICE} ر.س يد بيد بعد فحص العطر والفاتورة الأصلية 🤝"
         )
         card_delivery_note = "موعد الاستلام بالسلام مول: <b>السبت (المغرب إلى العشاء: 6:30م – 9:00م) عند بوابة 5 أو 6</b>."
 
@@ -709,7 +743,7 @@ if "confirmed_deal" in st.session_state:
         width=0,
     )
 
-    # صياغة رسالة الواتساب النهائية
+    # صياغة رسالة الواتساب النهائية بلسان العميل
     wa_admin_msg = (
         f"مرحباً 🌿\n"
         f"حجزت حصتي في تطبيق مَقسوم ({UNIFIED_PRICE} ر.س):\n\n"
@@ -724,60 +758,49 @@ if "confirmed_deal" in st.session_state:
         f"https://wa.me/{ADMIN_PHONE}?text={urllib.parse.quote(wa_admin_msg)}"
     )
 
-    # زر الواتساب الرئيسي والأوحد للتحويل
+    # زر الواتساب الرئيسي والأوحد للتحويل (Primary CTA)
     st.markdown(
         clean_html(
-            f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 تأكيد الحجز والتواصل عبر واتساب</a>'
+            f'<a href="{admin_link}" target="_blank" class="wa-link-btn">📲 اضغط هنا لتأكيد حجزك عبر واتساب (خطوة أخيرة لتثبيت الحصة)</a>'
         ),
         unsafe_allow_html=True,
     )
 
-    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+    # رابط الإلغاء الهادئ الصغير في أقصى أسفل الصفحة
+    st.markdown('<div id="cancel-link-hook"></div>', unsafe_allow_html=True)
+    if st.button("تراجعت عن الحجز؟ اضغط هنا لإلغاء المقعد", use_container_width=True):
+        booking_id = deal.get("id")
+        if supabase:
+            if booking_id:
+                supabase.table("bookings").update(
+                    {"status": "cancelled"}
+                ).eq("id", booking_id).execute()
+            else:
+                supabase.table("bookings").update(
+                    {"status": "cancelled"}
+                ).eq("phone", deal.get("phone")).eq(
+                    "session_day", BASKET_ID
+                ).execute()
 
-    # أزرار التحكم الصريحة والشفافة في صف متناسق
-    col_edit, col_cancel = st.columns(2)
-
-    with col_edit:
-        if st.button("✏️ تعديل بيانات الطلب", use_container_width=True):
-            st.session_state["saved_name"] = deal.get("name", "")
-            st.session_state["saved_phone"] = deal.get("phone", "")
-            st.session_state["is_editing"] = True
-            st.session_state.pop("just_cancelled", None)
-            st.session_state.pop("confirmed_deal", None)
-            st.rerun()
-
-    with col_cancel:
-        if st.button("❌ إلغاء الحجز", use_container_width=True):
-            booking_id = deal.get("id")
-            if supabase:
-                if booking_id:
-                    supabase.table("bookings").update(
-                        {"status": "cancelled"}
-                    ).eq("id", booking_id).execute()
-                else:
-                    supabase.table("bookings").update(
-                        {"status": "cancelled"}
-                    ).eq("phone", deal.get("phone")).eq(
-                        "session_day", BASKET_ID
-                    ).execute()
-
-            get_confirmed_bookings.clear()
-            st.session_state.pop("confirmed_deal", None)
-            st.session_state.pop("is_editing", None)
-            st.session_state["just_cancelled"] = True
-            st.rerun()
+        get_confirmed_bookings.clear()
+        st.session_state.pop("confirmed_deal", None)
+        st.session_state["just_cancelled"] = True
+        st.rerun()
 
 # ==============================================================================
 # 6. النموذج وتجربة الاختيار السلسة (High-Conversion Form)
 # ==============================================================================
 else:
-    # إظهار بطاقة تقدير وإلغاء راقية في حال ألغى العميل حجزه مؤخراً
+    # شريط الحصص يظهر حصراً في صفحة الحجز لعدم تشتيت العميل المؤكد
+    render_live_slots()
+
+    # إظهار بطاقة تقدير راقية في حال ألغى العميل حجزه
     if st.session_state.get("just_cancelled"):
         st.markdown(
             clean_html("""
             <div class="cancellation-card">
                 🌿 <b>تم إلغاء حجزك بنجاح</b><br>
-                نقدّر وقتك وثقتك يا غالي، ومقعدك متاح الآن. نتشرف بك في أي وقت.
+                نقدّر وقتك وثقتك يا غالي، ومقعدك متاح الآن في الباقة. نتشرف بك في أي وقت.
             </div>
         """),
             unsafe_allow_html=True,
@@ -798,7 +821,7 @@ else:
 
     p = PERFUMES[chosen_perfume]
 
-    # البطاقة الحسية مع صور الماكرو السينمائية الطبيعية بنسبة أبعاد ثابتة 1:1
+    # البطاقة الحسية مع صور الماكرو الطبيعية بنسبة أبعاد ثابتة 1:1
     st.markdown(
         clean_html(f"""
         <div class="sensory-card">
@@ -831,17 +854,6 @@ else:
             ),
             unsafe_allow_html=True,
         )
-
-        # التغذية الراجعة اللحظية في حال كان العميل في وضع التعديل
-        if st.session_state.get("is_editing"):
-            st.markdown(
-                clean_html("""
-                <div class="edit-mode-pill">
-                    ✏️ <b>وضع التعديل:</b> بياناتك محفوظة ومُعبأة تلقائياً، يمكنك تغيير خياراتك والضغط على زر الحفظ مباشرة.
-                </div>
-            """),
-                unsafe_allow_html=True,
-            )
 
         alert_placeholder = st.empty()
 
@@ -892,7 +904,7 @@ else:
             clean_name = f_name.strip()
             clean_phone = sanitize_phone_number(f_phone)
 
-            # 1. التحقق من صحة البيانات بنص كهرماني إرشادي دافئ
+            # 1. التحقق من صحة البيانات بنص كهرماني إرشادي دافئ ومريح
             if len(clean_name) < 2 or not re.match(r"^05\d{8}$", clean_phone):
                 alert_placeholder.markdown(
                     clean_html("""
@@ -924,7 +936,7 @@ else:
                 st.session_state["saved_phone"] = clean_phone
                 st.session_state.pop("just_cancelled", None)
 
-                # 2. حماية التزامن وقراءة مباشرة من قاعدة البيانات
+                # 2. حماية التزامن وقراءة مباشرة ولحظية من قاعدة البيانات
                 get_confirmed_bookings.clear()
                 fresh_bookings = get_confirmed_bookings(BASKET_ID)
 
@@ -933,7 +945,7 @@ else:
                     None,
                 )
 
-                # 3. العميل مسجل مسبقاً بنفس رقم الجوال (تحديث الحجز وتثبيت التعديل)
+                # 3. العميل مسجل مسبقاً بنفس رقم الجوال (تحديث الحجز وتثبيت الخيارات)
                 if existing_booking:
                     client_note = f"BLOM_NEWTON | {chosen_perfume} | {delivery_mode} | PRICE:{UNIFIED_PRICE} | PHONE:{clean_phone}"
                     if supabase:
@@ -948,7 +960,6 @@ else:
                             pass
 
                     get_confirmed_bookings.clear()
-                    st.session_state.pop("is_editing", None)
                     st.session_state["confirmed_deal"] = {
                         "id": existing_booking.get("id"),
                         "name": clean_name,
@@ -1017,7 +1028,6 @@ else:
                             )
 
                             get_confirmed_bookings.clear()
-                            st.session_state.pop("is_editing", None)
 
                             st.session_state["confirmed_deal"] = {
                                 "id": new_id,
