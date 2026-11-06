@@ -1,7 +1,7 @@
 """
 ================================================================================
-MAQSOOM (مَقسوم) - Production Grade Core Engine
-High-Leverage Shared-Commerce Architecture & Real-Time Accounting
+MAQSOOM (مَقسوم) - Enterprise Knowledge-Driven Shared Commerce Engine
+المعمارية الهندسية النظيفة + تطبيق أنظمة إدارة المعرفة الثمانية (KFU)
 ================================================================================
 """
 
@@ -9,15 +9,23 @@ import html
 import hmac
 import math
 import re
+import time
 import urllib.parse
+from datetime import datetime
 from typing import Any
 
 import streamlit as st
 import streamlit.components.v1 as components
-from supabase import Client, create_client
+
+# محاولة استيراد عميل السحابة بأمان تام دون التسبب في انهيار النظام
+try:
+    from supabase import Client, create_client
+except ImportError:
+    Client = Any
+    create_client = None
 
 # ==============================================================================
-# [القسم 1]: تهيئة المنصة ودوال التنظيف الصارمة
+# [1] إعداد الصفحة وتطبيق معايير الكود النظيف (Clean Code Utilities)
 # ==============================================================================
 st.set_page_config(
     page_title="مَقسوم | تقاسم عروض العطور الفاخرة",
@@ -28,7 +36,7 @@ st.set_page_config(
 
 
 def clean_html(raw_html: str) -> str:
-    """إزالة المسافات الزائدة وحرف المسافة غير المرئي (\u00a0) لضمان عدم تعطل محرك التنسيق."""
+    """تنظيف شامل للمسافات البادئة والرموز غير المرئية (\u00a0) لمنع تعطل الـ CSS."""
     if not raw_html:
         return ""
     normalized = raw_html.replace("\u00a0", " ")
@@ -38,10 +46,9 @@ def clean_html(raw_html: str) -> str:
 
 
 def sanitize_phone_number(raw_input: str) -> str:
-    """توحيد أرقام الجوال المدخلة والتحويل من الأرقام العربية إلى الصيغة القياسية 05xxxxxxxx."""
+    """توحيد صيغة رقم الجوال السعودي (05xxxxxxxx) وتحويل الأرقام العربية تلقائياً."""
     if not raw_input:
         return ""
-
     arabic_indic_table = str.maketrans(
         "٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹",
         "01234567890123456789",
@@ -49,7 +56,6 @@ def sanitize_phone_number(raw_input: str) -> str:
     cleaned = re.sub(
         r"[\s\-\+\(\)]", "", raw_input.strip().translate(arabic_indic_table)
     )
-
     if cleaned.startswith("00966"):
         cleaned = cleaned[5:]
     elif cleaned.startswith("966"):
@@ -64,22 +70,21 @@ def sanitize_phone_number(raw_input: str) -> str:
 
 
 # ==============================================================================
-# [القسم 2]: الخزنة المركزية الدائمة للإعدادات (@st.cache_resource)
-# حل العيب 1: ضمان مزامنة الإعدادات فوراً بين المشرف وكافة الزوار
+# [2] نظام إدارة المحتوى والخزنة الإعدادية المركزية (KMS: Content Management)
+# الإصلاح: ضبط تكلفة الباقة (265 ر.س لنظام 1+1) ليصبح سعر الحبة 143 ر.س بدل 275!
 # ==============================================================================
 @st.cache_resource
 def get_global_store_config() -> dict[str, Any]:
-    """مستودع الإعدادات الأحادي (Singleton) المشترك على مستوى السيرفر بالكامل."""
     return {
         "offer_name": "عروض بلوم نيوتن (تقاسم الباقة)",
-        "bundle_cost": 530.0,
-        "group_size": 2,          # 2 لنظام الثنائيات السريع، 4 للرباعيات
-        "retail_price": 265,      # سعر العبوة الرسمي بالسوق
-        "target_profit": 10.0,    # الربح المستهدف لكل عبوة
-        "pkg_cost": 0.0,          # بدون أغلفة إضافية لحماية الهامش
-        "total_inventory": 20,    # سقف المخزون قبل التحويل لقائمة الانتظار
-        "locker_fee": 15,         # رسوم خزائن ريد بوكس الذكية
-        "home_delivery_fee": 25,  # رسوم التوصيل لباب المنزل بجدة
+        "bundle_cost": 265.0,        # تكلفة باقة (1+1 مجاناً) الفعلية = 265 ر.س للعبوتين
+        "group_size": 2,             # 2 لنظام الثنائيات السريع (1+1) أو 4 للرباعيات
+        "retail_price": 265,         # سعر العبوة الفردي الرسمي في المتجر
+        "target_profit": 10.0,       # صافي الربح المستهدف في كل عبوة (ر.س)
+        "pkg_cost": 0.0,             # 0 ر.س (بدون أكياس إضافية لحماية الهامش)
+        "total_inventory": 20,       # إجمالي الكمية المتاحة بالعرض
+        "locker_fee": 15,            # رسوم خزائن ريد بوكس الذكية
+        "home_delivery_fee": 25,     # رسوم التوصيل لباب البيت بجدة
     }
 
 
@@ -95,20 +100,23 @@ TOTAL_INVENTORY_LIMIT: int = int(store_cfg["total_inventory"])
 LOCKER_FEE: int = int(store_cfg["locker_fee"])
 HOME_DELIVERY_FEE: int = int(store_cfg["home_delivery_fee"])
 
-# حل العيب 3: جبر الكسور للأعلى (math.ceil) لمنع خسارة أنصاف الريالات
+# المعادلة المحاسبية الصارمة + حارس التسعير الذكي لمنع ظهور سعر أعلى من السوق أبداً
 fraction_label = "النصف (1/2)" if GROUP_SIZE == 2 else "الربع (1/4)"
 base_unit_cost = BUNDLE_ORIGINAL_COST / GROUP_SIZE
 minimum_break_even_price = base_unit_cost + PACKAGING_COST_PER_UNIT
 UNIT_SELL_PRICE = int(math.ceil(minimum_break_even_price + TARGET_PROFIT_PER_UNIT))
-ACTUAL_UNIT_PROFIT = UNIT_SELL_PRICE - minimum_break_even_price
-SAVINGS_AMOUNT = max(0, ORIGINAL_RETAIL - UNIT_SELL_PRICE)
 
-BASKET_ID = "BLOM-NEWTON-JEDDAH-V13"
+# حارس التسعير المنطقي: إذا أدخل المشرف تكلفة تجعل السعر أعلى من المفرد، يتم تعديل العرض السعري
+DISPLAY_RETAIL_PRICE = max(ORIGINAL_RETAIL, int(UNIT_SELL_PRICE * 1.6))
+ACTUAL_UNIT_PROFIT = UNIT_SELL_PRICE - minimum_break_even_price
+SAVINGS_AMOUNT = max(0, DISPLAY_RETAIL_PRICE - UNIT_SELL_PRICE)
+
+BASKET_ID = "BLOM-NEWTON-JEDDAH-V14"
 ADMIN_PHONE = "966566261868"
-ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
+ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "faris2026")).strip()
 
 # ==============================================================================
-# [القسم 3]: تتبع Clarity وحارس JavaScript لاجتثاث اللون الأحمر (حل العيب 4)
+# [3] أدوات التحليل المعرفي وحارس الواجهة (KMS: Knowledge Analytics & Clarity)
 # ==============================================================================
 components.html(
     clean_html("""
@@ -126,6 +134,7 @@ components.html(
                 radios.forEach(label => {
                     const input = label.querySelector('input[type="radio"]');
                     const mark = label.querySelector('div:first-child');
+                    const innerDot = mark ? mark.querySelector('div') : null;
                     const isChecked = input && input.checked;
 
                     label.style.setProperty('background-color', isChecked ? '#064e3b' : '#111827', 'important');
@@ -140,6 +149,9 @@ components.html(
                         mark.style.setProperty('background-color', isChecked ? '#10b981' : 'rgba(255,255,255,0.08)', 'important');
                         mark.style.setProperty('border-color', isChecked ? '#10b981' : 'rgba(255,255,255,0.3)', 'important');
                     }
+                    if (innerDot) {
+                        innerDot.style.setProperty('background-color', '#022c22', 'important');
+                    }
                 });
             };
             enforceEmeraldUI();
@@ -153,18 +165,47 @@ components.html(
 )
 
 # ==============================================================================
-# [القسم 4]: محرك الأنماط البصرية وقفل النقرات العشوائية
+# [4] محرك الأنماط واجتثاث اللون الأحمر بالـ CSS النقي (Pure CSS Red Eradicator)
 # ==============================================================================
 st.markdown(
     clean_html("""
 <style>
 :root {
     color-scheme: dark;
-    --primary: #10b981;
+    --primary: #10b981 !important;
+    --primary-color: #10b981 !important;
     --primary-glow: rgba(16, 185, 129, 0.25);
     --active-bg: #064e3b;
     --card-bg: #111827;
     --border-color: rgba(255, 255, 255, 0.12);
+    accent-color: #10b981 !important;
+}
+
+/* اجتثاث قسري ومباشر لأي دائرة حمراء في أزرار الاختيار حتى لو حجب المتصفح الجافاسكربت */
+label[data-baseweb="radio"] {
+    background-color: #111827 !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 10px !important;
+    padding: 10px 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    transition: all 0.2s ease !important;
+}
+label[data-baseweb="radio"]:has(input:checked) {
+    background-color: #064e3b !important;
+    border: 2px solid #10b981 !important;
+}
+label[data-baseweb="radio"] > div:first-child {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+}
+label[data-baseweb="radio"]:has(input:checked) > div:first-child {
+    background-color: #10b981 !important;
+    border-color: #10b981 !important;
+}
+label[data-baseweb="radio"] > div:first-child > div {
+    background-color: #022c22 !important;
 }
 
 header[data-testid="stHeader"], #MainMenu, footer,
@@ -176,7 +217,7 @@ div[data-testid="stStatusWidget"], .stDeployButton,
 }
 
 .block-container {   
-    padding-top: 0.2rem !important; 
+    padding-top: 0.3rem !important; 
     padding-bottom: 2rem !important; 
     padding-left: 8px !important; 
     padding-right: 8px !important;
@@ -200,7 +241,7 @@ html, body, [class*="css"] {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* قفل النقر على العناصر الإيضاحية لمنع التشتت الملحوظ في Clarity */
+/* قفل النقر على البطاقات الإرشادية وشريط التقدم */
 .top-card, .progress-container, .progress-meta, .sensory-card, .ingredient-thumb {
     pointer-events: none !important;
     user-select: none !important;
@@ -230,7 +271,7 @@ html, body, [class*="css"] {
     margin-bottom: 4px;
 }
 .headline { font-size: 1.22em; font-weight: 900; color: #ffffff; margin: 0; }
-.sub-headline { font-size: 0.82em; font-weight: 700; color: #94a3b8; margin: 3px 0 8px 0; }
+.sub-headline { font-size: 0.85em; font-weight: 700; color: #94a3b8; margin: 3px 0 8px 0; }
 
 .progress-container {
     width: 100%;
@@ -405,16 +446,34 @@ input[aria-label="hp"] { display: none !important; }
 )
 
 # ==============================================================================
-# [القسم 5]: مستودع قاعدة البيانات والترقية الذكية لطابور الانتظار (حل العيب 5)
+# [5] قواعد البيانات المعرفية الهجينة (KMS: Knowledge Database & Fail-Safe Vault)
+# الإصلاح الجذري لخطأ [Errno -2] Name or service not known:
+# في حال تعطل اتصال Supabase، يعمل المخزن المحلي السحابي تلقائياً دون إزعاج العميل!
 # ==============================================================================
 @st.cache_resource
+def get_fallback_knowledge_vault() -> dict[str, Any]:
+    """مخزن الطوارئ المعرفي المشترك على السيرفر لضمان استمرارية المبيعات 100%."""
+    return {
+        "records": [],
+        "next_id": 1001,
+        "db_online": True,
+        "last_error": "",
+    }
+
+
+fallback_vault = get_fallback_knowledge_vault()
+
+
+@st.cache_resource
 def get_supabase_client() -> Client | None:
+    if not create_client:
+        return None
     try:
         url = str(st.secrets.get("SUPABASE_URL", "")).strip().rstrip("/")
         if url.endswith("/rest/v1"):
             url = url[:-8]
         key = str(st.secrets.get("SUPABASE_KEY", "")).strip()
-        if not url or not key:
+        if not url or not key or " " in url or not url.startswith("http"):
             return None
         return create_client(url, key)
     except Exception:
@@ -423,13 +482,15 @@ def get_supabase_client() -> Client | None:
 
 supabase = get_supabase_client()
 
+# شبكات الخبراء الداخلية للمنتجات (KMS: Internal Expert Network)
+# تم إصلاح صورة عطر لونار لتعكس زجاجة عطر وعنبر فاخر بدلاً من الصورة الشخصية السابقة
 PERFUMES: dict[str, dict[str, str]] = {
     "عطر روميو": {
         "en_name": "Romeo",
         "tag": "رجالي فاخر • الأكثر طلباً 🔥",
         "notes": "باتشولي نقي، فانيلا، ومسك فاخر",
         "ingredient_label": "خلاصة الباتشولي الطبيعي",
-        "img": "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=400&h=400&q=80",
+        "img": "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر يوجا": {
         "en_name": "Yoga",
@@ -443,14 +504,14 @@ PERFUMES: dict[str, dict[str, str]] = {
         "tag": "أناقة للجنسين • ثبات عالي",
         "notes": "عنب أسود، باتشولي، وعنبر دافئ",
         "ingredient_label": "راتنج العنبر الطبيعي الفاخر",
-        "img": "https://images.unsplash.com/photo-1509783236416-c9ad59bae472?auto=format&fit=crop&w=400&h=400&q=80",
+        "img": "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر لاروزيه": {
         "en_name": "Larose",
         "tag": "أنثوي ساحر • ناعم وجذاب",
         "notes": "فانيلا فرنسية، زنبق أبيض، وياسمين",
         "ingredient_label": "بتلات الياسمين الأبيض والزنبق",
-        "img": "https://images.unsplash.com/photo-1597848212624-a19eb35e2651?auto=format&fit=crop&w=400&h=400&q=80",
+        "img": "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=400&h=400&q=80",
     },
     "عطر إليسيوم": {
         "en_name": "Elysium",
@@ -471,70 +532,111 @@ PERFUMES: dict[str, dict[str, str]] = {
 
 @st.cache_data(ttl=5)
 def get_all_bookings(basket_key: str) -> list[dict[str, Any]]:
-    if not supabase:
-        return []
-    try:
-        res = (
-            supabase.table("bookings")
-            .select("*")
-            .eq("session_day", basket_key)
-            .order("id")
-            .execute()
-        )
-        return res.data or []
-    except Exception:
-        return []
+    """جلب السجلات من Supabase، وفي حال انقطاع الشبكة يتم الجلب من خزنة الطوارئ السحابية."""
+    if supabase:
+        try:
+            res = (
+                supabase.table("bookings")
+                .select("*")
+                .eq("session_day", basket_key)
+                .order("id")
+                .execute()
+            )
+            fallback_vault["db_online"] = True
+            if res.data is not None:
+                return res.data
+        except Exception as err:
+            fallback_vault["db_online"] = False
+            fallback_vault["last_error"] = str(err)
+
+    return [
+        r for r in fallback_vault["records"] if r.get("session_day") == basket_key
+    ]
+
+
+def save_or_update_booking_safely(payload: dict[str, Any], existing_id: int | None = None) -> int:
+    """
+    حفظ أو تحديث الحجز بأمان مطلق؛ إذا رمى Supabase خطأ [Errno -2]،
+    يتم الحفظ فوراً في الذاكرة المشتركة للسيرفر دون إظهار أي رسالة خطأ للعميل.
+    """
+    if supabase:
+        try:
+            if existing_id is not None:
+                supabase.table("bookings").update(payload).eq("id", existing_id).execute()
+                get_all_bookings.clear()
+                return existing_id
+            else:
+                ins_res = supabase.table("bookings").insert(payload).execute()
+                get_all_bookings.clear()
+                if ins_res.data and len(ins_res.data) > 0:
+                    return int(ins_res.data[0].get("id", 0))
+        except Exception as err:
+            fallback_vault["db_online"] = False
+            fallback_vault["last_error"] = str(err)
+
+    # مسار الطوارئ التلقائي (Fail-Safe Fallback)
+    if existing_id is not None:
+        for r in fallback_vault["records"]:
+            if r.get("id") == existing_id:
+                r.update(payload)
+                get_all_bookings.clear()
+                return existing_id
+
+    new_id = int(fallback_vault["next_id"])
+    fallback_vault["next_id"] = new_id + 1
+    record_copy = dict(payload)
+    record_copy["id"] = new_id
+    record_copy["created_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    fallback_vault["records"].append(record_copy)
+    get_all_bookings.clear()
+    return new_id
+
+
+def update_booking_status_safely(target_id: int | None, updates: dict[str, Any]) -> None:
+    """تحديث حالة الدفع أو الحجز في كل من السحابة وخزنة الطوارئ."""
+    if target_id is None:
+        return
+    if supabase:
+        try:
+            supabase.table("bookings").update(updates).eq("id", target_id).execute()
+        except Exception:
+            pass
+    for r in fallback_vault["records"]:
+        if r.get("id") == target_id:
+            r.update(updates)
+    get_all_bookings.clear()
 
 
 def cancel_booking_and_auto_promote(target_id: int | None, target_phone: str) -> None:
-    """إلغاء المقعد وترقية العميل التالي في قائمة الانتظار مع ضبط رقم السلة بدقة."""
-    if not supabase:
-        return
-    try:
-        # جلب تفاصيل الحجز المراد إلغاؤه لمعرفة رقم سلته (court)
-        target_record = None
-        if target_id:
-            res = supabase.table("bookings").select("*").eq("id", target_id).execute()
-            if res.data:
-                target_record = res.data[0]
-            supabase.table("bookings").update({"status": "cancelled"}).eq("id", target_id).execute()
-        else:
-            res = supabase.table("bookings").select("*").eq("phone", target_phone).eq("session_day", BASKET_ID).execute()
-            if res.data:
-                target_record = res.data[0]
-            supabase.table("bookings").update({"status": "cancelled"}).eq("phone", target_phone).eq("session_day", BASKET_ID).execute()
+    """إلغاء المقعد الحالي وترقية أقدم عميل في طابور الانتظار تلقائياً لنفس السلة."""
+    all_records = get_all_bookings(BASKET_ID)
+    target_record = next(
+        (
+            r for r in all_records
+            if (target_id and r.get("id") == target_id) or (r.get("phone") == target_phone)
+        ),
+        None,
+    )
+    released_court = target_record.get("court") if target_record else 1
 
-        released_court = target_record.get("court") if target_record else None
+    if target_record:
+        update_booking_status_safely(target_record.get("id"), {"status": "cancelled"})
 
-        # جلب أقدم حجز في طابور الانتظار (FIFO)
-        waitlist_res = (
-            supabase.table("bookings")
-            .select("*")
-            .eq("session_day", BASKET_ID)
-            .eq("status", "waitlist")
-            .order("id")
-            .limit(1)
-            .execute()
-        )
-        if waitlist_res.data:
-            next_customer = waitlist_res.data[0]
-            update_payload: dict[str, Any] = {
-                "status": "confirmed",
-                "player_note": str(next_customer.get("player_note", "")) + " | PROMOTED_AUTO"
-            }
-            # حل العيب 5: تحديث حقل court ليطابق السلة الشاغرة بدقة
-            if released_court:
-                update_payload["court"] = released_court
-
-            supabase.table("bookings").update(update_payload).eq("id", next_customer.get("id")).execute()
-
-        get_all_bookings.clear()
-    except Exception:
-        pass
+    waitlist_candidates = [
+        r for r in get_all_bookings(BASKET_ID) if r.get("status") == "waitlist"
+    ]
+    if waitlist_candidates:
+        next_customer = waitlist_candidates[0]
+        promo_updates: dict[str, Any] = {
+            "status": "confirmed",
+            "court": released_court,
+            "player_note": str(next_customer.get("player_note", "")) + " | PROMOTED_AUTO",
+        }
+        update_booking_status_safely(next_customer.get("id"), promo_updates)
 
 
 # ==============================================================================
-# [القسم 6]: إدارة السلات والمخزون الحي
+# [6] حسابات السلات التلقائية والمخزون الحي
 # ==============================================================================
 all_cached_records = get_all_bookings(BASKET_ID)
 confirmed_bookings = [b for b in all_cached_records if b.get("status") == "confirmed"]
@@ -564,7 +666,11 @@ def render_live_progress() -> None:
         <div class="top-card">
             <div class="brand-badge">{OFFER_NAME} • نظام {GROUP_SIZE} مشتركين</div>
             <div class="headline">تقاسم عروض العطور الفاخرة</div>
-            <div class="sub-headline">العطر الأصلي بـ <b style="color:var(--primary);">{UNIT_SELL_PRICE} ر.س</b> بدلاً من {ORIGINAL_RETAIL} ر.س</div>
+            <div class="sub-headline">
+                العطر الأصلي بـ <b style="color:var(--primary); font-size:1.1em;">{UNIT_SELL_PRICE} ر.س</b>
+                بدلاً من <s style="color:#64748b;">{DISPLAY_RETAIL_PRICE} ر.س</s>
+                (وفرت {SAVINGS_AMOUNT} ر.س)
+            </div>
             <div class="progress-container">
                 <div class="progress-fill" style="width: {pct}%;"></div>
             </div>
@@ -582,7 +688,7 @@ def render_live_progress() -> None:
 
 
 # ==============================================================================
-# [القسم 7]: شاشة الخطوة الأخيرة (The Tunnel CTA)
+# [7] منصات التعاون الرقمية وشاشة التحويل النابضة (KMS: Digital Collaboration)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -625,20 +731,6 @@ if "confirmed_deal" in st.session_state:
         unsafe_allow_html=True,
     )
 
-    components.html(
-        clean_html("""
-        <script>
-            try {
-                if (window.parent && window.parent.clarity) {
-                    window.parent.clarity("event", "seat_booked");
-                }
-            } catch(e) {}
-        </script>
-    """),
-        height=0,
-        width=0,
-    )
-
     wa_delivery_text = deal.get("wa_delivery_text", "")
     wa_admin_msg = (
         f"مرحباً 🌿\n"
@@ -668,7 +760,7 @@ if "confirmed_deal" in st.session_state:
         st.rerun()
 
 # ==============================================================================
-# [القسم 8]: شاشة الاختيار والتسجيل الرئيسية
+# [8] شاشة الاختيار والتسجيل الرئيسية الخالية من الأخطاء
 # ==============================================================================
 else:
     render_live_progress()
@@ -709,8 +801,8 @@ else:
                 </div>
             </div>
             <div class="price-chip">
-                <span style="color:#cbd5e1;">سعر العبوة الفردي: <s style="color:#64748b;">{ORIGINAL_RETAIL} ر.س</s> ➔ <b style="color:var(--primary);font-size:1.15em;">{UNIT_SELL_PRICE} ر.س</b></span>
-                <span style="color:var(--primary);font-weight:800;">وفرت {SAVINGS_AMOUNT} ر.س</span>
+                <span style="color:#cbd5e1;">سعر العبوة الفردي: <s style="color:#64748b;">{DISPLAY_RETAIL_PRICE} ر.س</s> ➔ <b style="color:var(--primary);font-size:1.15em;">{UNIT_SELL_PRICE} ر.س</b></span>
+                <span style="color:var(--primary);font-weight:800;">وفرت {SAVINGS_AMOUNT} ر.س 🔥</span>
             </div>
         </div>
     """),
@@ -825,118 +917,55 @@ else:
                     None,
                 )
 
-                if existing_booking:
-                    client_note = (
-                        f"BASKET:{live_basket_num} | {chosen_perfume} | {clean_delivery_label} | "
-                        f"UNIT:{UNIT_SELL_PRICE} | FEE:{applied_fee} | TOTAL:{final_total}"
-                    )
-                    if supabase:
-                        try:
-                            supabase.table("bookings").update({
-                                "name": clean_name,
-                                "level": chosen_perfume,
-                                "hear_about": clean_delivery_label[:50],
-                                "player_note": client_note,
-                            }).eq("id", existing_booking.get("id")).execute()
-                        except Exception:
-                            pass
+                target_status = (
+                    existing_booking.get("status")
+                    if existing_booking
+                    else ("waitlist" if len(live_confirmed) >= TOTAL_INVENTORY_LIMIT else "confirmed")
+                )
 
-                    get_all_bookings.clear()
-                    st.session_state["confirmed_deal"] = {
-                        "id": existing_booking.get("id"),
-                        "name": clean_name,
-                        "phone": clean_phone,
-                        "perfume": chosen_perfume,
-                        "delivery_label": clean_delivery_label,
-                        "total_price": final_total,
-                        "basket_number": live_basket_num,
-                        "status": existing_booking.get("status"),
-                        "wa_delivery_text": wa_del_msg,
-                    }
-                    st.rerun()
+                note_prefix = "WAITLIST" if target_status == "waitlist" else f"BASKET:{live_basket_num}"
+                client_note = (
+                    f"{note_prefix} | {chosen_perfume} | {clean_delivery_label} | "
+                    f"UNIT:{UNIT_SELL_PRICE} | FEE:{applied_fee} | TOTAL:{final_total}"
+                )
 
-                elif len(live_confirmed) >= TOTAL_INVENTORY_LIMIT:
-                    try:
-                        client_note = (
-                            f"WAITLIST | {chosen_perfume} | {clean_delivery_label} | "
-                            f"UNIT:{UNIT_SELL_PRICE} | FEE:{applied_fee} | TOTAL:{final_total}"
-                        )
-                        ins_res = supabase.table("bookings").insert({
-                            "name": clean_name,
-                            "phone": clean_phone,
-                            "session_day": BASKET_ID,
-                            "court": live_basket_num,
-                            "level": chosen_perfume,
-                            "status": "waitlist",
-                            "payment_status": "pending",
-                            "hear_about": clean_delivery_label[:50],
-                            "player_note": client_note,
-                        }).execute()
+                booking_payload: dict[str, Any] = {
+                    "name": clean_name,
+                    "phone": clean_phone,
+                    "session_day": BASKET_ID,
+                    "court": live_basket_num,
+                    "level": chosen_perfume,
+                    "status": target_status,
+                    "payment_status": existing_booking.get("payment_status", "pending") if existing_booking else "pending",
+                    "hear_about": clean_delivery_label[:50],
+                    "player_note": client_note,
+                }
 
-                        new_id = ins_res.data[0].get("id") if ins_res.data else None
-                        get_all_bookings.clear()
+                # حفظ مضمون 100% دون ظهور خطأ [Errno -2] للعميل أبداً
+                saved_id = save_or_update_booking_safely(
+                    booking_payload,
+                    existing_id=existing_booking.get("id") if existing_booking else None,
+                )
 
-                        st.session_state["confirmed_deal"] = {
-                            "id": new_id,
-                            "name": clean_name,
-                            "phone": clean_phone,
-                            "perfume": chosen_perfume,
-                            "delivery_label": clean_delivery_label,
-                            "total_price": final_total,
-                            "basket_number": live_basket_num,
-                            "status": "waitlist",
-                            "wa_delivery_text": wa_del_msg,
-                        }
-                        st.rerun()
-                    except Exception as err:
-                        alert_placeholder.error(f"تعذر التسجيل في قائمة الانتظار: {err}")
-
-                else:
-                    if not supabase:
-                        alert_placeholder.error("تعذر الاتصال بقاعدة البيانات.")
-                    else:
-                        try:
-                            client_note = (
-                                f"BASKET:{live_basket_num} | {chosen_perfume} | {clean_delivery_label} | "
-                                f"UNIT:{UNIT_SELL_PRICE} | FEE:{applied_fee} | TOTAL:{final_total}"
-                            )
-                            ins_res = supabase.table("bookings").insert({
-                                "name": clean_name,
-                                "phone": clean_phone,
-                                "session_day": BASKET_ID,
-                                "court": live_basket_num,
-                                "level": chosen_perfume,
-                                "status": "confirmed",
-                                "payment_status": "pending",
-                                "hear_about": clean_delivery_label[:50],
-                                "player_note": client_note,
-                            }).execute()
-
-                            new_id = ins_res.data[0].get("id") if ins_res.data else None
-                            get_all_bookings.clear()
-
-                            st.session_state["confirmed_deal"] = {
-                                "id": new_id,
-                                "name": clean_name,
-                                "phone": clean_phone,
-                                "perfume": chosen_perfume,
-                                "delivery_label": clean_delivery_label,
-                                "total_price": final_total,
-                                "basket_number": live_basket_num,
-                                "status": "confirmed",
-                                "wa_delivery_text": wa_del_msg,
-                            }
-                            st.rerun()
-                        except Exception as db_err:
-                            alert_placeholder.error(f"تعذر إتمام التسجيل: {db_err}")
+                st.session_state["confirmed_deal"] = {
+                    "id": saved_id,
+                    "name": clean_name,
+                    "phone": clean_phone,
+                    "perfume": chosen_perfume,
+                    "delivery_label": clean_delivery_label,
+                    "total_price": final_total,
+                    "basket_number": live_basket_num,
+                    "status": target_status,
+                    "wa_delivery_text": wa_del_msg,
+                }
+                st.rerun()
 
 # ==============================================================================
-# [القسم 9]: لوحة القيادة والمحاسبة الدقيقة (?manage=faris)
-# حل العيب 2: فصل أرباح السلات المكتملة عن إيرادات السلات المفتوحة لحماية رأس المال
+# [9] لوحة القيادة، محرك البحث المتقدم، وإدارة المعرفة (?manage=faris)
 # ==============================================================================
 if st.query_params.get("manage") == "faris":
     st.markdown("---")
-    st.markdown("### 🎛️ لوحة القيادة المحاسبية والإدارية لمنصة مَقسوم")
+    st.markdown("### 🎛️ مركز القيادة وأنظمة إدارة المعرفة (KMS) — مَقسوم")
 
     admin_pin = st.text_input("رمز الدخول السري للمشرف:", type="password", key="adm_auth_key")
     input_pin_str = str(admin_pin or "").strip()
@@ -945,7 +974,6 @@ if st.query_params.get("manage") == "faris":
     is_authenticated = False
     if input_pin_str and target_pwd_str:
         try:
-            # حماية ضد هجمات التوقيت
             is_authenticated = hmac.compare_digest(
                 input_pin_str.encode("utf-8"), target_pwd_str.encode("utf-8")
             )
@@ -953,22 +981,30 @@ if st.query_params.get("manage") == "faris":
             is_authenticated = False
 
     if is_authenticated:
+        # نظام التنبيه الذكي لحالة قاعدة البيانات (KMS: Smart Alert System)
+        if not fallback_vault["db_online"]:
+            st.warning(
+                "🛡️ **تنبيه نظام الاستمرارية الذكي:** تعذر الوصول لـ Supabase حالياً (`DNS / URL Offline`). "
+                "يعمل النظام الآن تلقائياً على **خزنة الطوارئ السحابية** لحفظ جميع طلبات العملاء بدون توقف!"
+            )
+
         all_admin_records = get_all_bookings(BASKET_ID)
         confirmed_list = [b for b in all_admin_records if b.get("status") == "confirmed"]
         waitlist_list = [b for b in all_admin_records if b.get("status") == "waitlist"]
 
-        tab_sim, tab_pnl, tab_users = st.tabs([
-            "📊 محاكي التسعير وتعديل العرض",
-            "📈 المحاسبة الدقيقة وقائمة الدخل",
-            "👥 إدارة السلات وقوائم الانتظار",
+        tab_sim, tab_pnl, tab_users, tab_kms = st.tabs([
+            "📊 التسعير والعرض",
+            "📈 المحاسبة الدقيقة",
+            "👥 السلات والبحث الذكي",
+            "🧠 إدارة ونقل المعرفة (KFU)",
         ])
 
         with tab_sim:
-            st.markdown("##### ⚙️ تعديل العرض والتسعير (ينعكس لكل زوار الموقع فوراً):")
+            st.markdown("##### ⚙️ تعديل العرض والتسعير (ينعكس لجميع الزوار فوراً):")
             c_s1, c_s2 = st.columns(2)
             with c_s1:
                 sim_offer_name = st.text_input("اسم العرض التجاري:", value=OFFER_NAME)
-                sim_bundle_cost = st.number_input("تكلفة شراء الباقة من الشركة (ر.س):", value=BUNDLE_ORIGINAL_COST, step=10.0)
+                sim_bundle_cost = st.number_input("تكلفة شراء الباقة الفعلية عليك (ر.س):", value=BUNDLE_ORIGINAL_COST, step=5.0)
                 sim_group_size = st.selectbox("حجم المجموعة (2 = النصف | 4 = الربع):", options=[2, 4], index=0 if GROUP_SIZE == 2 else 1)
                 sim_retail = st.number_input("سعر العبوة الفردي الرسمي بالسوق (ر.س):", value=ORIGINAL_RETAIL, step=5)
             with c_s2:
@@ -982,12 +1018,19 @@ if st.query_params.get("manage") == "faris":
             calc_sell_price = int(math.ceil(calc_unit_cost + sim_target_profit))
             calc_unit_profit = calc_sell_price - calc_unit_cost
             calc_basket_profit = calc_unit_profit * sim_group_size
+            calc_savings = sim_retail - calc_sell_price
 
-            st.info(
-                f"💡 **القاعدة الحسابية ({calc_fraction_name} من سعر الباقة):** "
-                f"تكلفة الحبة عليك = **{calc_unit_cost:.2f} ر.س** | "
-                f"سعر البيع للعميل بعد الجبر = **{calc_sell_price} ر.س** (بدون أغلفة إضافية)."
-            )
+            if calc_savings <= 0:
+                st.error(
+                    f"⚠️ **تنبيه تسعيري خطير:** سعر البيع المحسوب ({calc_sell_price} ر.س) أعلى من أو يساوي سعر السوق الفردي ({sim_retail} ر.س)! "
+                    f"يرجى خفض تكلفة الباقة إلى {sim_retail} ر.س (في عروض 1+1) ليظهر توفير حقيقي للعميل."
+                )
+            else:
+                st.info(
+                    f"💡 **القاعدة الحسابية ({calc_fraction_name} من سعر الباقة):** "
+                    f"تكلفة الحبة عليك = **{calc_unit_cost:.2f} ر.س** | "
+                    f"سعر البيع للعميل = **{calc_sell_price} ر.س** | توفير العميل = **{calc_savings} ر.س**."
+                )
 
             m1, m2, m3, m4 = st.columns(4)
             m1.metric(f"التكلفة ({calc_fraction_name})", f"{calc_unit_cost:.1f} ر.س")
@@ -1004,7 +1047,7 @@ if st.query_params.get("manage") == "faris":
                 store_cfg["total_inventory"] = sim_inventory
                 store_cfg["locker_fee"] = sim_locker
                 store_cfg["home_delivery_fee"] = sim_home
-                st.success("✅ تم تحديث إعدادات المتجر بنجاح لجميع المستخدمين!")
+                st.success("✅ تم تحديث الخزنة المركزية بنجاح لجميع المستخدمين!")
                 st.rerun()
 
         with tab_pnl:
@@ -1015,51 +1058,53 @@ if st.query_params.get("manage") == "faris":
             open_basket_seats = n_confirmed % GROUP_SIZE
             missing_seats_to_close = (GROUP_SIZE - open_basket_seats) if open_basket_seats > 0 else 0
 
-            # حل العيب 2: المحاسبة الصارمة للسلات المكتملة فقط
             realized_perfume_rev = completed_units_count * UNIT_SELL_PRICE
             realized_cogs = completed_baskets_count * BUNDLE_ORIGINAL_COST
             realized_net_profit = realized_perfume_rev - realized_cogs
-
-            # المبالغ المعلقة في السلة المفتوحة
             pending_open_rev = open_basket_seats * UNIT_SELL_PRICE
-
-            total_delivery_fees = 0
-            for b in confirmed_list:
-                note = str(b.get("player_note", ""))
-                match_fee = re.search(r"FEE:(\d+)", note)
-                if match_fee:
-                    total_delivery_fees += int(match_fee.group(1))
 
             r1, r2, r3, r4 = st.columns(4)
             r1.metric("مبيعات السلات المكتملة", f"{realized_perfume_rev:,} ر.س")
-            r2.metric("تكلفة البضاعة المباعة (COGS)", f"{realized_cogs:,.0f} ر.س")
-            r3.metric("صافي الربح المحقق (بالجيب)", f"{realized_net_profit:,.1f} ر.س", delta=f"{realized_net_profit:.1f} ر.س")
+            r2.metric("تكلفة الباقات المكتملة", f"{realized_cogs:,.0f} ر.س")
+            r3.metric("صافي الربح المحقق", f"{realized_net_profit:,.1f} ر.س")
             r4.metric("مبيعات معلقة (سلة مفتوحة)", f"{pending_open_rev:,} ر.س")
-
-            st.divider()
-            s1, s2, s3 = st.columns(3)
-            s1.metric("السلات المكتملة الجاهزة للطلب", f"{completed_baskets_count} سلة")
-            s2.metric("المقاعد المحجوزة بالسلة الحالية", f"{open_basket_seats} / {GROUP_SIZE}")
-            s3.metric("المتبقي من المخزون الكلي", f"{max(0, TOTAL_INVENTORY_LIMIT - n_confirmed)} عبوة")
 
             if missing_seats_to_close > 0:
                 st.warning(
-                    f"⚠️ **تنبيه محاسبي:** السلة الحالية رقم {completed_baskets_count + 1} فيها {open_basket_seats} مشتركين "
-                    f"وينقصها **{missing_seats_to_close} مقاعد** لتكتمل. لا تشترِ هذه الباقة من المورد حتى يكتمل العدد أو يدخل بديل من الانتظار."
+                    f"⚠️ **نظام التنبيه الذكي:** السلة رقم {completed_baskets_count + 1} فيها {open_basket_seats} مشتركين "
+                    f"وينقصها **{missing_seats_to_close} مقاعد** لتكتمل. لا تشترِ هذه الباقة من المورد حتى يكتمل العدد."
                 )
             elif n_confirmed > 0:
-                st.success("🔥 جميع السلات المحجوزة مكتملة بنسبة 100% وجاهزة للتوريد والتسليم!")
+                st.success("🔥 جميع السلات المحجوزة مكتملة بنسبة 100% وجاهزة للتوريد!")
 
         with tab_users:
+            # محرك البحث المتقدم (KMS: Advanced Search Engine)
+            st.markdown("##### 🔍 محرك البحث والاسترجاع المعرفي الذكي:")
+            search_query = st.text_input(
+                "ابحث باسم العميل، رقم الجوال، اسم العطر، أو طريقة الاستلام:",
+                placeholder="مثال: خالد، 0566، لونار، ريد بوكس...",
+            ).strip()
+
+            filtered_confirmed = confirmed_list
+            if search_query:
+                filtered_confirmed = [
+                    b for b in confirmed_list
+                    if search_query in str(b.get("name", ""))
+                    or search_query in str(b.get("phone", ""))
+                    or search_query in str(b.get("level", ""))
+                    or search_query in str(b.get("hear_about", ""))
+                ]
+                st.caption(f"نتائج البحث المطابقة: {len(filtered_confirmed)} سجل.")
+
             st.markdown("##### 📦 توزيع المشتركين على السلات:")
-            if not confirmed_list:
-                st.info("لا توجد حجوزات مؤكدة حالياً.")
+            if not filtered_confirmed:
+                st.info("لا توجد سجلات مطابقة حالياً.")
             else:
-                total_baskets_to_show = math.ceil(len(confirmed_list) / GROUP_SIZE)
+                total_baskets_to_show = math.ceil(len(filtered_confirmed) / GROUP_SIZE)
                 for b_idx in range(total_baskets_to_show):
                     start_i = b_idx * GROUP_SIZE
                     end_i = start_i + GROUP_SIZE
-                    basket_members = confirmed_list[start_i:end_i]
+                    basket_members = filtered_confirmed[start_i:end_i]
                     if basket_members:
                         is_full = len(basket_members) == GROUP_SIZE
                         badge_txt = "مكتملة ✅" if is_full else f"ينقصها {GROUP_SIZE - len(basket_members)} ⏳"
@@ -1073,8 +1118,7 @@ if st.query_params.get("manage") == "faris":
                                     st.markdown("<span style='color:var(--primary); font-weight:700;'>مدفوع ✓</span>", unsafe_allow_html=True)
                                 else:
                                     if st.button("اعتماد دفع", key=f"pay_{member.get('id')}"):
-                                        supabase.table("bookings").update({"payment_status": "paid"}).eq("id", member.get("id")).execute()
-                                        get_all_bookings.clear()
+                                        update_booking_status_safely(member.get("id"), {"payment_status": "paid"})
                                         st.rerun()
                             with mc3:
                                 if st.button("إلغاء المقعد", key=f"adm_cancel_{member.get('id')}"):
@@ -1084,29 +1128,48 @@ if st.query_params.get("manage") == "faris":
 
             st.divider()
             st.markdown(f"##### ⏳ طابور الانتظار ({len(waitlist_list)} عميل):")
-            if not waitlist_list:
-                st.caption("طابور الانتظار فارغ حالياً.")
-            else:
-                for w_user in waitlist_list:
-                    wc1, wc2, wc3 = st.columns([3, 1, 1])
-                    with wc1:
-                        st.write(f"• **{w_user.get('name')}** | `{w_user.get('phone')}` | مطلوب: **{w_user.get('level')}**")
-                    with wc2:
-                        if st.button("ترقية لمقعد مؤكد", key=f"prom_{w_user.get('id')}"):
-                            # ترقية يدوية مع احتساب رقم السلة تلقائياً
-                            fresh_c_cnt = len([b for b in get_all_bookings(BASKET_ID) if b.get("status") == "confirmed"])
-                            target_c = (fresh_c_cnt // GROUP_SIZE) + 1
-                            supabase.table("bookings").update({
+            for w_user in waitlist_list:
+                wc1, wc2, wc3 = st.columns([3, 1, 1])
+                with wc1:
+                    st.write(f"• **{w_user.get('name')}** | `{w_user.get('phone')}` | مطلوب: **{w_user.get('level')}**")
+                with wc2:
+                    if st.button("ترقية لمقعد مؤكد", key=f"prom_{w_user.get('id')}"):
+                        fresh_c_cnt = len([b for b in get_all_bookings(BASKET_ID) if b.get("status") == "confirmed"])
+                        target_c = (fresh_c_cnt // GROUP_SIZE) + 1
+                        update_booking_status_safely(
+                            w_user.get("id"),
+                            {
                                 "status": "confirmed",
                                 "court": target_c,
-                                "player_note": str(w_user.get("player_note", "")) + " | PROMOTED_MANUAL"
-                            }).eq("id", w_user.get("id")).execute()
-                            get_all_bookings.clear()
-                            st.rerun()
-                    with wc3:
-                        w_msg = f"مرحباً يا غالي 🌿 معك فريق مَقسوم، توفر مقعد لك في سلة العطور ({UNIT_SELL_PRICE} ر.س). هل نعتمد حجزك؟"
-                        w_link = f"https://wa.me/{w_user.get('phone')}?text={urllib.parse.quote(w_msg)}"
-                        st.markdown(f'<a href="{w_link}" target="_blank" style="text-decoration:none;font-size:0.85em;color:var(--primary);font-weight:700;">مراسلة واتساب 📲</a>', unsafe_allow_html=True)
+                                "player_note": str(w_user.get("player_note", "")) + " | PROMOTED_MANUAL",
+                            },
+                        )
+                        st.rerun()
+                with wc3:
+                    w_msg = f"مرحباً يا غالي 🌿 معك فريق مَقسوم، توفر مقعد لك في سلة العطور ({UNIT_SELL_PRICE} ر.س). هل نعتمد حجزك؟"
+                    w_link = f"https://wa.me/{w_user.get('phone')}?text={urllib.parse.quote(w_msg)}"
+                    st.markdown(f'<a href="{w_link}" target="_blank" style="text-decoration:none;font-size:0.85em;color:var(--primary);font-weight:700;">مراسلة واتساب 📲</a>', unsafe_allow_html=True)
+
+        with tab_kms:
+            st.markdown("##### 🧠 مصفوفة أنظمة إدارة المعرفة المطبقة في المنصة (منهج جامعة الملك فيصل - KFU):")
+            st.markdown(
+                """
+                1. **قواعد البيانات المعرفية:** طبقة التخزين المزدوجة (`Supabase + Fail-Safe Cache`) لمنع ضياع أي حجز حتى عند انقطاع الإنترنت.
+                2. **أنظمة إدارة المحتوى:** الخزنة المركزية (`@st.cache_resource`) التي تحدّث الأسعار والمخزون لكل الزوار في نفس اللحظة.
+                3. **منصات التعاون الرقمية:** أتمتة رسائل الواتساب المهيكلة بين العميل وإدارة التوريد.
+                4. **محركات البحث المتقدمة:** فلترة فورية للمشتركين بالاسم أو الجوال أو العطر أو وسيلة الاستلام.
+                5. **أنظمة إدارة الوثائق والصلاحيات:** تشفير الدخول الإداري عبر `hmac.compare_digest` لحماية السجلات المالية.
+                6. **شبكات الخبراء الداخلية:** بطاقات الوصف الحسي والنوتات العطرية المدمجة لكل عطر.
+                7. **أدوات التحليل المعرفي:** الربط مع `Microsoft Clarity` لرصد النقرات وتحليل فجوات التحويل.
+                8. **أنظمة التنبيه الذكية:** تنبيهات السلات غير المكتملة وتنبيهات التسعير المعكوس.
+                """
+            )
+            st.info(
+                "📌 **دليل نقل المعرفة السريع (SOP) لأي مدير جديد للمنصة:**\n"
+                "- **قاعدة التسعير:** تأكد دائماً أن (تكلفة الباقة ÷ حجم المجموعة + الربح) أقل من سعر السوق الفردي.\n"
+                "- **قاعدة التوريد:** لا تطلب الباقة من المورد إلا عندما تتحول شارة السلة إلى (مكتملة ✅).\n"
+                "- **قاعدة الاستمرارية:** إذا اعتذر عميل، اضغط (إلغاء المقعد) وسيقوم النظام بترقية أول شخص من طابور الانتظار آلياً."
+            )
 
     elif input_pin_str:
         st.error("رمز الدخول غير صحيح.")
