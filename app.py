@@ -1,3 +1,10 @@
+"""
+================================================================================
+MAQSOOM (مَقسوم) - Production Grade Core Engine
+High-Leverage Shared-Commerce Architecture & Real-Time Accounting
+================================================================================
+"""
+
 import html
 import hmac
 import math
@@ -10,8 +17,7 @@ import streamlit.components.v1 as components
 from supabase import Client, create_client
 
 # ==============================================================================
-# [القسم 1]: إعداد الصفحة ودوال التنظيف الصارمة
-# الفائدة: تهيئة شاشة الجوال وتنظيف نصوص الـ HTML وأرقام الجوال من أي أخطاء بشرية
+# [القسم 1]: تهيئة المنصة ودوال التنظيف الصارمة
 # ==============================================================================
 st.set_page_config(
     page_title="مَقسوم | تقاسم عروض العطور الفاخرة",
@@ -22,7 +28,7 @@ st.set_page_config(
 
 
 def clean_html(raw_html: str) -> str:
-    """تنظيف شامل للمسافات البادئة والمسافات غير المرئية (\u00a0) لضمان عدم تعطل الـ CSS."""
+    """إزالة المسافات الزائدة وحرف المسافة غير المرئي (\u00a0) لضمان عدم تعطل محرك التنسيق."""
     if not raw_html:
         return ""
     normalized = raw_html.replace("\u00a0", " ")
@@ -32,7 +38,7 @@ def clean_html(raw_html: str) -> str:
 
 
 def sanitize_phone_number(raw_input: str) -> str:
-    """تحويل الأرقام العربية والرموز ومفتاح الدولة 966 إلى صيغة قياسية موحدة 05xxxxxxxx."""
+    """توحيد أرقام الجوال المدخلة والتحويل من الأرقام العربية إلى الصيغة القياسية 05xxxxxxxx."""
     if not raw_input:
         return ""
 
@@ -58,22 +64,22 @@ def sanitize_phone_number(raw_input: str) -> str:
 
 
 # ==============================================================================
-# [القسم 2]: الخزنة المركزية للإعدادات والمحاسبة (Global Store Config)
-# المشكلة التي يحلها: في الكود السابق كانت التعديلات تحفظ في session_state فتظهر للمشرف فقط!
-# الآن باستخدام @st.cache_resource، أي تعديل يعتمده المشرف يظهر لكل زوار الموقع فوراً.
+# [القسم 2]: الخزنة المركزية الدائمة للإعدادات (@st.cache_resource)
+# حل العيب 1: ضمان مزامنة الإعدادات فوراً بين المشرف وكافة الزوار
 # ==============================================================================
 @st.cache_resource
 def get_global_store_config() -> dict[str, Any]:
+    """مستودع الإعدادات الأحادي (Singleton) المشترك على مستوى السيرفر بالكامل."""
     return {
         "offer_name": "عروض بلوم نيوتن (تقاسم الباقة)",
-        "bundle_cost": 530.0,        # تكلفة شراء الباقة من الشركة
-        "group_size": 2,             # 2 لنظام الثنائيات السريع (1+1) أو 4 للرباعيات (2+2)
-        "retail_price": 265,         # سعر العبوة الفردي الرسمي في السوق
-        "target_profit": 10.0,       # صافي ربحك المستهدف في كل عبوة (ر.س)
-        "pkg_cost": 0.0,             # 0 ر.س (بدون أغلفة إضافية للحفاظ على الربح)
-        "total_inventory": 20,       # إجمالي الكمية المتاحة قبل تفعيل طابور الانتظار
-        "locker_fee": 15,            # رسوم خزائن ريد بوكس الذكية
-        "home_delivery_fee": 25,     # رسوم التوصيل لباب البيت بجدة
+        "bundle_cost": 530.0,
+        "group_size": 2,          # 2 لنظام الثنائيات السريع، 4 للرباعيات
+        "retail_price": 265,      # سعر العبوة الرسمي بالسوق
+        "target_profit": 10.0,    # الربح المستهدف لكل عبوة
+        "pkg_cost": 0.0,          # بدون أغلفة إضافية لحماية الهامش
+        "total_inventory": 20,    # سقف المخزون قبل التحويل لقائمة الانتظار
+        "locker_fee": 15,         # رسوم خزائن ريد بوكس الذكية
+        "home_delivery_fee": 25,  # رسوم التوصيل لباب المنزل بجدة
     }
 
 
@@ -89,11 +95,10 @@ TOTAL_INVENTORY_LIMIT: int = int(store_cfg["total_inventory"])
 LOCKER_FEE: int = int(store_cfg["locker_fee"])
 HOME_DELIVERY_FEE: int = int(store_cfg["home_delivery_fee"])
 
-# المعادلة المحاسبية الصارمة (قانون الربع والنصف مع الجبر للأعلى لمنع الخسارة بالكسور)
+# حل العيب 3: جبر الكسور للأعلى (math.ceil) لمنع خسارة أنصاف الريالات
 fraction_label = "النصف (1/2)" if GROUP_SIZE == 2 else "الربع (1/4)"
 base_unit_cost = BUNDLE_ORIGINAL_COST / GROUP_SIZE
 minimum_break_even_price = base_unit_cost + PACKAGING_COST_PER_UNIT
-# استخدام math.ceil لضمان عدم ضياع أنصاف الريالات من جيب التاجر
 UNIT_SELL_PRICE = int(math.ceil(minimum_break_even_price + TARGET_PROFIT_PER_UNIT))
 ACTUAL_UNIT_PROFIT = UNIT_SELL_PRICE - minimum_break_even_price
 SAVINGS_AMOUNT = max(0, ORIGINAL_RETAIL - UNIT_SELL_PRICE)
@@ -103,8 +108,7 @@ ADMIN_PHONE = "966566261868"
 ADMIN_PASSWORD = str(st.secrets.get("ADMIN_PASSWORD", "")).strip()
 
 # ==============================================================================
-# [القسم 3]: تتبع Clarity + حارس JavaScript الحي لاجتثاث اللون الأحمر من جذوره
-# المشكلة التي يحلها: منع ظهور النقطة الحمراء في دوائر BaseWeb وتحويلها لبطاقات زمردية
+# [القسم 3]: تتبع Clarity وحارس JavaScript لاجتثاث اللون الأحمر (حل العيب 4)
 # ==============================================================================
 components.html(
     clean_html("""
@@ -149,7 +153,7 @@ components.html(
 )
 
 # ==============================================================================
-# [القسم 4]: محرك الأنماط البصرية (CSS Click-Lock & Continuous Progress Bar)
+# [القسم 4]: محرك الأنماط البصرية وقفل النقرات العشوائية
 # ==============================================================================
 st.markdown(
     clean_html("""
@@ -196,7 +200,7 @@ html, body, [class*="css"] {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* قفل النقر الصارم لمنع نقرات التشتت التي ظهرت في فيديو Clarity */
+/* قفل النقر على العناصر الإيضاحية لمنع التشتت الملحوظ في Clarity */
 .top-card, .progress-container, .progress-meta, .sensory-card, .ingredient-thumb {
     pointer-events: none !important;
     user-select: none !important;
@@ -401,7 +405,7 @@ input[aria-label="hp"] { display: none !important; }
 )
 
 # ==============================================================================
-# [القسم 5]: محرك قاعدة البيانات والترقية التلقائية لطابور الانتظار
+# [القسم 5]: مستودع قاعدة البيانات والترقية الذكية لطابور الانتظار (حل العيب 5)
 # ==============================================================================
 @st.cache_resource
 def get_supabase_client() -> Client | None:
@@ -483,15 +487,26 @@ def get_all_bookings(basket_key: str) -> list[dict[str, Any]]:
 
 
 def cancel_booking_and_auto_promote(target_id: int | None, target_phone: str) -> None:
-    """إلغاء المقعد الحالي وترقية أول شخص في طابور الانتظار ليحل محله في نفس السلة تلقائياً."""
+    """إلغاء المقعد وترقية العميل التالي في قائمة الانتظار مع ضبط رقم السلة بدقة."""
     if not supabase:
         return
     try:
+        # جلب تفاصيل الحجز المراد إلغاؤه لمعرفة رقم سلته (court)
+        target_record = None
         if target_id:
+            res = supabase.table("bookings").select("*").eq("id", target_id).execute()
+            if res.data:
+                target_record = res.data[0]
             supabase.table("bookings").update({"status": "cancelled"}).eq("id", target_id).execute()
         else:
+            res = supabase.table("bookings").select("*").eq("phone", target_phone).eq("session_day", BASKET_ID).execute()
+            if res.data:
+                target_record = res.data[0]
             supabase.table("bookings").update({"status": "cancelled"}).eq("phone", target_phone).eq("session_day", BASKET_ID).execute()
 
+        released_court = target_record.get("court") if target_record else None
+
+        # جلب أقدم حجز في طابور الانتظار (FIFO)
         waitlist_res = (
             supabase.table("bookings")
             .select("*")
@@ -503,10 +518,15 @@ def cancel_booking_and_auto_promote(target_id: int | None, target_phone: str) ->
         )
         if waitlist_res.data:
             next_customer = waitlist_res.data[0]
-            supabase.table("bookings").update({
+            update_payload: dict[str, Any] = {
                 "status": "confirmed",
                 "player_note": str(next_customer.get("player_note", "")) + " | PROMOTED_AUTO"
-            }).eq("id", next_customer.get("id")).execute()
+            }
+            # حل العيب 5: تحديث حقل court ليطابق السلة الشاغرة بدقة
+            if released_court:
+                update_payload["court"] = released_court
+
+            supabase.table("bookings").update(update_payload).eq("id", next_customer.get("id")).execute()
 
         get_all_bookings.clear()
     except Exception:
@@ -514,7 +534,7 @@ def cancel_booking_and_auto_promote(target_id: int | None, target_phone: str) ->
 
 
 # ==============================================================================
-# [القسم 6]: حسابات السلات التلقائية والمخزون الحي
+# [القسم 6]: إدارة السلات والمخزون الحي
 # ==============================================================================
 all_cached_records = get_all_bookings(BASKET_ID)
 confirmed_bookings = [b for b in all_cached_records if b.get("status") == "confirmed"]
@@ -562,7 +582,7 @@ def render_live_progress() -> None:
 
 
 # ==============================================================================
-# [القسم 7]: شاشة الخطوة الأخيرة (الواتساب النابض لمنع هروب الثانية 52)
+# [القسم 7]: شاشة الخطوة الأخيرة (The Tunnel CTA)
 # ==============================================================================
 if "confirmed_deal" in st.session_state:
     deal = st.session_state["confirmed_deal"]
@@ -911,8 +931,8 @@ else:
                             alert_placeholder.error(f"تعذر إتمام التسجيل: {db_err}")
 
 # ==============================================================================
-# [القسم 9]: لوحة القيادة المحاسبية والإدارية الشاملة (?manage=faris)
-# الإصلاح الجذري: تحديث الإعدادات في الذاكرة المشتركة للسيرفر + فصل محاسبة السلات المكتملة عن المفتوحة
+# [القسم 9]: لوحة القيادة والمحاسبة الدقيقة (?manage=faris)
+# حل العيب 2: فصل أرباح السلات المكتملة عن إيرادات السلات المفتوحة لحماية رأس المال
 # ==============================================================================
 if st.query_params.get("manage") == "faris":
     st.markdown("---")
@@ -925,6 +945,7 @@ if st.query_params.get("manage") == "faris":
     is_authenticated = False
     if input_pin_str and target_pwd_str:
         try:
+            # حماية ضد هجمات التوقيت
             is_authenticated = hmac.compare_digest(
                 input_pin_str.encode("utf-8"), target_pwd_str.encode("utf-8")
             )
@@ -994,12 +1015,12 @@ if st.query_params.get("manage") == "faris":
             open_basket_seats = n_confirmed % GROUP_SIZE
             missing_seats_to_close = (GROUP_SIZE - open_basket_seats) if open_basket_seats > 0 else 0
 
-            # حساب دقيق للسلات المكتملة فقط (تجنب الربح الوهمي)
+            # حل العيب 2: المحاسبة الصارمة للسلات المكتملة فقط
             realized_perfume_rev = completed_units_count * UNIT_SELL_PRICE
             realized_cogs = completed_baskets_count * BUNDLE_ORIGINAL_COST
             realized_net_profit = realized_perfume_rev - realized_cogs
 
-            # حساب المبالغ المعلقة في السلة المفتوحة
+            # المبالغ المعلقة في السلة المفتوحة
             pending_open_rev = open_basket_seats * UNIT_SELL_PRICE
 
             total_delivery_fees = 0
@@ -1010,10 +1031,10 @@ if st.query_params.get("manage") == "faris":
                     total_delivery_fees += int(match_fee.group(1))
 
             r1, r2, r3, r4 = st.columns(4)
-            r1.metric("مبيعات السلات المكتملة", f"{realized_perfume_rev} ر.س")
-            r2.metric("تكلفة الباقات المكتملة", f"{realized_cogs:.0f} ر.س")
-            r3.metric("صافي الربح المحقق (بالجيب)", f"{realized_net_profit:.1f} ر.س")
-            r4.metric("مبيعات معلقة (سلة مفتوحة)", f"{pending_open_rev} ر.س")
+            r1.metric("مبيعات السلات المكتملة", f"{realized_perfume_rev:,} ر.س")
+            r2.metric("تكلفة البضاعة المباعة (COGS)", f"{realized_cogs:,.0f} ر.س")
+            r3.metric("صافي الربح المحقق (بالجيب)", f"{realized_net_profit:,.1f} ر.س", delta=f"{realized_net_profit:.1f} ر.س")
+            r4.metric("مبيعات معلقة (سلة مفتوحة)", f"{pending_open_rev:,} ر.س")
 
             st.divider()
             s1, s2, s3 = st.columns(3)
@@ -1072,8 +1093,12 @@ if st.query_params.get("manage") == "faris":
                         st.write(f"• **{w_user.get('name')}** | `{w_user.get('phone')}` | مطلوب: **{w_user.get('level')}**")
                     with wc2:
                         if st.button("ترقية لمقعد مؤكد", key=f"prom_{w_user.get('id')}"):
+                            # ترقية يدوية مع احتساب رقم السلة تلقائياً
+                            fresh_c_cnt = len([b for b in get_all_bookings(BASKET_ID) if b.get("status") == "confirmed"])
+                            target_c = (fresh_c_cnt // GROUP_SIZE) + 1
                             supabase.table("bookings").update({
                                 "status": "confirmed",
+                                "court": target_c,
                                 "player_note": str(w_user.get("player_note", "")) + " | PROMOTED_MANUAL"
                             }).eq("id", w_user.get("id")).execute()
                             get_all_bookings.clear()
