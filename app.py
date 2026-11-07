@@ -1,612 +1,262 @@
-import hmac
-import math
-import urllib.parse
 from datetime import datetime
+import urllib.parse
 import pandas as pd
 import streamlit as st
 
 # ==============================================================================
-# 1. إعداد الشاشة للجوال الميداني (RTL / Dark Mode)
+# 1. تهيئة الصفحة (خفيفة جداً ومناسبة للجوال بدون حشو أكواد)
 # ==============================================================================
 st.set_page_config(
-    page_title="سكن جامعة 3 | العمليات الميدانية",
+    page_title="إدارة سكن العمليات الميدانية",
     page_icon="🏢",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
 
-st.markdown(
-    """
-<style>
-:root {
-    color-scheme: dark;
-    --primary: #10b981;
-    --card-bg: #111827;
-    --border-color: rgba(255, 255, 255, 0.12);
-}
-header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
-.block-container { 
-    padding-top: 0.4rem !important; 
-    padding-bottom: 2rem !important; 
-    max-width: 440px !important; 
-    margin: 0 auto !important;
-}
-html, body, [class*="css"] { 
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif; 
-    direction: rtl; 
-    text-align: right; 
-    background-color: #0b0f19 !important; 
-    color: #f8fafc !important; 
-}
-.top-card { 
-    background: var(--card-bg); 
-    border: 1px solid var(--border-color); 
-    border-radius: 12px; 
-    padding: 10px 14px; 
-    margin-bottom: 8px; 
-    text-align: center; 
-}
-.headline { font-size: 1.15em; font-weight: 900; color: #ffffff; margin: 0; }
-.sub-headline { font-size: 0.82em; font-weight: 700; color: #94a3b8; margin-top: 3px; }
-div[data-testid="stFormSubmitButton"] > button { 
-    background: var(--primary) !important; 
-    color: #022c22 !important; 
-    font-weight: 900 !important; 
-    height: 48px !important; 
-    border-radius: 10px !important; 
-    width: 100% !important; 
-    border: none !important; 
-    font-size: 1.05em !important; 
-}
-.alert-tag {
-    background: rgba(239, 68, 68, 0.25);
-    border: 1px solid rgba(239, 68, 68, 0.6);
-    color: #fca5a5;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 0.78em;
-    font-weight: 900;
-}
-.done-tag {
-    background: rgba(16, 185, 129, 0.2);
-    border: 1px solid rgba(16, 185, 129, 0.6);
-    color: #6ee7b7;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 0.76em;
-    font-weight: 800;
-}
-.stat-box {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin-bottom: 8px;
-}
-.wa-btn {
-    display: block;
-    background: #10b981;
-    color: #022c22 !important;
-    text-align: center;
-    padding: 12px;
-    border-radius: 10px;
-    font-weight: 900;
-    text-decoration: none !important;
-    margin-top: 6px;
-    margin-bottom: 8px;
-}
-</style>
-""",
-    unsafe_allow_html=True,
-)
+# رابط واتساب مباشر يفتح شاشة اختيار المحادثات بدون تحديد رقم مسبق
+def make_wa_link(text: str) -> str:
+    return f"https://api.whatsapp.com/send?text={urllib.parse.quote(text)}"
 
 # ==============================================================================
-# 2. الثوابت العامة وقاعدة البيانات والاتصال
+# 2. قواعد البيانات السريعة في الجلسة (Session State)
 # ==============================================================================
-LOCATION_TAG = "سكن جامعة 3"
-PERMANENT_PIN = str(st.secrets.get("SUPERVISOR_PIN", "5050")).strip()
-
-if "contacts" not in st.session_state:
-    st.session_state["contacts"] = {
-        "المدير عمر": "966500000000",
-        "المشرف الزميل": "966550000000",
-        "مقاول الصيانة": "966520000000",
-        "متعهد الإعاشة": "966530000000",
-    }
-
-if "maintenance_db" not in st.session_state:
-    st.session_state["maintenance_db"] = [
-        {
-            "room": "405",
-            "item": "شفاط",
-            "opened_at": "08:15 م",
-            "date": "2026-11-07",
-            "closed_at": None,
-            "status": "مفتوح",
-        }
+if "maintenance" not in st.session_state:
+    st.session_state.maintenance = [
+        {"الغرفة": "405", "العطل": "شفاط", "وقت البلاغ": "08:15 م", "التاريخ": "2026-11-07", "الحالة": "معلق", "وقت الإصلاح": "-"}
     ]
 
-if "violations_db" not in st.session_state:
-    st.session_state["violations_db"] = []
-
-if "meals_db" not in st.session_state:
-    st.session_state["meals_db"] = []
-
-if "last_action_wa" not in st.session_state:
-    st.session_state["last_action_wa"] = {}
-
-if "is_supervisor" not in st.session_state:
-    st.session_state["is_supervisor"] = False
-
-# ==============================================================================
-# 3. مكون برمجي مدمج للإرسال اللحظي عبر واتساب (Reusable Component)
-# ==============================================================================
-def render_instant_whatsapp_box(message_text: str, default_contact: str, key_suffix: str):
-    """صندوق تفاعلي سريع يولد رابط الواتساب مباشرة للمستلم المطلوب"""
-    st.markdown("<div class='stat-box'>", unsafe_allow_html=True)
-    st.markdown("📲 **إرسال البلاغ مباشرة عبر واتساب:**")
-    
-    contacts = st.session_state["contacts"]
-    contact_list = list(contacts.keys()) + ["رقم مخصص (يدوي)"]
-    
-    def_idx = contact_list.index(default_contact) if default_contact in contact_list else 0
-    
-    c_sel, c_num = st.columns([1.2, 1])
-    with c_sel:
-        recipient = st.selectbox(
-            "المستلم:",
-            contact_list,
-            index=def_idx,
-            key=f"recip_{key_suffix}"
-        )
-        
-    if recipient == "رقم مخصص (يدوي)":
-        with c_num:
-            phone_to_use = st.text_input("أدخل الرقم:", placeholder="9665xxxxxxxx", key=f"custom_{key_suffix}")
-    else:
-        phone_to_use = contacts.get(recipient, "")
-        with c_num:
-            st.text_input("الرقم:", value=phone_to_use, disabled=True, key=f"dis_{key_suffix}")
-
-    st.text_area("نص الرسالة التلقائي:", value=message_text, height=110, key=f"txt_{key_suffix}")
-
-    if phone_to_use and phone_to_use.strip():
-        encoded = urllib.parse.quote(message_text)
-        wa_link = f"https://wa.me/{phone_to_use.strip()}?text={encoded}"
-        st.markdown(
-            f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 إرسال فوري إلى {recipient} الآن</a>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.warning("يرجى إدخال رقم هاتف صالح للإرسال.")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ==============================================================================
-# 4. التوقيت وترويسة التطبيق
-# ==============================================================================
-now = datetime.now()
-now_minutes = now.hour * 60 + now.minute
-
-if now_minutes < 570:
-    auto_meal_idx = 0
-elif now_minutes < 990:
-    auto_meal_idx = 1
-else:
-    auto_meal_idx = 2
-
-st.markdown(
-    f"""
-<div class="top-card">
-    <div class="headline">🏢 إدارة {LOCATION_TAG}</div>
-    <div class="sub-headline">العمليات الميدانية • التوثيق الآني • مركز الإرسال الفوري</div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
-
-c_head1, c_head2 = st.columns([2, 1])
-with c_head1:
-    st.caption(f"📅 اليوم: {now.strftime('%Y-%m-%d | %I:%M %p')}")
-with c_head2:
-    if st.button("🔄 تحديث الشاشة", use_container_width=True):
-        st.rerun()
-
-tab_repairs, tab_meals, tab_viol, tab_summary, tab_vault = st.tabs(
-    [
-        "🛠️ الصيانة الفورية",
-        "🍽️ الإعاشة والقرار",
-        "⚠️ المخالفات والنظافة",
-        "📋 تقرير آخر اليوم",
-        "🔐 الأدمن والأرقام",
+if "violations" not in st.session_state:
+    st.session_state.violations = [
+        {"الجهة / الغرفة": "غرفة 108", "نوع المخالفة": "سخان / هيتر", "عدد الإنذارات": 1, "الملاحظة": "تنبيه أول بسحب السخان", "الوقت": "09:30 م", "التاريخ": "2026-11-06"}
     ]
-)
+
+if "rounds" not in st.session_state:
+    st.session_state.rounds = [
+        {"الجولة": "جولة مسائية", "الأدوار": "الدور 1، الدور 2، الدور 3", "الوقت": "09:00 م", "التاريخ": "2026-11-07", "الملاحظة": "الممرات نظيفة والهدوء ممتاز"}
+    ]
+
+# ==============================================================================
+# 3. ترويسة التطبيق وتوزيع التبويبات
+# ==============================================================================
+st.title("🏢 العمليات الميدانية للسكن")
+st.caption(f"📅 {datetime.now().strftime('%Y-%m-%d | %I:%M %p')}")
+
+tab1, tab2, tab3, tab4 = st.tabs([
+    "🛠️ الصيانة الفورية",
+    "⚠️ كشف وتكرار المخالفات",
+    "🚶 جولات الأدوار",
+    "📊 التقرير القيادي والإكسل"
+])
 
 # ------------------------------------------------------------------------------
-# 1. تبويب الصيانة: بلاغ فوري (شفاط، مكيف...) + إغلاق بلمسة + واتساب فوري
+# 1. تبويب الصيانة (تسجيل سريع، واتساب بضغطة زر، وإغلاق)
 # ------------------------------------------------------------------------------
-with tab_repairs:
-    st.markdown("##### 🛠️ تسجيل بلاغ عطل / صيانة جديد:")
+with tab1:
+    st.subheader("🛠️ بلاغ عطل جديد")
+    with st.form("form_repair", clear_on_submit=True):
+        c1, c2 = st.columns([1, 1.2])
+        room_in = c1.text_input("رقم الغرفة:", placeholder="مثال: 405")
+        issue_in = c2.selectbox("نوع العطل:", ["شفاط 💨", "مكيف ❄️", "سباكة / شطاف 🚿", "كهرباء / إنارة 💡", "أخرى 📝"])
+        notes_in = st.text_input("تفاصيل إضافية (اختياري):", placeholder="مثال: صوت عالي / توقف كامل...")
+        submit_repair = st.form_submit_button("⚡ حفظ البلاغ", use_container_width=True)
 
-    with st.form("repair_instant_form", clear_on_submit=False):
-        c_r1, c_r2 = st.columns([1, 1.3])
-        with c_r1:
-            r_room = st.text_input("رقم الغرفة:", placeholder="مثال: 405")
-        with c_r2:
-            r_item = st.selectbox(
-                "نوع العطل:",
-                ["شفاط 💨", "مكيف ❄️", "شطاف / سباكة 🚿", "كهرباء / إنارة 💡", "أخرى 📝"],
-            )
-
-        other_text = ""
-        if "أخرى" in r_item:
-            other_text = st.text_input("حدد العطل بالتفصيل:", placeholder="مثال: قفل الباب / ماس كهربائي...")
-
-        btn_submit_repair = st.form_submit_button("⚡ حفظ البلاغ وتجهيز رسالة الواتساب")
-
-        if btn_submit_repair:
-            clean_room = r_room.strip()
-            chosen_item = other_text.strip() if ("أخرى" in r_item and other_text.strip()) else r_item.split()[0]
-
-            if not clean_room:
-                st.error("يرجى كتابة رقم الغرفة.")
+        if submit_repair:
+            if not room_in.strip():
+                st.error("يرجى كتابة رقم الغرفة أولاً.")
             else:
-                log_time = datetime.now().strftime("%I:%M %p")
-                log_date = datetime.now().strftime("%Y-%m-%d")
-
-                st.session_state["maintenance_db"].append({
-                    "room": clean_room,
-                    "item": chosen_item,
-                    "opened_at": log_time,
-                    "date": log_date,
-                    "closed_at": None,
-                    "status": "مفتوح",
+                t_str = datetime.now().strftime("%I:%M %p")
+                d_str = datetime.now().strftime("%Y-%m-%d")
+                clean_issue = issue_in.split()[0] if "أخرى" not in issue_in else (notes_in.strip() or "صيانة عامة")
+                
+                st.session_state.maintenance.append({
+                    "الغرفة": room_in.strip(),
+                    "العطل": clean_issue,
+                    "وقت البلاغ": t_str,
+                    "التاريخ": d_str,
+                    "الحالة": "معلق",
+                    "وقت الإصلاح": "-"
                 })
+                st.success(f"تم تسجيل عطل ({clean_issue}) لغرفة {room_in} بنجاح!")
 
-                # تجهيز رسالة الواتساب الفورية للبلاغ
-                msg = f"""السلام عليكم ورحمة الله،،
-بلاغ صيانة عاجل - {LOCATION_TAG}:
-
-🛠️ العطل: {chosen_item}
-🚪 رقم الغرفة: {clean_room}
-⏰ توقيت البلاغ: {log_time}
-📅 التاريخ: {log_date}
-
-يرجى المعالجة السريعة والإفادة فور الإصلاح."""
-
-                st.session_state["last_action_wa"]["repair_open"] = {
-                    "msg": msg,
-                    "default_to": "مقاول الصيانة",
-                }
-                st.success(f"تم حفظ بلاغ {chosen_item} غرفة {clean_room} بنجاح!")
-
-    # إظهار صندوق الواتساب المباشر للبلاغ المسجل للتو
-    if "repair_open" in st.session_state["last_action_wa"]:
-        data = st.session_state["last_action_wa"]["repair_open"]
-        render_instant_whatsapp_box(data["msg"], data["default_to"], key_suffix="rep_open")
-
-    st.markdown("---")
-    st.markdown("##### 📋 بلاغات الصيانة المعلقة:")
-
-    open_items = [x for x in st.session_state["maintenance_db"] if x.get("status") == "مفتوح"]
-    if open_items:
-        for idx, row in enumerate(open_items):
-            r_num = row.get("room")
-            r_it = row.get("item")
-            r_op = row.get("opened_at")
-            r_dt = row.get("date")
-
-            st.markdown(
-                f"""
-                <div class="stat-box">
-                    <b>غرفة {r_num}</b> — <span style="color:var(--primary); font-weight:800;">{r_it}</span><br>
-                    <small style="color:#94a3b8;">📅 التاريخ: {r_dt} | ⏰ وقت التسجيل: {r_op}</small>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            c_btn1, c_btn2 = st.columns([1.2, 1])
-            with c_btn1:
-                if st.button(f"✅ تم إصلاح {r_it} (غرفة {r_num})", key=f"done_{idx}"):
-                    row["status"] = "تم الإصلاح"
-                    row["closed_at"] = datetime.now().strftime("%I:%M %p")
-                    
-                    # إشعار الإنجاز الفوري عبر الواتساب
-                    done_msg = f"""السلام عليكم ورحمة الله،،
-إشعار إنجاز صيانة - {LOCATION_TAG}:
-
-✅ تم الانتهاء من إصلاح: {r_it}
-🚪 رقم الغرفة: {r_num}
-⏰ وقت البلاغ: {row['opened_at']}
-🕒 وقت الإنجاز الفعلي: {row['closed_at']} ({row['date']})
-
-الحالة: تم الإصلاح والفحص بنجاح."""
-                    
-                    st.session_state["last_action_wa"]["repair_done"] = {
-                        "msg": done_msg,
-                        "default_to": "المدير عمر",
-                    }
+    # عرض البلاغات المعلقة مع زر واتساب مباشر وزر إنجاز
+    st.markdown("#### ⏳ البلاغات الجارية والمعلقة:")
+    pending_repairs = [r for r in st.session_state.maintenance if r["الحالة"] == "معلق"]
+    
+    if not pending_repairs:
+        st.info("لا توجد بلاغات معلقة حالياً.")
+    else:
+        for idx, row in enumerate(pending_repairs):
+            with st.container(border=True):
+                st.markdown(f"**غرفة {row['الغرفة']}** — 🔧 {row['العطل']}")
+                st.caption(f"⏰ مسجل الساعة: {row['وقت البلاغ']} بتاريخ {row['التاريخ']}")
+                
+                msg_repair = f"السلام عليكم،\nبلاغ صيانة عاجل بالسكن:\n- الغرفة: {row['الغرفة']}\n- العطل: {row['العطل']}\n- وقت البلاغ: {row['وقت البلاغ']}\nيرجى المباشرة والإفادة عند الإصلاح."
+                
+                b_col1, b_col2 = st.columns(2)
+                b_col1.link_button("📲 إرسال بالواتساب", make_wa_link(msg_repair), use_container_width=True)
+                
+                if b_col2.button(f"✅ تم الإصلاح", key=f"fix_{idx}", use_container_width=True):
+                    row["الحالة"] = "تم الإصلاح"
+                    row["وقت الإصلاح"] = datetime.now().strftime("%I:%M %p")
                     st.rerun()
 
-            with c_btn2:
-                # تذكير سريع بمتابعة هذا العطل المحدد
-                remind_msg = f"تذكير صيانة: نرجو سرعة التوجه لغرفة {r_num} لإصلاح ({r_it}) المسجل منذ الساعة {r_op}."
-                enc_remind = urllib.parse.quote(remind_msg)
-                phone_mnt = st.session_state["contacts"].get("مقاول الصيانة", "")
-                st.markdown(f'<a href="https://wa.me/{phone_mnt}?text={enc_remind}" target="_blank" style="font-size:0.85em; color:#38bdf8;">📲 تذكير المقاول</a>', unsafe_allow_html=True)
-
-    else:
-        st.info("لا توجد بلاغات صيانة معلقة حالياً.")
-
-    # إذا تم إغلاق بلاغ تظهر رسالة الإنجاز المباشرة
-    if "repair_done" in st.session_state["last_action_wa"]:
-        st.markdown("###### 🚀 إرسال إشعار الإنجاز:")
-        d_data = st.session_state["last_action_wa"]["repair_done"]
-        render_instant_whatsapp_box(d_data["msg"], d_data["default_to"], key_suffix="rep_done")
-
 # ------------------------------------------------------------------------------
-# 2. تبويب الإعاشة: توثيق الحصص + قرار الطلبية + إرسال فوري لمسؤول الإعاشة
+# 2. تبويب المخالفات والتكرار العادل (لا ظلم ولا نسيان)
 # ------------------------------------------------------------------------------
-with tab_meals:
-    st.markdown("##### 🍽️ توثيق الوجبة والقرار التشغيلي:")
+with tab2:
+    st.subheader("⚠️ رصد المخالفات وتنبيهات الغرف والعمال")
+    with st.form("form_viol", clear_on_submit=True):
+        c_v1, c_v2 = st.columns([1.2, 1])
+        target_name = c_v1.text_input("رقم الغرفة أو الجهة:", placeholder="مثال: غرفة 108 أو عمال الدور 2")
+        viol_type = c_v2.selectbox("نوع المخالفة:", ["سخان / هيتر طبخ ⚡", "إهمال نظافة / نفايات 🗑️", "طبخ في الغرفة 🍳", "إزعاج 📢", "أخرى 📝"])
+        viol_desc = st.text_input("ملاحظات التنبيه الميداني:", placeholder="مثال: تم إعطاء تنبيه أولي وسحب الجهاز...")
+        submit_viol = st.form_submit_button("⚡ حفظ المخالفة والتحقق من التكرار", use_container_width=True)
 
-    with st.form("meal_entry_form", clear_on_submit=False):
-        meal_chosen = st.selectbox(
-            "نوع الوجبة:",
-            ["فطور 🌅 (05:30 ص - 07:00 ص)", "غداء ☀️ (11:30 ص - 02:30 م)", "عشاء 🌙 (05:30 م - 09:00 م)"],
-            index=auto_meal_idx,
-        )
+        if submit_viol:
+            target_clean = target_name.strip()
+            if not target_clean:
+                st.error("يرجى كتابة رقم الغرفة أو الجهة المخالفة.")
+            else:
+                # حساب عدد التكرارات السابقة لنفس الجهة بدقة
+                prev_times = sum(1 for v in st.session_state.violations if v["الجهة / الغرفة"] == target_clean)
+                current_count = prev_times + 1
+                t_now = datetime.now().strftime("%I:%M %p")
+                d_now = datetime.now().strftime("%Y-%m-%d")
 
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            deliv = st.number_input("الوجبات الموردة:", min_value=0, max_value=800, value=77)
-        with c2:
-            coups = st.number_input("المستلم بكوبون:", min_value=0, max_value=800, value=42)
-        with c3:
-            surp = st.number_input("الفائض بالصواني:", min_value=0, max_value=800, value=0)
+                st.session_state.violations.append({
+                    "الجهة / الغرفة": target_clean,
+                    "نوع المخالفة": viol_type.split()[0],
+                    "عدد الإنذارات": current_count,
+                    "الملاحظة": viol_desc.strip() or "تم رصد المخالفة وتوجيه التنبيه",
+                    "الوقت": t_now,
+                    "التاريخ": d_now
+                })
 
-        notes = st.text_input("ملاحظات الجودة / المورد:", placeholder="الوجبة ممتازة / تأخر 15 دقيقة...")
+                msg_viol = f"إشعار ضبط ومتابعة - سكن العمليات:\n- المخالف: {target_clean}\n- النوع: {viol_type.split()[0]}\n- الملاحظة: {viol_desc or 'تنبيه ميداني'}\n- عدد الإنذارات المسجلة: ({current_count})\n- التوقيت: {t_now} ({d_now})\nيرجى العلم ومتابعة السجل لتفادي التكرار."
+                st.session_state["latest_viol_msg"] = msg_viol
+                st.success(f"تم التوثيق: ({target_clean}) — إنذار رقم ({current_count})")
 
-        btn_save_meal = st.form_submit_button("⚡ حفظ الوجبة وتوليد رسالة الواتساب")
+    if "latest_viol_msg" in st.session_state:
+        st.link_button("📲 إرسال إشعار المخالفة فوراً عبر واتساب", make_wa_link(st.session_state["latest_viol_msg"]), use_container_width=True)
 
-        actual_distributed = max(0, deliv - surp)
-        no_coupon_count = max(0, actual_distributed - coups)
-        buffer_calc = math.ceil(actual_distributed * 0.03) if actual_distributed > 0 else 0
-        recommended_order = actual_distributed + buffer_calc
-
-        meal_name = meal_chosen.split()[0]
-        cur_time = datetime.now().strftime("%I:%M %p")
-        cur_date = datetime.now().strftime("%Y-%m-%d")
-
-        if btn_save_meal:
-            st.session_state["meals_db"].append({
-                "meal_type": meal_name,
-                "date": cur_date,
-                "time": cur_time,
-                "delivered": int(deliv),
-                "coupons": int(coups),
-                "surplus": int(surp),
-                "distributed": int(actual_distributed),
-                "recommended": int(recommended_order),
-                "notes": notes.strip() if notes.strip() else "سليم ومطابق",
-            })
-
-            meal_msg = f"""السلام عليكم ورحمة الله،،
-محضر الإعاشة والقرار التشغيلي - {LOCATION_TAG}:
-
-🍽️ الوجبة: {meal_name}
-📅 التاريخ: {cur_date} | ⏰ التوقيت: {cur_time}
-📦 الكمية الموردة: {deliv}
-🎟️ المصروف بكوبون: {coups}
-⚠️ المصروف بدون كوبون: {no_coupon_count}
-🍲 الفائض المتبقي: {surp}
-👥 المستهلك الفعلي: {actual_distributed} شخص.
-
-💡 قرار وتوصية الطلبية القادمة: {recommended_order} وجبة (تغطي كافة الأفراد مع 3% طوارئ لتفادي الهدر).
-📝 الملاحظات: {notes.strip() if notes.strip() else 'الوضع سليم'}"""
-
-            st.session_state["last_action_wa"]["meal"] = {
-                "msg": meal_msg,
-                "default_to": "متعهد الإعاشة",
-            }
-            st.success(f"تم اعتماد وجبة {meal_name} بنجاح!")
-
-    m1, m2 = st.columns(2)
-    m1.metric("المستهلك الفعلي", f"{actual_distributed} وجبة")
-    m2.metric("الطلبية المقترحة القادمة", f"{recommended_order} وجبة")
-
-    if "meal" in st.session_state["last_action_wa"]:
-        m_data = st.session_state["last_action_wa"]["meal"]
-        render_instant_whatsapp_box(m_data["msg"], m_data["default_to"], key_suffix="meal_box")
-
-# ------------------------------------------------------------------------------
-# 3. تبويب المخالفات والنظافة: رصد مخالفات العمال، الطبخ، والسخانات
-# ------------------------------------------------------------------------------
-with tab_viol:
-    st.markdown("##### ⚠️ رصد مخالفة (عمال / غرف / نظافة / طبخ):")
-
-    with st.form("viol_full_form", clear_on_submit=False):
-        v_target_type = st.radio(
-            "الجهة المخالفة:",
-            ["عمال النظافة / المتعهد 🧹", "غرفة طالب / ساكن 🚪"],
-            horizontal=True
-        )
-
-        c_v1, c_v2 = st.columns([1, 1.2])
-        with c_v1:
-            target_id = st.text_input("رقم الغرفة / اسم العامل أو الموقع:", placeholder="مثال: ممر الدور 2 / غرفة 108")
-        with c_v2:
-            v_category = st.selectbox(
-                "نوع المخالفة:",
-                [
-                    "عدم نظافة وإهمال الممرات 🗑️",
-                    "طبخ في غير الأماكن المخصصة / هيتر 🍳",
-                    "استخدام سخان مخالف ⚡",
-                    "تأخر عمال النظافة عن الموعد ⏰",
-                    "إزعاج ومخالفة الهدوء 📢",
-                    "أخرى 📝",
-                ]
-            )
-
-        v_desc = st.text_input("تفاصيل المخالفة والإجراء الميداني المتخذ:", placeholder="مثال: رصد نفايات متراكمة / تشغيل هيتر...")
-
-        btn_viol_save = st.form_submit_button("⚡ توثيق المخالفة وتجهيز الرسالة")
-
-        if btn_viol_save:
-            c_target = target_id.strip() if target_id.strip() else "غير محدد"
-            c_cat = v_category.split()[0] + " " + v_category.split()[1]
-            t_now = datetime.now().strftime("%I:%M %p")
-            d_now = datetime.now().strftime("%Y-%m-%d")
-
-            past_count = sum(
-                1 for x in st.session_state["violations_db"]
-                if x.get("target") == c_target and x.get("category") == c_cat
-            )
-            current_count = past_count + 1
-
-            st.session_state["violations_db"].append({
-                "target_type": v_target_type,
-                "target": c_target,
-                "category": c_cat,
-                "desc": v_desc.strip() if v_desc.strip() else "تم رصد المخالفة وضبطها ميدانياً",
-                "count": current_count,
-                "time": t_now,
-                "date": d_now,
-            })
-
-            viol_msg = f"""إشعار ضبط مخالفة ميدانية - {LOCATION_TAG}:
-
-⚠️ المخالفة: {c_cat}
-📍 الجهة / الموقع: {c_target} ({v_target_type})
-🔢 التكرار: المرة الـ ({current_count})
-📝 التفاصيل: {v_desc.strip() if v_desc.strip() else 'مخالفة للتعليمات'}
-⏰ التوقيت: {t_now} | {d_now}
-
-يرجى اتخاذ الإجراء النظامي بحق المخالفين."""
-
-            default_to = "المدير عمر" if "غرفة" in v_target_type else "المشرف الزميل"
-            st.session_state["last_action_wa"]["viol"] = {
-                "msg": viol_msg,
-                "default_to": default_to,
-            }
-            st.success(f"تم توثيق المخالفة بحق ({c_target}) للمرة الـ {current_count}!")
-
-    if "viol" in st.session_state["last_action_wa"]:
-        v_data = st.session_state["last_action_wa"]["viol"]
-        render_instant_whatsapp_box(v_data["msg"], v_data["default_to"], key_suffix="viol_box")
-
-    st.markdown("---")
-    st.markdown("##### 📋 كشف المخالفات المسجلة اليوم:")
-    if st.session_state["violations_db"]:
-        for v in reversed(st.session_state["violations_db"][-4:]):
-            c_num = v.get("count", 1)
-            t_c = "alert-tag" if c_num > 1 else "done-tag"
-            st.markdown(
-                f"""
-                <div class="stat-box" style="border-right: 3px solid #ef4444;">
-                    <b>{v.get('target', '')}</b> — <span style="color:#f87171; font-weight:800;">{v.get('category', '')}</span> 
-                    <span class='{t_c}'>تكرار {c_num}</span><br>
-                    <small style="color:#cbd5e1;">التفاصيل: {v.get('desc', '')}</small><br>
-                    <small style="color:#94a3b8;">📅 {v.get('date', '')} | ⏰ {v.get('time', '')}</small>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+    st.markdown("#### 🔍 الغرف الأكثر تكراراً للمخالفات (لدعم القرار):")
+    if st.session_state.violations:
+        df_v = pd.DataFrame(st.session_state.violations)
+        repeat_counts = df_v["الجهة / الغرفة"].value_counts()
+        frequent = repeat_counts[repeat_counts >= 2]
+        
+        if not frequent.empty:
+            for room, count in frequent.items():
+                st.warning(f"⚠️ **{room}** تكررت عليها المخالفات **{count} مرات**. (تستوجب إجراء رسمي حاسم).")
+        else:
+            st.info("جميع الإنذارات الحالية فردية (مرة واحدة)، ولا توجد غرف مكررة حتى الآن.")
     else:
         st.info("سجل المخالفات نظيف.")
 
 # ------------------------------------------------------------------------------
-# 4. تبويب تقرير آخر اليوم: تقرير الموقف الشامل لتسليم الوردية
+# 3. تبويب الجولات والأدوار المزارة
 # ------------------------------------------------------------------------------
-with tab_summary:
-    st.markdown("##### 📋 تقرير الموقف اليومي الشامل (تسليم الوردية):")
-    st.caption("تقرير يجمع كافة أحداث الصيانة، الإعاشة، والمخالفات لإرساله للمدير أو المشرف المستلم بلمسة واحدة:")
+with tab3:
+    st.subheader("🚶 توثيق جولة تفتيش الأدوار")
+    with st.form("form_round", clear_on_submit=True):
+        floors_checked = st.multiselect(
+            "الأدوار التي تم المرور عليها في هذه الجولة:",
+            ["الدور الأرضي", "الدور 1", "الدور 2", "الدور 3", "الدور 4", "الدور 5"],
+            default=["الدور 1", "الدور 2"]
+        )
+        round_note = st.text_input("ملاحظة الجولة العامة:", placeholder="مثال: تم إخلاء الممرات وهدوء تام...")
+        submit_round = st.form_submit_button("⚡ حفظ الجولة", use_container_width=True)
 
-    today_str = datetime.now().strftime("%Y-%m-%d | %I:%M %p")
-    last_meal = st.session_state["meals_db"][-1] if st.session_state["meals_db"] else {
-        "meal_type": "عشاء", "time": "08:30 م", "delivered": 77, "coupons": 42, "distributed": 77, "recommended": 77
-    }
-
-    open_reps = [x for x in st.session_state["maintenance_db"] if x.get("status") == "مفتوح"]
-    done_reps = [x for x in st.session_state["maintenance_db"] if x.get("status") == "تم الإصلاح"]
-
-    open_m_txt = "\n".join([f"  • غرفة {x.get('room')}: {x.get('item')} (مسجل: {x.get('opened_at')})" for x in open_reps]) if open_reps else "  • لا توجد أعطال معلقة."
-    done_m_txt = "\n".join([f"  • تم إصلاح {x.get('item')} غرفة {x.get('room')} ({x.get('closed_at')})" for x in done_reps]) if done_reps else "  • لا توجد أعمال مصلحة اليوم."
-
-    all_v = st.session_state["violations_db"]
-    v_txt = "\n".join([f"  • {x.get('target')}: {x.get('category')} (تكرار {x.get('count')}) [{x.get('time')}]" for x in all_v[-4:]]) if all_v else "  • الوضع منضبط ولا توجد مخالفات."
-
-    full_daily_report = f"""مساك الله بالخير،،
-تقرير الموقف والعمليات المعتمد - {LOCATION_TAG}
-التاريخ: {today_str}
-
-1️⃣ الإعاشة والوجبات [{last_meal.get('meal_type')}]:
-- وقت الصرف: {last_meal.get('time')}
-- المورد: {last_meal.get('delivered')} | المصروف بكوبون: {last_meal.get('coupons')}
-- المستهلك الفعلي: {last_meal.get('distributed')} شخص.
-💡 التوصية التشغيلية للطلبية القادمة: {last_meal.get('recommended')} وجبة.
-
-2️⃣ الصيانة ({len(open_reps)} معلق / {len(done_reps)} تم إنجازه):
-- المعلق حالياً:
-{open_m_txt}
-- ما تم إنجازه:
-{done_m_txt}
-
-3️⃣ النظافة والمخالفات المرصودة:
-{v_txt}
-
-الوضع العام بالسكن: منضبط وتحت السيطرة الميدانية الكاملة."""
-
-    render_instant_whatsapp_box(full_daily_report, default_contact="المدير عمر", key_suffix="daily_final")
-
-# ------------------------------------------------------------------------------
-# 5. تبويب الأدمن والخزنة وإدارة الأرقام
-# ------------------------------------------------------------------------------
-with tab_vault:
-    st.markdown("##### 🔐 إعدادات أرقام التواصل والأدمن:")
-
-    if not st.session_state["is_supervisor"]:
-        pin_in = st.text_input("أدخل رمز المشرف:", type="password")
-        if st.button("🔓 فتح الإعدادات", use_container_width=True):
-            if hmac.compare_digest(pin_in.strip().encode(), PERMANENT_PIN.encode()):
-                st.session_state["is_supervisor"] = True
-                st.rerun()
+        if submit_round:
+            if not floors_checked:
+                st.error("يرجى اختيار دور واحد على الأقل.")
             else:
-                st.error("الرمز غير صحيح.")
+                floors_str = "، ".join(floors_checked)
+                t_r = datetime.now().strftime("%I:%M %p")
+                d_r = datetime.now().strftime("%Y-%m-%d")
+                
+                st.session_state.rounds.append({
+                    "الجولة": "جولة ميدانية",
+                    "الأدوار": floors_str,
+                    "الوقت": t_r,
+                    "التاريخ": d_r,
+                    "الملاحظة": round_note.strip() or "تم المرور والتأكد من انضباط السكن"
+                })
+                
+                round_msg = f"محضر جولة ميدانية:\n- الأدوار المزارة: {floors_str}\n- التوقيت: {t_r} ({d_r})\n- الملاحظات: {round_note.strip() or 'الوضع منضبط وسليم'}"
+                st.session_state["latest_round_msg"] = round_msg
+                st.success("تم تسجيل الجولة بنجاح!")
+
+    if "latest_round_msg" in st.session_state:
+        st.link_button("📲 إرسال محضر الجولة عبر واتساب", make_wa_link(st.session_state["latest_round_msg"]), use_container_width=True)
+
+    st.markdown("#### 🕒 سجل آخر الجولات والأدوار التي تمت زيارتها:")
+    for r in reversed(st.session_state.rounds[-5:]):
+        with st.container(border=True):
+            st.markdown(f"**الأدوار:** {r['الأدوار']}")
+            st.caption(f"⏰ {r['الوقت']} | 📅 {r['التاريخ']} — الملاحظة: {r['الملاحظة']}")
+
+# ------------------------------------------------------------------------------
+# 4. التقرير القيادي الشامل وكشف الإكسل التفاعلي (أعلى كفاءة وأقل جهد)
+# ------------------------------------------------------------------------------
+with tab4:
+    st.subheader("📊 ملخص الموقف اليومي وكشف الإكسل")
+
+    # 1. إعداد التقرير النصي التلخيصي
+    p_rep = [x for x in st.session_state.maintenance if x["الحالة"] == "معلق"]
+    f_rep = [x for x in st.session_state.maintenance if x["الحالة"] == "تم الإصلاح"]
+    v_all = st.session_state.violations
+    last_r = st.session_state.rounds[-1] if st.session_state.rounds else None
+
+    # الغرف الأكثر تكراراً
+    freq_txt = "لا يوجد تكرار، جميع المخالفات فردية."
+    if v_all:
+        df_temp = pd.DataFrame(v_all)
+        vc = df_temp["الجهة / الغرفة"].value_counts()
+        high_v = vc[vc >= 2]
+        if not high_v.empty:
+            freq_txt = "، ".join([f"{k} ({v} مرات)" for k, v in high_v.items()])
+
+    summary_text = f"""مساك الله بالخير،،
+تقرير الموقف والعمليات الميدانية للسكن اليوم:
+
+🛠️ الصيانة:
+- البلاغات المعلقة: {len(p_rep)}
+- تم إصلاحها اليوم: {len(f_rep)}
+
+⚠️ المخالفات والتكرار (حفظاً للحقوق):
+- إجمالي المخالفات المسجلة: {len(v_all)}
+- الغرف المكررة: {freq_txt}
+
+🚶 الجولة الميدانية:
+- آخر أدوار تم تفتيشها: {last_r['الأدوار'] if last_r else 'لم تسجل بعد'}
+- حالة السكن العامة: منضبط وتحت السيطرة الميدانية."""
+
+    # صندوق عرض التقرير التفصيلي
+    st.text_area("📝 التقرير الملخص لمتخذ القرار:", value=summary_text, height=210)
+    st.link_button("📲 إرسال التقرير الشامل فوراً لأي شخص بالواتساب", make_wa_link(summary_text), use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("#### 📋 كشف الإكسل التفاعلي (Excel View):")
+    
+    view_type = st.radio("اختر الجدول المطلوب عرضه:", ["الصيانة", "المخالفات والإنذارات", "الجولات والأدوار"], horizontal=True)
+
+    if view_type == "الصيانة":
+        df_show = pd.DataFrame(st.session_state.maintenance)
+    elif view_type == "المخالفات والإنذارات":
+        df_show = pd.DataFrame(st.session_state.violations)
     else:
-        st.success("🟢 لوحة الأدمن مفتوحة.")
-        if st.button("🔒 قفل اللوحة"):
-            st.session_state["is_supervisor"] = False
-            st.rerun()
+        df_show = pd.DataFrame(st.session_state.rounds)
 
-        st.divider()
-        st.markdown("###### ⚙️ تحديث أرقام الواتساب في النظام:")
-        
-        c_p1, c_p2 = st.columns(2)
-        with c_p1:
-            u_mgr = st.text_input("رقم المدير عمر:", value=st.session_state["contacts"].get("المدير عمر", ""))
-            u_sup = st.text_input("رقم المشرف الزميل:", value=st.session_state["contacts"].get("المشرف الزميل", ""))
-        with c_p2:
-            u_mnt = st.text_input("رقم مقاول الصيانة:", value=st.session_state["contacts"].get("مقاول الصيانة", ""))
-            u_cat = st.text_input("رقم متعهد الإعاشة:", value=st.session_state["contacts"].get("متعهد الإعاشة", ""))
+    # عرض جدول إكسل تفاعلي منظم
+    st.dataframe(df_show, use_container_width=True, hide_index=True)
 
-        if st.button("💾 حفظ الأرقام الجديدة"):
-            st.session_state["contacts"]["المدير عمر"] = u_mgr.strip()
-            st.session_state["contacts"]["المشرف الزميل"] = u_sup.strip()
-            st.session_state["contacts"]["مقاول الصيانة"] = u_mnt.strip()
-            st.session_state["contacts"]["متعهد الإعاشة"] = u_cat.strip()
-            st.success("تم تحديث جهات الاتصال بنجاح!")
-            st.rerun()
-
-        st.divider()
-        st.markdown("###### 📥 تنزيل السجلات:")
-        if st.session_state["maintenance_db"]:
-            df_m = pd.DataFrame(st.session_state["maintenance_db"])
-            st.download_button(
-                "تحميل سجل الصيانة (Excel/CSV)",
-                df_m.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"repairs_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
+    # زر تحميل الإكسل المباشر
+    csv_bytes = df_show.to_csv(index=False).encode("utf-8-sig")
+    st.download_button(
+        label=f"📥 تحميل كشف {view_type} بصيغة Excel (CSV)",
+        data=csv_bytes,
+        file_name=f"report_{view_type}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
