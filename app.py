@@ -7,7 +7,7 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
-# استيراد مكتبة التشفير مع دعم البديل الآمن
+# التحقق من وجود مكتبة التشفير للأمان المتقدم
 try:
     from cryptography.fernet import Fernet
     from cryptography.hazmat.primitives import hashes
@@ -17,11 +17,11 @@ except ImportError:
     HAS_CRYPTO = False
 
 # ==============================================================================
-# 1. إعداد الصفحة وتصميم الجوال الميداني
+# 1. إعداد الصفحة والواجهة للجوال
 # ==============================================================================
 st.set_page_config(
-    page_title="المشرف السريع | سكن الـ 455",
-    page_icon="⚡",
+    page_title="المشرف فارس العصيمي | سكن جامعة 3",
+    page_icon="🏢",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -58,7 +58,18 @@ html, body, [class*="css"] {
     text-align: center; 
 }
 .headline { font-size: 1.15em; font-weight: 900; color: #ffffff; margin: 0; }
-.sub-headline { font-size: 0.82em; font-weight: 700; color: #94a3b8; margin-top: 3px; }
+.sub-headline { font-size: 0.82em; font-weight: 700; color: #94a3b8; margin-top: 4px; }
+.badge-admin {
+    display: inline-block;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: var(--primary);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.75em;
+    font-weight: 800;
+    margin-top: 4px;
+}
 div[data-testid="stFormSubmitButton"] > button { 
     background: var(--primary) !important; 
     color: #022c22 !important; 
@@ -77,17 +88,6 @@ div[data-testid="stFormSubmitButton"] > button {
     font-size: 0.74em;
     font-weight: 800;
 }
-.warning-live {
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px solid #ef4444;
-    color: #fca5a5;
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 0.82em;
-    font-weight: 800;
-    margin-bottom: 10px;
-    text-align: center;
-}
 .stat-box {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -101,11 +101,16 @@ div[data-testid="stFormSubmitButton"] > button {
 )
 
 # ==============================================================================
-# 2. إعدادات الأمان وقواعد البيانات
+# 2. الثوابت الرسمية والأمان
 # ==============================================================================
+SUPERVISOR_NAME = "فارس العصيمي"
+MANAGER_NAME = "عمر"
+LOCATION_TAG = "سكن جامعة 3"
+MOTTO = "إصرار"
 MASTER_KEY = str(st.secrets.get("SUPERVISOR_PIN", "9988")).strip()
 MAINTENANCE_PHONE = "966500000000"
 
+# تهيئة قواعد البيانات المؤقتة
 if "meals_db" not in st.session_state:
     st.session_state["meals_db"] = []
 
@@ -117,8 +122,7 @@ if "maintenance_db" not in st.session_state:
 
 if "violations_db" not in st.session_state:
     st.session_state["violations_db"] = [
-        {"id": "3041", "room": "108", "type": "تدخين داخل السكن 🚭", "action": "تعهد خطي", "date": "2026-11-05 09:15 م", "notes": "إنذار أول"},
-        {"id": "3041", "room": "108", "type": "تدخين داخل السكن 🚭", "action": "رفع للإدارة (خصم)", "date": "2026-11-07 10:30 م", "notes": "ضبط متلبس للمرة الثانية"},
+        {"id": "3041", "room": "108", "type": "تعهد إداري", "notes": "إنذار أول للموظف", "date": "2026-11-05 09:15 م"},
     ]
 
 if "rounds_db" not in st.session_state:
@@ -127,140 +131,114 @@ if "rounds_db" not in st.session_state:
 if "is_supervisor" not in st.session_state:
     st.session_state["is_supervisor"] = False
 
-# التعرف التلقائي على الوجبة الحالية حسب ساعة اليوم
-curr_hour = datetime.now().hour
-if 5 <= curr_hour < 11:
-    auto_meal = "فطور"
-elif 11 <= curr_hour < 16:
-    auto_meal = "غداء"
-else:
-    auto_meal = "عشاء"
-
 # ==============================================================================
-# 3. واجهة التطبيق الرئيسية
+# 3. ترويسة التطبيق الرسمية والبحث الميداني
 # ==============================================================================
 st.markdown(
-    """
+    f"""
 <div class="top-card">
-    <div class="headline">⚡ المشرف الميداني السريع</div>
-    <div class="sub-headline">تسجيل الوجبات • بلاغات الصيانة • رصد السوابق في ثوانٍ</div>
+    <div class="headline">🏢 بوابة تشغيل {LOCATION_TAG}</div>
+    <div class="sub-headline">المشرف: <b>{SUPERVISOR_NAME}</b> | المدير: <b>{MANAGER_NAME}</b></div>
+    <div><span class="badge-admin">شعار العمل: {MOTTO} ⚡</span></div>
 </div>
 """,
     unsafe_allow_html=True,
 )
 
 tab_meals, tab_repairs, tab_violations, tab_rounds, tab_vault = st.tabs([
-    "🍽️ إقفال وجبة",
-    "🛠️ بلاغ صيانة",
-    "⚠️ مخالفة موظف",
-    "🚶 جولة سريعة",
+    "🍽️ الأكل",
+    "🛠️ الصيانة",
+    "⚠️ المخالفات",
+    "🚶 الجولات",
     "🔐 الخزنة"
 ])
 
 # ------------------------------------------------------------------------------
-# خطوة 1 مبسطة: إقفال الوجبة (كشف الوقت آلياً وحساب الآسيوي تلقائياً)
+# 1. تبويب الأكل: الكوبون والفائض فقط
 # ------------------------------------------------------------------------------
 with tab_meals:
-    st.markdown("##### ⏱️ إقفال الوجبة الحاليّة:")
+    st.markdown("##### ⏱️ حصر الأكل (كوبون وفائض فقط):")
 
-    with st.form("quick_meal_form", clear_on_submit=False):
-        c_p1, c_p2 = st.columns(2)
-        with c_p1:
-            meal_period = st.selectbox("الوجبة المكتشفة:", ["غداء", "عشاء", "فطور"], index=["غداء", "عشاء", "فطور"].index(auto_meal))
-        with c_p2:
-            total_delivered = st.number_input("إجمالي المستلم:", min_value=1, max_value=600, value=77)
+    with st.form("simple_meal_form", clear_on_submit=False):
+        coupons_count = st.number_input("عدد الكوبونات المستلمة:", min_value=0, max_value=600, value=42)
+        surplus_count = st.number_input("الفائض المتبقي بالصواني:", min_value=0, max_value=600, value=0)
+        meal_note = st.text_input("ملاحظة (اختياري):", placeholder="أي ملاحظة سريعة...")
 
-        c_q1, c_q2 = st.columns(2)
-        with c_q1:
-            coupons_collected = st.number_input("المصروف بكوبون:", min_value=0, max_value=600, value=42)
-        with c_q2:
-            leftovers_count = st.number_input("الفائض بالصواني:", min_value=0, max_value=300, value=0)
-
-        arabic_count = st.number_input("عدد الوجبات العربي:", min_value=0, max_value=600, value=2)
-        asian_auto = max(0, total_delivered - arabic_count)
-        st.caption(f"💡 المحسوب تلقائياً كوجبات آسيوي: **{asian_auto} وجبة**")
-
-        meal_notes = st.text_input("ملاحظة سريعة (اختياري):", placeholder="سجل طبيعي...")
-
-        btn_save_meal = st.form_submit_button("⚡ حفظ الوجبة في ثانية")
-
-        distributed_total = total_delivered - leftovers_count
-        no_coupon_count = max(0, distributed_total - coupons_collected)
+        btn_save_meal = st.form_submit_button("حفظ الوجبة")
 
         if btn_save_meal:
             st.session_state["meals_db"].append({
                 "date": datetime.now().strftime("%Y-%m-%d"),
                 "time": datetime.now().strftime("%I:%M %p"),
-                "meal": meal_period,
-                "delivered": int(total_delivered),
-                "arabic": int(arabic_count),
-                "asian": int(asian_auto),
-                "with_coupon": int(coupons_collected),
-                "without_coupon": int(no_coupon_count),
-                "leftovers": int(leftovers_count),
-                "notes": meal_notes.strip() if meal_notes.strip() else "سجل طبيعي"
+                "coupons": int(coupons_count),
+                "surplus": int(surplus_count),
+                "supervisor": SUPERVISOR_NAME,
+                "location": LOCATION_TAG,
+                "notes": meal_note.strip() if meal_note.strip() else "سليم"
             })
-            st.success(f"تم إقفال وجبة {meal_period} بنجاح!")
+            st.success("تم حفظ الكوبونات والفائض بنجاح!")
 
     st.markdown("---")
     m1, m2 = st.columns(2)
-    m1.metric("الموزع فعلياً", f"{distributed_total} وجبة")
-    m2.metric("توزع بكوبون", f"{coupons_collected} وجبة")
-
-    m3, m4 = st.columns(2)
-    m3.metric("بدون كوبون", f"{no_coupon_count} وجبة", delta=f"{no_coupon_count} إضافي" if no_coupon_count > 0 else "0", delta_color="inverse")
-    m4.metric("الفائض بالصواني", f"{leftovers_count} وجبة")
+    m1.metric("الكوبونات", f"{coupons_count} وجبة")
+    m2.metric("الفائض بالصواني", f"{surplus_count} وجبة")
 
 # ------------------------------------------------------------------------------
-# خطوة 2 مبسطة: بلاغ صيانة سريع بالأزرار (Chips)
+# 2. تبويب الصيانة: مكيف، شطاف، أو أخرى
 # ------------------------------------------------------------------------------
 with tab_repairs:
-    st.markdown("##### 🚨 تسجيل بلاغ عطل فوري:")
+    st.markdown("##### 🚨 تسجيل بلاغ صيانة:")
 
-    with st.form("quick_defect_form", clear_on_submit=True):
+    with st.form("simple_defect_form", clear_on_submit=True):
         room_no = st.text_input("رقم الغرفة (مثال: 104):")
         
-        # أزرار سريعة للأعطال الـ 7 الشائعة
-        defect_item = st.radio(
-            "اختر القطعة بلمسة واحدة:",
-            ["مكيف ❄️", "شطاف 🚿", "فيش كهرباء ⚡", "سخان موية 🔥", "بزبوز 🚰", "مرواش 🚿", "لمبة سقف 💡"],
+        defect_choice = st.radio(
+            "اختر العطل:",
+            ["مكيف ❄️", "شطاف 🚿", "أخرى 🛠️"],
             horizontal=True
         )
 
-        defect_notes = st.text_input("تفاصيل العطل:", placeholder="مثال: يقطر ماء / محروق...")
-        btn_save_defect = st.form_submit_button("⚡ إدراج البلاغ فوراً")
+        custom_defect = ""
+        if "أخرى" in defect_choice:
+            custom_defect = st.text_input("اكتب العطل الآخر بيدك:", placeholder="مثال: فيش كهرباء / سخان...")
+
+        defect_desc = st.text_input("وصف العطل:", placeholder="مثال: يقطر ماء / لا يعمل...")
+        btn_save_defect = st.form_submit_button("إدراج البلاغ")
 
         if btn_save_defect:
             r_clean = room_no.strip()
+            final_item = custom_defect.strip() if ("أخرى" in defect_choice and custom_defect.strip()) else defect_choice
+            
             if not r_clean:
                 st.error("الرجاء كتابة رقم الغرفة.")
             else:
                 st.session_state["maintenance_db"].append({
                     "room": r_clean,
-                    "item": defect_item,
-                    "desc": defect_notes.strip() if defect_notes.strip() else "عطل تشغيلي",
+                    "item": final_item,
+                    "desc": defect_desc.strip() if defect_desc.strip() else "عطل تشغيلي",
                     "date": datetime.now().strftime("%Y-%m-%d"),
-                    "status": "مفتوح"
+                    "status": "مفتوح",
+                    "supervisor": SUPERVISOR_NAME
                 })
-                st.success(f"تم تسجيل بلاغ غرفة {r_clean} بنجاح.")
+                st.success(f"تم تسجيل عطل غرفة {r_clean} ({final_item}).")
 
     st.markdown("---")
     open_defects = [x for x in st.session_state["maintenance_db"] if x["status"] == "مفتوح"]
     if open_defects:
         df_def = pd.DataFrame(open_defects)
-        room_repetition = df_def["room"].value_counts()
-        wa_lines = ["*تقرير صيانة السكن المفتوحة:*"]
+        room_reps = df_def["room"].value_counts()
+        wa_lines = [f"*تقرير صيانة {LOCATION_TAG} - المشرف {SUPERVISOR_NAME}:*"]
 
         for idx, row in enumerate(open_defects):
             r_num = row["room"]
-            repeats = room_repetition.get(r_num, 1)
-            repeat_badge = f"<span class='alert-tag'>تكرر {repeats} مرات</span>" if repeats >= 2 else ""
+            repeats = room_reps.get(r_num, 1)
+            repeat_tag = f"<span class='alert-tag'>تكرر {repeats} مرات</span>" if repeats >= 2 else ""
 
             st.markdown(
                 f"""
                 <div class="stat-box">
-                    <b>غرفة {row['room']}</b> — <span style="color:var(--primary); font-weight:800;">{row['item']}</span> {repeat_badge}<br>
-                    <small style="color:#94a3b8;">{row['desc']} | تاريخ: {row['date']}</small>
+                    <b>غرفة {row['room']}</b> — <span style="color:var(--primary); font-weight:800;">{row['item']}</span> {repeat_tag}<br>
+                    <small style="color:#94a3b8;">{row['desc']} | التاريخ: {row['date']}</small>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -278,107 +256,108 @@ with tab_repairs:
             unsafe_allow_html=True
         )
     else:
-        st.info("لا توجد بلاغات أعطال مفتوحة حالياً بالسكن.")
+        st.info("لا توجد بلاغات صيانة مفتوحة حالياً.")
 
 # ------------------------------------------------------------------------------
-# خطوة 3 مبسطة: المخالفات مع كشف لحظي للسوابق بمجرد كتابة الآيدي
+# 3. تبويب المخالفات: سخان، تعهد، أو أخرى (دخان وغيره)
 # ------------------------------------------------------------------------------
 with tab_violations:
-    st.markdown("##### ⚠️ تسجيل مخالفة موظف:")
+    st.markdown("##### ⚠️ تسجيل مخالفة أو تعهد:")
 
-    emp_id_input = st.text_input("أدخل رقم الآيدي للتحقق الفوري من السوابق:", key="live_emp_check")
+    with st.form("simple_violation_form", clear_on_submit=True):
+        emp_id = st.text_input("رقم الآيدي (الرقم الوظيفي):", placeholder="مثال: 3041")
+        v_room = st.text_input("رقم الغرفة:")
 
-    # كشف فوري للسوابق بمجرد كتابة الرقم (قبل الضغط على الحفظ)
-    if emp_id_input.strip():
-        past_records = [v for v in st.session_state["violations_db"] if v["id"] == emp_id_input.strip()]
-        if past_records:
+        v_type_choice = st.radio(
+            "نوع المخالفة:",
+            ["سخان موية / طبخ سخان ⚡", "تعهد إداري 📝", "أخرى ⚠️"],
+            horizontal=True
+        )
+
+        custom_v_type = ""
+        if "أخرى" in v_type_choice:
+            custom_v_type = st.text_input("حدد المخالفة الأخرى (دخان / إزعاج / غيره):", placeholder="مثال: تدخين بالغرفة...")
+
+        v_details = st.text_input("ملاحظات المخالفة:", placeholder="تفاصيل إضافية...")
+        btn_save_viol = st.form_submit_button("تسجيل المخالفة فوراً")
+
+        if btn_save_viol:
+            clean_id = emp_id.strip()
+            final_viol = custom_v_type.strip() if ("أخرى" in v_type_choice and custom_v_type.strip()) else v_type_choice
+            
+            if not clean_id:
+                st.error("الرجاء كتابة رقم الآيدي.")
+            else:
+                st.session_state["violations_db"].append({
+                    "id": clean_id,
+                    "room": v_room.strip() if v_room.strip() else "غير محدد",
+                    "type": final_viol,
+                    "notes": v_details.strip() if v_details.strip() else "تم رصد المخالفة",
+                    "date": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
+                    "supervisor": SUPERVISOR_NAME
+                })
+                st.success(f"تم توثيق المخالفة على الموظف ({clean_id}) بنجاح.")
+
+    st.markdown("---")
+    st.markdown("##### 📋 سجل المخالفين الأخير:")
+    if st.session_state["violations_db"]:
+        df_v = pd.DataFrame(st.session_state["violations_db"])
+        id_counts = df_v["id"].value_counts()
+
+        for row in reversed(st.session_state["violations_db"][-4:]):
+            rep = id_counts.get(row["id"], 1)
+            repeat_badge = f"<span class='alert-tag'>⚠️ سوابق: مسجل {rep} مرات</span>" if rep >= 2 else ""
+
             st.markdown(
                 f"""
-                <div class="warning-live">
-                    ⚠️ تنبيه: الموظف مسجل لديه ({len(past_records)}) مخالفات سابقة!<br>
-                    آخرها: {past_records[-1]['type']} بتاريخ {past_records[-1]['date']}
+                <div class="stat-box" style="border-right: 3px solid #ef4444;">
+                    <b>آيدي: {row['id']}</b> (غرفة {row['room']}) {repeat_badge}<br>
+                    <span style="color:#f87171; font-weight:800;">{row['type']}</span><br>
+                    <small style="color:#94a3b8;">{row['date']} | {row['notes']}</small>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
-        else:
-            st.caption("✅ سجل الموظف نظيف ولا توجد سوابق مسجلة.")
-
-    with st.form("quick_violation_form", clear_on_submit=True):
-        v_room = st.text_input("رقم الغرفة:")
-        
-        v_type = st.radio(
-            "نوع المخالفة السريعة:",
-            [
-                "تدخين داخل السكن 🚭",
-                "إزعاج وقت نوم شفت الليل 🔊",
-                "طبخ كهرباء بالغرفة ⚡",
-                "أخرى"
-            ],
-            horizontal=True
-        )
-
-        v_action = st.selectbox(
-            "الإجراء المتخذ:",
-            ["توقيع تعهد خطي رسمي", "تعهد شفهي", "رفع مذكرة للإدارة (خصم/نقل)", "إنذار أول"]
-        )
-
-        v_notes = st.text_input("تفاصيل المخالفة (اختياري):", placeholder="مثال: ضبط متلبس بالتدخين في الشباك...")
-
-        btn_save_violation = st.form_submit_button("🚨 اعتماد المخالفة وتثبيت الوقت")
-
-        if btn_save_violation:
-            clean_emp = emp_id_input.strip()
-            if not clean_emp:
-                st.error("الرجاء كتابة رقم الآيدي أولاً.")
-            else:
-                st.session_state["violations_db"].append({
-                    "id": clean_emp,
-                    "room": v_room.strip() if v_room.strip() else "غير محدد",
-                    "type": v_type,
-                    "action": v_action,
-                    "date": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
-                    "notes": v_notes.strip() if v_notes.strip() else "تم رصد المخالفة"
-                })
-                st.success(f"تم توثيق المخالفة على الموظف ({clean_emp}) رسمياً.")
-                st.rerun()
+    else:
+        st.info("سجل المخالفات نظيف.")
 
 # ------------------------------------------------------------------------------
-# تبويب 4: الجولات الميدانية بتوثيق سريع
+# 4. تبويب الجولات: جولة صباح (09:30 ص) وجولة ليل (08:30 م)
 # ------------------------------------------------------------------------------
 with tab_rounds:
-    st.markdown("##### 🚶 توثيق جولة سريعة:")
+    st.markdown("##### 🚶 توثيق الجولتين الميدانيتين:")
 
-    with st.form("round_form", clear_on_submit=True):
-        round_period = st.selectbox(
-            "فترة الجولة:",
-            [
-                "جولة المساء (بعد العشاء 8:30 م - 9:30 م)",
-                "جولة بعد المغرب (6:30 م - 7:30 م)",
-                "جولة الصباح (تفقد النظافة والهدوء)",
-                "جولة العصر",
-                "جولة طارئة"
-            ]
+    # تحديد أفضل وقت تلقائياً بناءً على ساعة اليوم
+    current_hr = datetime.now().hour
+    best_round_default = "جولة الصباح (09:30 ص)" if current_hr < 14 else "جولة الليل (08:30 م)"
+
+    with st.form("simple_round_form", clear_on_submit=True):
+        selected_round = st.radio(
+            "اختر الجولة (أفضل أوقات التفتيش):",
+            ["جولة الصباح (09:30 ص) • نظافة وهدوء شفت الليل", "جولة الليل (08:30 م) • بعد توزيع العشاء والصيانة"],
+            index=0 if "الصباح" in best_round_default else 1
         )
-        r_notes = st.text_input("ملاحظة الجولة:", placeholder="مثال: التزام كامل بالهدوء...")
-        btn_save_round = st.form_submit_button("⚡ حفظ الجولة")
+
+        r_note = st.text_input("ملاحظات الجولة الميدانية:", placeholder="مثال: التزام كامل بالهدوء والنظافة...")
+        btn_save_round = st.form_submit_button("حفظ الجولة")
 
         if btn_save_round:
             st.session_state["rounds_db"].append({
                 "date": datetime.now().strftime("%Y-%m-%d"),
-                "round_type": round_period,
-                "logged_time": datetime.now().strftime("%I:%M %p"),
-                "notes": r_notes if r_notes else "سليم"
+                "time": datetime.now().strftime("%I:%M %p"),
+                "round": selected_round.split()[0] + " " + selected_round.split()[1],
+                "notes": r_note.strip() if r_note.strip() else "تمت الجولة وسكن هادئ",
+                "supervisor": SUPERVISOR_NAME
             })
-            st.success("تم توثيق الجولة.")
+            st.success("تم توثيق الجولة بنجاح.")
 
     if st.session_state["rounds_db"]:
         st.markdown("---")
-        for r in st.session_state["rounds_db"][-2:]:
+        for r in st.session_state["rounds_db"][-3:]:
             st.markdown(
                 f"""
                 <div class="stat-box">
-                    <b>{r['round_type']}</b> — <small style="color:var(--primary);">{r['logged_time']}</small><br>
+                    <b>{r['round']}</b> — <small style="color:var(--primary);">{r['time']}</small><br>
                     <small style="color:#94a3b8;">الملاحظات: {r['notes']}</small>
                 </div>
                 """,
@@ -386,57 +365,76 @@ with tab_rounds:
             )
 
 # ------------------------------------------------------------------------------
-# تبويب 5: الخزنة المشفرة للمشرف وتصدير Excel
+# 5. الخزنة الرقمية والبحث المشفر وتصدير Excel
 # ------------------------------------------------------------------------------
 with tab_vault:
-    st.markdown("##### 🔐 الخزنة الرقمية للمشرف:")
+    st.markdown("##### 🔐 الخزنة الرقمية للمشرف فارس العصيمي:")
 
     if not st.session_state["is_supervisor"]:
         st.caption("🔒 أدخل رمز المشرف السري (PIN) لاستعراض السجلات وتنزيل التقارير:")
         input_pin = st.text_input("رمز المشرف:", type="password")
 
-        if st.button("🔓 فتح الخزنة المشفرة", use_container_width=True):
+        if st.button("🔓 فتح الخزنة", use_container_width=True):
             if hmac.compare_digest(input_pin.strip().encode(), MASTER_KEY.encode()):
                 st.session_state["is_supervisor"] = True
-                st.success("تم فتح الخزنة!")
                 st.rerun()
             else:
                 st.error("رمز المشرف غير صحيح.")
     else:
-        st.success("🟢 الخزنة مفتوحة.")
-        if st.button("🔒 قفل الخزنة فوراً"):
+        st.success(f"🟢 مرحباً يا أبو ربيع ({SUPERVISOR_NAME}) - الخزنة مؤمنة بالكامل.")
+        if st.button("🔒 قفل الخزنة والخروج"):
             st.session_state["is_supervisor"] = False
             st.rerun()
 
         st.divider()
-        st.markdown("###### 📥 تصدير السجلات الميدانية لـ Excel:")
 
-        if st.session_state["violations_db"]:
-            df_v_exp = pd.DataFrame(st.session_state["violations_db"])
-            st.download_button(
-                label="📑 تحميل كشف المخالفات (Excel)",
-                data=df_v_exp.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"Violations_{datetime.now().strftime('%Y%m%d')}.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
+        # محرك البحث الميداني الشامل
+        st.markdown("###### 🔍 البحث الميداني (بحث برقم الآيدي، الغرفة، أو كلمة):")
+        search_query = st.text_input("اكتب رقم الآيدي أو الغرفة للبحث السريع:", placeholder="مثال: 3041 أو 104...")
+
+        if search_query.strip():
+            sq = search_query.strip().lower()
+            matching_viol = [v for v in st.session_state["violations_db"] if sq in v.get("id", "").lower() or sq in v.get("room", "").lower()]
+            matching_rep = [m for m in st.session_state["maintenance_db"] if sq in m.get("room", "").lower() or sq in m.get("item", "").lower()]
+
+            st.write(f"نتائج البحث عن ({search_query}):")
+            for mv in matching_viol:
+                st.info(f"⚠️ مخالفة آيدي {mv['id']} (غرفة {mv['room']}): {mv['type']} - {mv['notes']}")
+            for mr in matching_rep:
+                st.warning(f"🛠️ صيانة غرفة {mr['room']}: {mr['item']} - {mr['desc']} ({mr['status']})")
+
+        st.divider()
+
+        # تصدير ملفات Excel النظيفة والمعتمدة للمدير عمر
+        st.markdown(f"###### 📥 تصدير السجلات المعتمدة للإدارة (المدير: {MANAGER_NAME}):")
 
         if st.session_state["meals_db"]:
-            df_m_exp = pd.DataFrame(st.session_state["meals_db"])
+            df_m = pd.DataFrame(st.session_state["meals_db"])
             st.download_button(
-                label="📊 تحميل سجل الوجبات (Excel)",
-                data=df_m_exp.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"Meals_{datetime.now().strftime('%Y%m%d')}.csv",
+                label="📊 تحميل كشف الوجبات (الكوبون والفائض) - Excel",
+                data=df_m.to_csv(index=False).encode("utf-8-sig"),
+                file_name=f"Meals_{LOCATION_TAG}_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
                 use_container_width=True
             )
 
         if st.session_state["maintenance_db"]:
-            df_r_exp = pd.DataFrame(st.session_state["maintenance_db"])
+            df_r = pd.DataFrame(st.session_state["maintenance_db"])
             st.download_button(
-                label="🛠️ تحميل تقرير الصيانة (Excel)",
-                data=df_r_exp.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"Repairs_{datetime.now().strftime('%Y%m%d')}.csv",
+                label="🛠️ تحميل تقرير الصيانة (مكيفات وشطافات) - Excel",
+                data=df_r.to_csv(index=False).encode("utf-8-sig"),
+                file_name=f"Repairs_{LOCATION_TAG}_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
                 use_container_width=True
             )
+
+        if st.session_state["violations_db"]:
+            df_v = pd.DataFrame(st.session_state["violations_db"])
+            st.download_button(
+                label="⚠️ تحميل كشف المخالفات والتعهدات - Excel",
+                data=df_v.to_csv(index=False).encode("utf-8-sig"),
+                file_name=f"Violations_{LOCATION_TAG}_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
