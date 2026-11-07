@@ -1,11 +1,12 @@
-from datetime import datetime
 import hmac
+import math
 import urllib.parse
+from datetime import datetime
 import pandas as pd
 import streamlit as st
 
 # ==============================================================================
-# 1. إعداد الشاشة للجوال الميداني
+# 1. إعداد الشاشة للجوال الميداني (RTL / Dark Mode)
 # ==============================================================================
 st.set_page_config(
     page_title="سكن جامعة 3 | العمليات الميدانية",
@@ -100,23 +101,26 @@ div[data-testid="stFormSubmitButton"] > button {
 )
 
 # ==============================================================================
-# 2. الثوابت العامة وقواعد البيانات مع الحماية من تعارض المفاتيح
+# 2. الثوابت العامة وإدارة الجلسة الآمنة (الرمز الدائم 5050)
 # ==============================================================================
 LOCATION_TAG = "سكن جامعة 3"
 PERMANENT_PIN = str(st.secrets.get("SUPERVISOR_PIN", "5050")).strip()
 
-if "phone_maint" not in st.session_state:
-  st.session_state["phone_maint"] = "966500000000"
-if "phone_mgr" not in st.session_state:
-  st.session_state["phone_mgr"] = "966500000000"
+if "contacts" not in st.session_state:
+  st.session_state["contacts"] = {
+      "المدير عمر": "966500000000",
+      "مقاول الصيانة": "966500000000",
+      "متعهد الإعاشة": "966500000000",
+  }
 
-# معالجة بيانات الصيانة مع دعم الحقول القديمة والجديدة بأمان تام
+# ترقية قواعد البيانات لتفادي أي تعارض في المفاتيح
 if "maintenance_db" not in st.session_state:
   st.session_state["maintenance_db"] = [
       {
           "room": "104",
           "item": "مكيف",
           "opened_at": "09:30 ص",
+          "date": "2026-11-06",
           "closed_at": None,
           "status": "مفتوح",
       },
@@ -124,15 +128,17 @@ if "maintenance_db" not in st.session_state:
           "room": "208",
           "item": "شطاف",
           "opened_at": "08:15 م",
+          "date": "2026-11-07",
           "closed_at": None,
           "status": "مفتوح",
       },
   ]
 else:
-  # ترقية تلقائية لأي سجل قديم مخزن في الذاكرة لتفادي KeyError
   for row in st.session_state["maintenance_db"]:
     if "opened_at" not in row:
-      row["opened_at"] = row.get("date", "غير محدد")
+      row["opened_at"] = row.get("time", "اليوم")
+    if "date" not in row:
+      row["date"] = datetime.now().strftime("%Y-%m-%d")
     if "status" not in row:
       row["status"] = "مفتوح"
     if "closed_at" not in row:
@@ -168,34 +174,161 @@ if "is_supervisor" not in st.session_state:
   st.session_state["is_supervisor"] = False
 
 # ==============================================================================
-# 3. واجهة التطبيق
+# 3. محرك التوقيت الدقيق للوجبات وفق مواعيد السكن الرسمية
+# ==============================================================================
+now = datetime.now()
+now_minutes = now.hour * 60 + now.minute
+
+# الفترات بالدقائق من بداية اليوم:
+# الفطور: 05:30 (330 دقيقة) حتى 07:00 (420 دقيقة)
+# الغداء: 11:30 (690 دقيقة) حتى 14:30 (870 دقيقة)
+# العشاء: 17:30 (1050 دقيقة) حتى 21:00 (1260 دقيقة)
+
+if now_minutes < 570:  # حتى 09:30 صباحاً -> الافتراضي فطور
+  auto_meal_idx = 0
+  active_period_name = "الفطور (05:30 ص - 07:00 ص)"
+  is_within_official_window = 330 <= now_minutes <= 420
+elif now_minutes < 990:  # حتى 04:30 عصراً -> الافتراضي غداء
+  auto_meal_idx = 1
+  active_period_name = "الغداء (11:30 ص - 02:30 م)"
+  is_within_official_window = 690 <= now_minutes <= 870
+else:  # المساء والليل -> الافتراضي عشاء
+  auto_meal_idx = 2
+  active_period_name = "العشاء (05:30 م - 09:00 م)"
+  is_within_official_window = 1050 <= now_minutes <= 1260
+
+# ==============================================================================
+# 4. ترويسة التطبيق مع زر التحديث اللحظي
 # ==============================================================================
 st.markdown(
     f"""
 <div class="top-card">
     <div class="headline">🏢 إدارة {LOCATION_TAG}</div>
-    <div class="sub-headline">العمليات اليومية • بلاغات الصيانة • رصد المخالفات</div>
+    <div class="sub-headline">العمليات الميدانية • التوثيق الزمني • القرارات التشغيلية</div>
 </div>
 """,
     unsafe_allow_html=True,
 )
 
-tab_repairs, tab_viol, tab_meals, tab_rounds, tab_daily_report, tab_vault = (
-    st.tabs([
+c_head1, c_head2 = st.columns([2, 1])
+with c_head1:
+  st.caption(f"📅 اليوم: {now.strftime('%Y-%m-%d | %I:%M %p')}")
+with c_head2:
+  if st.button("🔄 تحديث الشاشة", use_container_width=True):
+    st.rerun()
+
+tab_meals, tab_repairs, tab_viol, tab_rounds, tab_dispatch, tab_vault = st.tabs(
+    [
+        "🍽️ الأكل والقرار",
         "🛠️ الصيانة",
         "⚠️ المخالفات",
-        "🍽️ الأكل",
         "🚶 الجولات",
-        "📋 تقرير آخر اليوم",
-        "🔐 الخزنة",
-    ])
+        "📲 مركز الواتساب",
+        "🔐 الأدمن والخزنة",
+    ]
 )
 
 # ------------------------------------------------------------------------------
-# 1. الصيانة: قيد سريع للأعطال وإغلاق بلمسة واحدة
+# 1. تبويب الأكل: فطور (5:30-7) / غداء (11:30-2:30) / عشاء (5:30-9)
+# ------------------------------------------------------------------------------
+with tab_meals:
+  st.markdown("##### 🍽️ توثيق الوجبة والقرار التشغيلي:")
+
+  # شريط التوقيت الرسمي
+  if is_within_official_window:
+    st.markdown(
+        f"<div class='stat-box' style='border-right: 3px solid #10b981;'>"
+        f"<span class='done-tag'>🟢 فترة صرف رسمية مفتوحة الآن</span><br>"
+        f"<b>{active_period_name}</b></div>",
+        unsafe_allow_html=True,
+    )
+  else:
+    st.markdown(
+        f"<div class='stat-box' style='border-right: 3px solid #94a3b8;'>"
+        f"<span style='color:#94a3b8; font-size:0.8em;'>🕒 خارج نافذة التوزيع المباشرة</span><br>"
+        f"<small>المواعيد: فطور (05:30-07:00 ص) | غداء (11:30-02:30 م) | عشاء (05:30-09:00 م)</small></div>",
+        unsafe_allow_html=True,
+    )
+
+  with st.form("meal_operational_form", clear_on_submit=False):
+    meal_type_chosen = st.selectbox(
+        "نوع الوجبة:",
+        [
+            "فطور 🌅 (05:30 ص - 07:00 ص)",
+            "غداء ☀️ (11:30 ص - 02:30 م)",
+            "عشاء 🌙 (05:30 م - 09:00 م)",
+        ],
+        index=auto_meal_idx,
+    )
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+      deliv = st.number_input(
+          "كم وجبة جات:", min_value=0, max_value=600, value=77
+      )
+    with c2:
+      coups = st.number_input("كوبون:", min_value=0, max_value=600, value=42)
+    with c3:
+      surp = st.number_input("فائض بالصواني:", min_value=0, max_value=600, value=0)
+
+    meal_note = st.text_input(
+        "ملاحظة الوجبة (اختياري):", placeholder="سليم / تأخر في التوريد..."
+    )
+
+    btn_meal = st.form_submit_button("⚡ حفظ الوجبة وتثبيت الوقت")
+
+    actual_distributed = max(0, deliv - surp)
+    no_coupon_count = max(0, actual_distributed - coups)
+
+    # قرار الطلبية القادمة علمياً: المستهلك الفعلي + 3% طوارئ
+    buffer_calc = (
+        math.ceil(actual_distributed * 0.03) if actual_distributed > 0 else 0
+    )
+    recommended_order = actual_distributed + buffer_calc
+
+    exact_time_now = datetime.now().strftime("%I:%M:%S %p")
+    exact_date_now = datetime.now().strftime("%Y-%m-%d")
+
+    clean_meal_name = meal_type_chosen.split()[0]
+
+    if btn_meal:
+      st.session_state["meals_db"].append({
+          "meal_type": clean_meal_name,
+          "date": exact_date_now,
+          "time": exact_time_now,
+          "delivered": int(deliv),
+          "coupons": int(coups),
+          "surplus": int(surp),
+          "distributed": int(actual_distributed),
+          "no_coupon": int(no_coupon_count),
+          "recommended": int(recommended_order),
+          "notes": meal_note.strip() if meal_note.strip() else "سليم",
+      })
+      st.success(
+          f"تم توثيق وجبة {clean_meal_name} رسمياً (الساعة {exact_time_now})!"
+      )
+
+  st.markdown("---")
+  m1, m2 = st.columns(2)
+  m1.metric("الموزع فعلياً", f"{actual_distributed} شخص")
+  m2.metric(
+      "الصرف بدون كوبون",
+      f"{no_coupon_count} وجبة",
+      delta=f"{no_coupon_count}" if no_coupon_count > 0 else "0",
+      delta_color="inverse",
+  )
+
+  st.info(
+      f"💡 **القرار التشغيلي العلمي:**\n"
+      f"المستهلك الفعلي لوجبة ({clean_meal_name}) هو **{actual_distributed} شخص**.\n"
+      f"الطلبية المقترحة للوجبة القادمة هي **{recommended_order} وجبة** (تغطي كافة الأفراد مع 3% طوارئ) لتفادي هدر **{max(0, deliv - recommended_order)} وجبة**."
+  )
+
+# ------------------------------------------------------------------------------
+# 2. تبويب الصيانة: قيد سريع وإغلاق بلمسة مع تسجيل الوقت
 # ------------------------------------------------------------------------------
 with tab_repairs:
-  st.markdown("##### 🛠️ بلاغ عطل جديد:")
+  st.markdown("##### 🛠️ بلاغ صيانة جديد:")
 
   with st.form("quick_rep_form", clear_on_submit=True):
     r_room = st.text_input("رقم الغرفة:", placeholder="مثال: 104")
@@ -206,7 +339,7 @@ with tab_repairs:
     other_text = ""
     if "أخرى" in r_item:
       other_text = st.text_input(
-          "اكتب العطل:", placeholder="مثال: لمبة / فيش / سخان موية..."
+          "اكتب العطل الآخر:", placeholder="مثال: لمبة / فيش / سخان موية..."
       )
 
     btn_rep = st.form_submit_button("⚡ تسجيل البلاغ")
@@ -225,13 +358,14 @@ with tab_repairs:
             "room": c_r,
             "item": final_i,
             "opened_at": datetime.now().strftime("%I:%M %p"),
+            "date": datetime.now().strftime("%Y-%m-%d"),
             "closed_at": None,
             "status": "مفتوح",
         })
         st.success(f"تم تسجيل بلاغ: غرفة {c_r} ({final_i}).")
 
   st.markdown("---")
-  st.markdown("##### 📋 البلاغات المفتوحة حالياً:")
+  st.markdown("##### 📋 البلاغات المعلقة:")
 
   open_reps = [
       x
@@ -239,44 +373,31 @@ with tab_repairs:
       if x.get("status", "مفتوح") == "مفتوح"
   ]
   if open_reps:
-    maint_wa_lines = [f"السلام عليكم، بلاغات صيانة {LOCATION_TAG}:"]
     for idx, row in enumerate(open_reps):
-      room_val = row.get("room", "")
-      item_val = row.get("item", "")
-      time_val = row.get("opened_at", row.get("date", "اليوم"))
+      r_val = row.get("room", "")
+      i_val = row.get("item", "")
+      t_val = row.get("opened_at", row.get("time", "اليوم"))
+      d_val = row.get("date", "اليوم")
 
       st.markdown(
           f"""
                 <div class="stat-box">
-                    <b>غرفة {room_val}</b> — <span style="color:var(--primary); font-weight:800;">{item_val}</span><br>
-                    <small style="color:#94a3b8;">وقت البلاغ: {time_val}</small>
+                    <b>غرفة {r_val}</b> — <span style="color:var(--primary); font-weight:800;">{i_val}</span><br>
+                    <small style="color:#94a3b8;">📅 التاريخ: {d_val} | ⏰ الوقت: {t_val}</small>
                 </div>
                 """,
           unsafe_allow_html=True,
       )
-      maint_wa_lines.append(f"- غرفة {room_val}: {item_val}")
 
-      if st.button(
-          f"✅ تم تصليح {item_val} غرفة {room_val}", key=f"fix_btn_{idx}"
-      ):
+      if st.button(f"✅ تم تصليح {i_val} غرفة {r_val}", key=f"fix_btn_{idx}"):
         row["status"] = "تم الإصلاح"
         row["closed_at"] = datetime.now().strftime("%I:%M %p")
         st.success(
-            f"تم تصليح {item_val} غرفة {room_val} (الساعة {row['closed_at']}) ✓"
+            f"تم تصليح {i_val} غرفة {r_val} (الساعة {row['closed_at']}) ✓"
         )
         st.rerun()
-
-    maint_wa_lines.append("\nيرجى التشييك عليها والإصلاح لا هنتوا.")
-    enc_maint = urllib.parse.quote("\n".join(maint_wa_lines))
-    wa_maint_link = f"https://wa.me/{st.session_state['phone_maint']}?text={enc_maint}"
-
-    st.markdown(
-        f'<a href="{wa_maint_link}" target="_blank" class="wa-btn">📲 إرسال'
-        " البلاغات للصيانة عبر واتساب</a>",
-        unsafe_allow_html=True,
-    )
   else:
-    st.info("لا توجد بلاغات معلقة حالياً.")
+    st.info("لا توجد بلاغات صيانة معلقة حالياً.")
 
   done_reps = [
       x
@@ -284,24 +405,20 @@ with tab_repairs:
       if x.get("status") == "تم الإصلاح"
   ]
   if done_reps:
-    with st.expander("🔍 وش اللي أُصلح اليوم؟"):
+    with st.expander("🔍 ما تم تصليحه اليوم:"):
       for d in reversed(done_reps[-4:]):
-        r_num = d.get("room", "")
-        i_name = d.get("item", "")
-        c_time = d.get("closed_at", "اليوم")
-        o_time = d.get("opened_at", d.get("date", ""))
         st.markdown(
             f"""
                     <div class="stat-box" style="border-right: 3px solid #10b981;">
-                        <b>غرفة {r_num}</b>: {i_name} <span class='done-tag'>تم تصليحه ✓</span><br>
-                        <small style="color:#94a3b8;">أُصلح الساعة: <b>{c_time}</b> (البلاغ كان {o_time})</small>
+                        <b>غرفة {d.get('room', '')}</b>: {d.get('item', '')} <span class='done-tag'>تم تصليحه ✓</span><br>
+                        <small style="color:#94a3b8;">أُصلح الساعة: <b>{d.get('closed_at', 'اليوم')}</b> (البلاغ كان {d.get('opened_at', '')})</small>
                     </div>
                     """,
             unsafe_allow_html=True,
         )
 
 # ------------------------------------------------------------------------------
-# 2. المخالفات: رصد مباشر مع عداد التكرار الآلي والوقت
+# 3. تبويب المخالفات: رصد السخانات والنظافة بالتاريخ والوقت
 # ------------------------------------------------------------------------------
 with tab_viol:
   st.markdown("##### ⚠️ تسجيل مخالفة غرفة:")
@@ -321,15 +438,15 @@ with tab_viol:
       )
 
     v_reason = st.text_input(
-        "السبب والملاحظة:",
-        placeholder="مثال: مشغل هيتر طبخ / مجمع نفايات...",
+        "السبب والملاحظة الميدانية:",
+        placeholder="مثال: تشغيل هيتر طبخ / نفايات...",
     )
 
     btn_viol = st.form_submit_button("⚡ حفظ المخالفة")
 
     if btn_viol:
       c_vr = v_room.strip()
-      chosen_type = (
+      chosen_t = (
           custom_v.strip()
           if ("أخرى" in v_type and custom_v.strip())
           else v_type.split()[0]
@@ -341,46 +458,38 @@ with tab_viol:
         past_times = sum(
             1
             for v in st.session_state["violations_db"]
-            if v.get("room") == c_vr and v.get("type") == chosen_type
+            if v.get("room") == c_vr and v.get("type") == chosen_t
         )
         this_count = past_times + 1
-        now_time = datetime.now().strftime("%I:%M %p")
-        now_date = datetime.now().strftime("%Y-%m-%d")
 
         st.session_state["violations_db"].append({
             "room": c_vr,
-            "type": chosen_type,
+            "type": chosen_t,
             "reason": (
                 v_reason.strip() if v_reason.strip() else "رصد مخالفة بالسكن"
             ),
             "count": this_count,
-            "time": now_time,
-            "date": now_date,
+            "time": datetime.now().strftime("%I:%M %p"),
+            "date": datetime.now().strftime("%Y-%m-%d"),
         })
         st.success(
-            f"تم قيد مخالفة غرفة {c_vr} ({chosen_type}) — المرة الـ"
+            f"تم تسجيل مخالفة غرفة {c_vr} ({chosen_t}) — المرة الـ"
             f" ({this_count})!"
         )
 
   st.markdown("---")
-  st.markdown("##### 📋 كشف المخالفات الموثقة:")
+  st.markdown("##### 📋 كشف المخالفات المرصودة:")
   if st.session_state["violations_db"]:
     for v in reversed(st.session_state["violations_db"][-4:]):
       c_num = v.get("count", 1)
       tag_c = "alert-tag" if c_num >= 2 else "done-tag"
-      v_r = v.get("room", "")
-      v_t = v.get("type", "")
-      v_re = v.get("reason", "")
-      v_d = v.get("date", "")
-      v_tm = v.get("time", "")
-
       st.markdown(
           f"""
                 <div class="stat-box" style="border-right: 3px solid #ef4444;">
-                    <b>غرفة {v_r}</b> — <span style="color:#f87171; font-weight:800;">{v_t}</span>
+                    <b>غرفة {v.get('room', '')}</b> — <span style="color:#f87171; font-weight:800;">{v.get('type', '')}</span>
                     <span class='{tag_c}'>المرة الـ {c_num}</span><br>
-                    <small style="color:#cbd5e1;">السبب: {v_re}</small><br>
-                    <small style="color:#94a3b8;">📅 التاريخ: {v_d} | ⏰ الوقت: {v_tm}</small>
+                    <small style="color:#cbd5e1;">السبب: {v.get('reason', '')}</small><br>
+                    <small style="color:#94a3b8;">📅 التاريخ: {v.get('date', '')} | ⏰ الوقت: {v.get('time', '')}</small>
                 </div>
                 """,
           unsafe_allow_html=True,
@@ -389,57 +498,12 @@ with tab_viol:
     st.info("سجل المخالفات نظيف.")
 
 # ------------------------------------------------------------------------------
-# 3. الأكل: جات / كوبون / فائض
-# ------------------------------------------------------------------------------
-with tab_meals:
-  st.markdown("##### 🍽️ حصر وجبة اليوم:")
-
-  with st.form("meal_form", clear_on_submit=False):
-    c1, c2, c3 = st.columns(3)
-    with c1:
-      deliv = st.number_input(
-          "كم وجبة جات:", min_value=0, max_value=600, value=77
-      )
-    with c2:
-      coups = st.number_input("كوبون:", min_value=0, max_value=600, value=42)
-    with c3:
-      surp = st.number_input("فائض:", min_value=0, max_value=600, value=0)
-
-    btn_meal = st.form_submit_button("⚡ حفظ الوجبة")
-
-    dist = max(0, deliv - surp)
-    no_cp = max(0, dist - coups)
-
-    if btn_meal:
-      st.session_state["meals_db"].append({
-          "date": datetime.now().strftime("%Y-%m-%d"),
-          "time": datetime.now().strftime("%I:%M %p"),
-          "delivered": int(deliv),
-          "coupons": int(coups),
-          "surplus": int(surp),
-          "distributed": int(dist),
-          "no_coupon": int(no_cp),
-      })
-      st.success("تم حفظ بيانات الوجبة بنجاح!")
-
-  st.markdown("---")
-  m1, m2 = st.columns(2)
-  m1.metric("الموزع فعلياً", f"{dist} وجبة")
-  m2.metric(
-      "بدون كوبون",
-      f"{no_cp} وجبة",
-      delta=f"{no_cp}" if no_cp > 0 else "0",
-      delta_color="inverse",
-  )
-
-# ------------------------------------------------------------------------------
-# 4. الجولات الميدانية
+# 4. تبويب الجولات الميدانية
 # ------------------------------------------------------------------------------
 with tab_rounds:
   st.markdown("##### 🚶 توثيق جولة اليوم:")
 
-  curr_hour = datetime.now().hour
-  def_round = 0 if curr_hour < 14 else 1
+  def_round = 0 if now.hour < 14 else 1
 
   with st.form("round_form", clear_on_submit=True):
     sel_r = st.radio(
@@ -449,8 +513,7 @@ with tab_rounds:
         horizontal=True,
     )
     r_notes = st.text_input(
-        "ملاحظة الجولة:",
-        placeholder="مثال: تم التشييك على النظافة والسكن هادئ...",
+        "ملاحظة الجولة:", placeholder="مثال: هدوء تام ونظافة الممرات ممتازة..."
     )
     btn_r = st.form_submit_button("⚡ حفظ الجولة")
 
@@ -479,147 +542,233 @@ with tab_rounds:
       )
 
 # ------------------------------------------------------------------------------
-# 5. تقرير آخر اليوم: ملخص واتساب المباشر بنقرة واحدة
+# 5. تبويب مركز الواتساب: اختيار المستلم وتحديد المحتوى بضغطة زر
 # ------------------------------------------------------------------------------
-with tab_daily_report:
-  st.markdown("##### 📋 تقرير آخر اليوم الميداني:")
+with tab_dispatch:
+  st.markdown("##### 📲 مركز إرسال الواتساب والتقارير:")
+  st.caption("تحكم كامل: حدد لمن تريد الإرسال، واضغط زر الإرسال المباشر:")
 
-  today_date = datetime.now().strftime("%Y-%m-%d")
+  recipient = st.selectbox(
+      "إرسال الرسالة إلى من؟",
+      ["المدير عمر", "مقاول الصيانة", "متعهد الإعاشة", "رقم مخصص (أكتبه بيدي)"],
+  )
 
-  last_meal_data = (
+  if recipient == "رقم مخصص (أكتبه بيدي)":
+    target_wa_phone = st.text_input(
+        "أدخل رقم الجوال مع المفتاح (مثال: 966500000000):"
+    )
+  else:
+    target_wa_phone = st.session_state["contacts"].get(
+        recipient, "966500000000"
+    )
+    st.info(f"رقم الواتساب المعتمد لـ ({recipient}): **{target_wa_phone}**")
+
+  report_scope = st.radio(
+      "محتوى الرسالة المراد إرساله:",
+      [
+          "1. تقرير الموقف اليومي الشامل للمدير (مع القرار والتوصية)",
+          "2. كشف الصيانة فقط (كم شخص/غرفة معلقة ومصلحة)",
+          "3. كشف الإعاشة فقط (مواعيد الوجبة والكميات والقرار)",
+          "4. كشف المخالفات فقط (الغرف والسخانات والتكرار)",
+          "5. رسالة مخصصة أكتبها بيدي",
+      ],
+  )
+
+  today_str = datetime.now().strftime("%Y-%m-%d | %I:%M %p")
+  last_meal_record = (
       st.session_state["meals_db"][-1]
       if st.session_state["meals_db"]
-      else {"delivered": 77, "coupons": 42, "surplus": 0}
+      else {
+          "meal_type": "عشاء",
+          "date": datetime.now().strftime("%Y-%m-%d"),
+          "time": "08:30 م",
+          "delivered": 77,
+          "coupons": 42,
+          "surplus": 0,
+          "distributed": 77,
+          "recommended": 77,
+      }
   )
 
-  # قائمة الأعطال المصلحة بأمان
-  fixed_today = [
-      x
-      for x in st.session_state["maintenance_db"]
-      if x.get("status") == "تم الإصلاح"
-  ]
-  fixed_lines = [
-      f"  • تم تصليح {x.get('item', '')} غرفة {x.get('room', '')} (الساعة"
-      f" {x.get('closed_at', 'اليوم')})"
-      for x in fixed_today
-  ]
-  fixed_text = (
-      "\n".join(fixed_lines)
-      if fixed_lines
-      else "  • لا توجد أعطال تم إصلاحها اليوم."
-  )
-
-  # قائمة الأعطال المفتوحة بأمان
-  pending_today = [
+  open_m_list = [
       x
       for x in st.session_state["maintenance_db"]
       if x.get("status", "مفتوح") == "مفتوح"
   ]
-  pending_lines = [
-      f"  • غرفة {x.get('room', '')}: {x.get('item', '')} (مسجل"
-      f" {x.get('opened_at', x.get('date', ''))})"
-      for x in pending_today
+  fixed_m_list = [
+      x
+      for x in st.session_state["maintenance_db"]
+      if x.get("status") == "تم الإصلاح"
   ]
-  pending_text = (
-      "\n".join(pending_lines) if pending_lines else "  • لا توجد أعطال معلقة."
+
+  open_m_str = (
+      "\n".join([
+          f"  • غرفة {x.get('room')}: {x.get('item')} (مسجل {x.get('opened_at')})"
+          for x in open_m_list
+      ])
+      if open_m_list
+      else "  • لا توجد أعطال معلقة."
+  )
+  fixed_m_str = (
+      "\n".join([
+          f"  • تم تصليح {x.get('item')} غرفة {x.get('room')} ({x.get('closed_at')})"
+          for x in fixed_m_list
+      ])
+      if fixed_m_list
+      else "  • لا توجد أعطال مصلحة اليوم."
   )
 
-  # قائمة المخالفات بأمان
-  today_viols = st.session_state["violations_db"]
-  viol_lines = [
-      f"  • غرفة {v.get('room', '')}: {v.get('type', '')} (المرة"
-      f" {v.get('count', 1)}) - السبب: {v.get('reason', '')} [{v.get('date', '')}"
-      f" {v.get('time', '')}]"
-      for v in today_viols[-5:]
-  ]
-  viols_text = (
-      "\n".join(viol_lines)
-      if viol_lines
-      else "  • لا توجد مخالفات مرصودة اليوم."
+  viols_all = st.session_state["violations_db"]
+  viols_str = (
+      "\n".join([
+          f"  • غرفة {v.get('room')}: {v.get('type')} (المرة"
+          f" {v.get('count')}) - {v.get('reason')} [{v.get('date')}]"
+          for v in viols_all[-4:]
+      ])
+      if viols_all
+      else "  • السجل نظيف ولا توجد مخالفات."
   )
 
-  last_rnd = (
-      st.session_state["rounds_db"][-1]
-      if st.session_state["rounds_db"]
-      else {"round": "جولة المساء", "note": "السكن هادئ ونظيف"}
-  )
+  message_to_send = ""
+  if "تقرير الموقف اليومي الشامل" in report_scope:
+    message_to_send = f"""مساك الله بالخير أبو عمر،،
+تقرير {LOCATION_TAG} اليومي المعتمد ({today_str}):
 
-  daily_report_message = f"""تقرير {LOCATION_TAG} اليومي - {today_date}
+1️⃣ الإعاشة [{last_meal_record.get('meal_type', 'عشاء')}]:
+- توثيق الوقت: {last_meal_record.get('time', '')}
+- الوجبات اللي جات: {last_meal_record.get('delivered', 0)}
+- المستلم بكوبون: {last_meal_record.get('coupons', 0)}
+- الفائض بالصواني: {last_meal_record.get('surplus', 0)}
+- المستهلك الفعلي: {last_meal_record.get('distributed', 0)} شخص.
+💡 القرار التشغيلي للطلبية القادمة: {last_meal_record.get('recommended', 0)} وجبة.
 
-1️⃣ الإعاشة:
-- الوجبات اللي جات: {last_meal_data.get('delivered', 0)}
-- المصروف بكوبون: {last_meal_data.get('coupons', 0)}
-- الفائض بالصواني: {last_meal_data.get('surplus', 0)}
+2️⃣ الصيانة ({len(open_m_list)} بلاغات معلقة / {len(fixed_m_list)} مصلحة):
+- المعلق:
+{open_m_str}
+- المنجز:
+{fixed_m_str}
 
-2️⃣ الصيانة والأعطال:
-- المنجز اليوم:
-{fixed_text}
-- البلاغات المعلقة:
-{pending_text}
+3️⃣ المخالفات المضبوطة بالسكن:
+{viols_str}
 
-3️⃣ المخالفات المضبوطة:
-{viols_text}
+الوضع العام بالسكن: منضبط وتحت السيطرة الكاملة."""
 
-4️⃣ الجولات الميدانية:
-- آخر جولة: {last_rnd.get('round', '')} ({last_rnd.get('note', '')})
+  elif "كشف الصيانة فقط" in report_scope:
+    message_to_send = f"""السلام عليكم، بلاغات صيانة {LOCATION_TAG}:
+التاريخ: {today_str}
 
-الوضع العام بالسكن: منضبط وكل شيء تحت السيطرة."""
+الأعطال المعلقة المطلوب صيانتها ({len(open_m_list)} غرف):
+{open_m_str}
 
-  st.text_area(
-      "نص تقرير آخر اليوم (رسالة عادية):",
-      value=daily_report_message,
-      height=260,
-  )
+المنجز الذي تم إصلاحه اليوم:
+{fixed_m_str}
 
-  enc_report = urllib.parse.quote(daily_report_message)
-  wa_report_link = (
-      f"https://wa.me/{st.session_state['phone_mgr']}?text={enc_report}"
-  )
+يرجى سرعة معالجة الغرف المعلقة وإشعارنا بالإنجاز."""
 
-  st.markdown(
-      f'<a href="{wa_report_link}" target="_blank" class="wa-btn">📲 إرسال'
-      " تقرير آخر اليوم للمدير عبر واتساب</a>",
-      unsafe_allow_html=True,
-  )
+  elif "كشف الإعاشة فقط" in report_scope:
+    message_to_send = f"""السلام عليكم، محضر مطابقة الإعاشة - {LOCATION_TAG}:
+التاريخ: {today_str}
+الوجبة: {last_meal_record.get('meal_type', 'عشاء')} (وقت التسجيل: {last_meal_record.get('time', '')})
 
-  with st.expander("⚙️ تعديل رقم جوال المدير للواتساب"):
-    new_mgr_no = st.text_input(
-        "رقم المدير (مع مفتاح 966):", value=st.session_state["phone_mgr"]
+- الوجبات الموردة (جات): {last_meal_record.get('delivered', 0)}
+- المستلم بموجب كوبون: {last_meal_record.get('coupons', 0)}
+- الفائض بالصواني: {last_meal_record.get('surplus', 0)}
+- المستهلك الفعلي: {last_meal_record.get('distributed', 0)} شخص.
+
+💡 التوصية التشغيلية للوجبة القادمة: {last_meal_record.get('recommended', 0)} وجبة."""
+
+  elif "كشف المخالفات فقط" in report_scope:
+    message_to_send = f"""إشعار أمن وسلامة ومخالفات - {LOCATION_TAG}:
+التاريخ: {today_str}
+
+بيان المخالفات المضبوطة:
+{viols_str}
+
+يرجى اتخاذ الإجراء اللائحي وتطبيق الجزاءات بحق المخالفين لا سيما تكرار السخانات."""
+
+  else:
+    message_to_send = st.text_area(
+        "اكتب رسالتك المخصصة هنا:",
+        placeholder="السلام عليكم بخصوص سكن جامعة 3...",
+        height=140,
     )
-    if st.button("حفظ رقم المدير"):
-      st.session_state["phone_mgr"] = new_mgr_no.strip()
-      st.success("تم حفظ الرقم!")
-      st.rerun()
+
+  if "رسالة مخصصة" not in report_scope:
+    st.text_area("معاينة الرسالة قبل الإرسال:", value=message_to_send, height=220)
+
+  if target_wa_phone and target_wa_phone.strip():
+    enc_payload = urllib.parse.quote(message_to_send)
+    direct_link = f"https://wa.me/{target_wa_phone.strip()}?text={enc_payload}"
+    st.markdown(
+        f'<a href="{direct_link}" target="_blank" class="wa-btn">📲 إرسال'
+        f" الرسالة فوراً إلى {recipient} عبر واتساب</a>",
+        unsafe_allow_html=True,
+    )
+  else:
+    st.warning("الرجاء التأكد من كتابة رقم هاتف صالح للإرسال.")
 
 # ------------------------------------------------------------------------------
-# 6. الخزنة الرقمية (PIN: 5050) وتصدير Excel
+# 6. تبويب الأدمن والخزنة (PIN: 5050 وإدارة أرقام التواصل والأرشيف)
 # ------------------------------------------------------------------------------
 with tab_vault:
-  st.markdown("##### 🔐 الخزنة الرقمية:")
+  st.markdown("##### 🔐 لوحة الأدمن والخزنة الرقمية:")
 
   if not st.session_state["is_supervisor"]:
-    pin_in = st.text_input("رمز الدخول (5050):", type="password")
-    if st.button("🔓 فتح الخزنة", use_container_width=True):
-      if hmac.compare_digest(pin_in.strip().encode(), PERMANENT_PIN.encode()):
+    pin_code = st.text_input("أدخل رمز المشرف للدخول:", type="password")
+    if st.button("🔓 فتح لوحة الأدمن", use_container_width=True):
+      if hmac.compare_digest(pin_code.strip().encode(), PERMANENT_PIN.encode()):
         st.session_state["is_supervisor"] = True
         st.rerun()
       else:
-        st.error("الرمز غير صحيح.")
+        st.error("رمز المشرف غير صحيح.")
   else:
-    st.success("🟢 الخزنة مفتوحة ومؤمنة.")
-    if st.button("🔒 قفل الخزنة"):
+    st.success("🟢 لوحة الأدمن مفتوحة ومؤمنة.")
+    if st.button("🔒 قفل لوحة الأدمن"):
       st.session_state["is_supervisor"] = False
       st.rerun()
 
     st.divider()
-    st.markdown("###### 📥 تنزيل تقارير Excel الموثقة:")
 
-    if st.session_state["violations_db"]:
-      df_v = pd.DataFrame(st.session_state["violations_db"])
+    st.markdown("###### ⚙️ إدارة أرقام الواتساب المعتمدة للتواصل:")
+    col_u1, col_u2, col_u3 = st.columns(3)
+    with col_u1:
+      edit_mgr = st.text_input(
+          "رقم المدير عمر:",
+          value=st.session_state["contacts"].get(
+              "المدير عمر", "966500000000"
+          ),
+      )
+    with col_u2:
+      edit_mnt = st.text_input(
+          "رقم الصيانة:",
+          value=st.session_state["contacts"].get(
+              "مقاول الصيانة", "966500000000"
+          ),
+      )
+    with col_u3:
+      edit_cat = st.text_input(
+          "رقم الإعاشة:",
+          value=st.session_state["contacts"].get(
+              "متعهد الإعاشة", "966500000000"
+          ),
+      )
+
+    if st.button("حفظ وتثبيت الأرقام في النظام"):
+      st.session_state["contacts"]["المدير عمر"] = edit_mgr.strip()
+      st.session_state["contacts"]["مقاول الصيانة"] = edit_mnt.strip()
+      st.session_state["contacts"]["متعهد الإعاشة"] = edit_cat.strip()
+      st.success("تم تحديث وحفظ أرقام الواتساب بنجاح!")
+      st.rerun()
+
+    st.divider()
+    st.markdown("###### 📥 تنزيل سجلات وتقارير Excel الرسمية:")
+
+    if st.session_state["meals_db"]:
+      df_meals = pd.DataFrame(st.session_state["meals_db"])
       st.download_button(
-          label="تحميل سجل المخالفات (Excel)",
-          data=df_v.to_csv(index=False).encode("utf-8-sig"),
-          file_name=f"Violations_{datetime.now().strftime('%Y%m%d')}.csv",
+          label="تحميل سجل الإعاشة والقرارات (Excel)",
+          data=df_meals.to_csv(index=False).encode("utf-8-sig"),
+          file_name=f"Meals_Decisions_{datetime.now().strftime('%Y%m%d')}.csv",
           mime="text/csv",
           use_container_width=True,
       )
@@ -634,12 +783,12 @@ with tab_vault:
           use_container_width=True,
       )
 
-    if st.session_state["meals_db"]:
-      df_meals = pd.DataFrame(st.session_state["meals_db"])
+    if st.session_state["violations_db"]:
+      df_v = pd.DataFrame(st.session_state["violations_db"])
       st.download_button(
-          label="تحميل كشف الوجبات (Excel)",
-          data=df_meals.to_csv(index=False).encode("utf-8-sig"),
-          file_name=f"Meals_{datetime.now().strftime('%Y%m%d')}.csv",
+          label="تحميل سجل المخالفات والتكرار (Excel)",
+          data=df_v.to_csv(index=False).encode("utf-8-sig"),
+          file_name=f"Violations_{datetime.now().strftime('%Y%m%d')}.csv",
           mime="text/csv",
           use_container_width=True,
       )
