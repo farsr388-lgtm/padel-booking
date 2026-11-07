@@ -5,10 +5,10 @@ import pandas as pd
 import streamlit as st
 
 # ==============================================================================
-# 1. إعداد الشاشة للجوال الميداني (Mobile-First / Dark Mode)
+# 1. إعداد الشاشة للجوال الميداني
 # ==============================================================================
 st.set_page_config(
-    page_title="إدارة سكن جامعة 3",
+    page_title="سكن جامعة 3 | العمليات الميدانية",
     page_icon="🏢",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -94,34 +94,23 @@ div[data-testid="stFormSubmitButton"] > button {
     margin-top: 8px;
     margin-bottom: 6px;
 }
-.refresh-btn > button {
-    background: rgba(255, 255, 255, 0.08) !important;
-    color: #e2e8f0 !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    font-weight: 700 !important;
-    height: 38px !important;
-    border-radius: 8px !important;
-}
 </style>
 """,
     unsafe_allow_html=True,
 )
 
 # ==============================================================================
-# 2. الثوابت العامة وقواعد البيانات
+# 2. الثوابت العامة وقواعد البيانات مع الحماية من تعارض المفاتيح
 # ==============================================================================
 LOCATION_TAG = "سكن جامعة 3"
 PERMANENT_PIN = str(st.secrets.get("SUPERVISOR_PIN", "5050")).strip()
 
-# أرقام التواصل الافتراضية
-if "contacts" not in st.session_state:
-  st.session_state["contacts"] = {
-      "المدير": "966500000000",
-      "مقاول الصيانة": "966500000000",
-      "متعهد الإعاشة": "966500000000",
-  }
+if "phone_maint" not in st.session_state:
+  st.session_state["phone_maint"] = "966500000000"
+if "phone_mgr" not in st.session_state:
+  st.session_state["phone_mgr"] = "966500000000"
 
-# ترقية البيانات المحفوظة والتأكد من عدم حدوث KeyError
+# معالجة بيانات الصيانة مع دعم الحقول القديمة والجديدة بأمان تام
 if "maintenance_db" not in st.session_state:
   st.session_state["maintenance_db"] = [
       {
@@ -140,9 +129,10 @@ if "maintenance_db" not in st.session_state:
       },
   ]
 else:
+  # ترقية تلقائية لأي سجل قديم مخزن في الذاكرة لتفادي KeyError
   for row in st.session_state["maintenance_db"]:
     if "opened_at" not in row:
-      row["opened_at"] = row.get("date", "اليوم")
+      row["opened_at"] = row.get("date", "غير محدد")
     if "status" not in row:
       row["status"] = "مفتوح"
     if "closed_at" not in row:
@@ -178,138 +168,36 @@ if "is_supervisor" not in st.session_state:
   st.session_state["is_supervisor"] = False
 
 # ==============================================================================
-# 3. ترويسة التطبيق مع زر تحديث الشاشة
+# 3. واجهة التطبيق
 # ==============================================================================
 st.markdown(
     f"""
 <div class="top-card">
     <div class="headline">🏢 إدارة {LOCATION_TAG}</div>
-    <div class="sub-headline">العمليات الميدانية • متابعة العقود والمخالفات</div>
+    <div class="sub-headline">العمليات اليومية • بلاغات الصيانة • رصد المخالفات</div>
 </div>
 """,
     unsafe_allow_html=True,
 )
 
-# زر التحديث الفوري للشاشة ومسح الحقول العالقة
-col_ref1, col_ref2 = st.columns([2, 1])
-with col_ref1:
-  st.caption("⚡ اضغط للتحديث وإعادة مزامنة الحسابات:")
-with col_ref2:
-  st.markdown('<div class="refresh-btn">', unsafe_allow_html=True)
-  if st.button("🔄 تحديث الشاشة", use_container_width=True):
-    st.rerun()
-  st.markdown("</div>", unsafe_allow_html=True)
-
-# تقسيم التبويبات بحسب جهة العمل والمسؤولية
-tab_mgr, tab_repairs, tab_viol, tab_meals, tab_rounds, tab_wa_center, tab_vault = st.tabs([
-    "👔 تقرير المدير",
-    "🛠️ الصيانة",
-    "⚠️ المخالفات",
-    "🍽️ الإعاشة",
-    "🚶 الجولات",
-    "📲 مركز الواتساب",
-    "🔐 الخزنة",
-])
+tab_repairs, tab_viol, tab_meals, tab_rounds, tab_daily_report, tab_vault = (
+    st.tabs([
+        "🛠️ الصيانة",
+        "⚠️ المخالفات",
+        "🍽️ الأكل",
+        "🚶 الجولات",
+        "📋 تقرير آخر اليوم",
+        "🔐 الخزنة",
+    ])
+)
 
 # ------------------------------------------------------------------------------
-# 1. تبويب تقرير المدير اليومي (مخصص للمدير بملخص دقيق ومباشر)
-# ------------------------------------------------------------------------------
-with tab_mgr:
-  st.markdown("##### 👔 تقرير الموقف اليومي لمدير السكن:")
-  st.caption("ملخص تنفيذي يجمع الأكل، الصيانة المنجزة، والمخالفات المرصودة:")
-
-  today_date = datetime.now().strftime("%Y-%m-%d")
-
-  last_meal = (
-      st.session_state["meals_db"][-1]
-      if st.session_state["meals_db"]
-      else {"delivered": 77, "coupons": 42, "surplus": 0}
-  )
-
-  # المنجز بالصيانة اليوم
-  fixed_list = [
-      f"  • تم تصليح {x.get('item', '')} غرفة {x.get('room', '')} (الساعة"
-      f" {x.get('closed_at', 'اليوم')})"
-      for x in st.session_state["maintenance_db"]
-      if x.get("status") == "تم الإصلاح"
-  ]
-  fixed_str = (
-      "\n".join(fixed_list)
-      if fixed_list
-      else "  • لا توجد أعطال تم إصلاحها اليوم."
-  )
-
-  # الأعطال المعلقة
-  pending_list = [
-      f"  • غرفة {x.get('room', '')}: {x.get('item', '')} (مسجل"
-      f" {x.get('opened_at', 'اليوم')})"
-      for x in st.session_state["maintenance_db"]
-      if x.get("status", "مفتوح") == "مفتوح"
-  ]
-  pending_str = (
-      "\n".join(pending_list) if pending_list else "  • لا توجد أعطال معلقة."
-  )
-
-  # المخالفات
-  viols_list = [
-      f"  • غرفة {v.get('room', '')}: {v.get('type', '')} (المرة"
-      f" {v.get('count', 1)}) - السبب: {v.get('reason', '')} [{v.get('date', '')}"
-      f" {v.get('time', '')}]"
-      for v in st.session_state["violations_db"][-5:]
-  ]
-  viols_str = (
-      "\n".join(viols_list)
-      if viols_list
-      else "  • لا توجد مخالفات مرصودة اليوم."
-  )
-
-  last_rnd = (
-      st.session_state["rounds_db"][-1]
-      if st.session_state["rounds_db"]
-      else {"round": "جولة المساء", "note": "السكن منضبط وهادئ"}
-  )
-
-  mgr_msg = f"""تقرير الموقف اليومي - {LOCATION_TAG}
-التاريخ: {today_date}
-
-1️⃣ الإعاشة:
-- الوجبات اللي جات: {last_meal.get('delivered', 0)}
-- المصروف بكوبون: {last_meal.get('coupons', 0)}
-- الفائض بالصواني: {last_meal.get('surplus', 0)}
-
-2️⃣ الصيانة والأعطال:
-- المنجز اليوم:
-{fixed_str}
-- البلاغات المعلقة:
-{pending_str}
-
-3️⃣ المخالفات المضبوطة:
-{viols_str}
-
-4️⃣ الجولات الرقابية:
-- آخر جولة: {last_rnd.get('round', '')} ({last_rnd.get('note', '')})
-
-الوضع العام بالسكن: منضبط وتحت السيطرة."""
-
-  st.text_area("نص التقرير المجهز للمدير:", value=mgr_msg, height=260)
-
-  mgr_phone = st.session_state["contacts"].get("المدير", "966500000000")
-  enc_mgr_msg = urllib.parse.quote(mgr_msg)
-  wa_mgr_url = f"https://wa.me/{mgr_phone}?text={enc_mgr_msg}"
-
-  st.markdown(
-      f'<a href="{wa_mgr_url}" target="_blank" class="wa-btn">📲 إرسال التقرير'
-      " فوراً للمدير عبر واتساب</a>",
-      unsafe_allow_html=True,
-  )
-
-# ------------------------------------------------------------------------------
-# 2. تبويب الصيانة (تسجيل عطل وإغلاق المصلح في ثوانٍ)
+# 1. الصيانة: قيد سريع للأعطال وإغلاق بلمسة واحدة
 # ------------------------------------------------------------------------------
 with tab_repairs:
   st.markdown("##### 🛠️ بلاغ عطل جديد:")
 
-  with st.form("rep_form", clear_on_submit=True):
+  with st.form("quick_rep_form", clear_on_submit=True):
     r_room = st.text_input("رقم الغرفة:", placeholder="مثال: 104")
     r_item = st.radio(
         "العطل:", ["مكيف ❄️", "شطاف 🚿", "أخرى 🛠️"], horizontal=True
@@ -318,7 +206,7 @@ with tab_repairs:
     other_text = ""
     if "أخرى" in r_item:
       other_text = st.text_input(
-          "اكتب العطل:", placeholder="مثال: لمبة / فيش / سخان..."
+          "اكتب العطل:", placeholder="مثال: لمبة / فيش / سخان موية..."
       )
 
     btn_rep = st.form_submit_button("⚡ تسجيل البلاغ")
@@ -340,7 +228,7 @@ with tab_repairs:
             "closed_at": None,
             "status": "مفتوح",
         })
-        st.success(f"تم قيد بلاغ: غرفة {c_r} ({final_i}).")
+        st.success(f"تم تسجيل بلاغ: غرفة {c_r} ({final_i}).")
 
   st.markdown("---")
   st.markdown("##### 📋 البلاغات المفتوحة حالياً:")
@@ -351,47 +239,45 @@ with tab_repairs:
       if x.get("status", "مفتوح") == "مفتوح"
   ]
   if open_reps:
-    maint_lines = [f"السلام عليكم، بلاغات صيانة {LOCATION_TAG}:"]
+    maint_wa_lines = [f"السلام عليكم، بلاغات صيانة {LOCATION_TAG}:"]
     for idx, row in enumerate(open_reps):
-      r_num = row.get("room", "")
-      i_name = row.get("item", "")
-      t_open = row.get("opened_at", "اليوم")
+      room_val = row.get("room", "")
+      item_val = row.get("item", "")
+      time_val = row.get("opened_at", row.get("date", "اليوم"))
 
       st.markdown(
           f"""
                 <div class="stat-box">
-                    <b>غرفة {r_num}</b> — <span style="color:var(--primary); font-weight:800;">{i_name}</span><br>
-                    <small style="color:#94a3b8;">وقت البلاغ: {t_open}</small>
+                    <b>غرفة {room_val}</b> — <span style="color:var(--primary); font-weight:800;">{item_val}</span><br>
+                    <small style="color:#94a3b8;">وقت البلاغ: {time_val}</small>
                 </div>
                 """,
           unsafe_allow_html=True,
       )
-      maint_lines.append(f"- غرفة {r_num}: {i_name}")
+      maint_wa_lines.append(f"- غرفة {room_val}: {item_val}")
 
-      if st.button(f"✅ تم تصليح {i_name} غرفة {r_num}", key=f"fix_k_{idx}"):
+      if st.button(
+          f"✅ تم تصليح {item_val} غرفة {room_val}", key=f"fix_btn_{idx}"
+      ):
         row["status"] = "تم الإصلاح"
         row["closed_at"] = datetime.now().strftime("%I:%M %p")
         st.success(
-            f"تم تصليح {i_name} غرفة {r_num} (الساعة {row['closed_at']}) ✓"
+            f"تم تصليح {item_val} غرفة {room_val} (الساعة {row['closed_at']}) ✓"
         )
         st.rerun()
 
-    maint_lines.append("\nيرجى المتابعة والإصلاح لا هنتوا.")
-    maint_phone = st.session_state["contacts"].get(
-        "مقاول الصيانة", "966500000000"
-    )
-    enc_maint = urllib.parse.quote("\n".join(maint_lines))
-    wa_maint_url = f"https://wa.me/{maint_phone}?text={enc_maint}"
+    maint_wa_lines.append("\nيرجى التشييك عليها والإصلاح لا هنتوا.")
+    enc_maint = urllib.parse.quote("\n".join(maint_wa_lines))
+    wa_maint_link = f"https://wa.me/{st.session_state['phone_maint']}?text={enc_maint}"
 
     st.markdown(
-        f'<a href="{wa_maint_url}" target="_blank" class="wa-btn">📲 إرسال'
-        " قائمة البلاغات لمقاول الصيانة عبر واتساب</a>",
+        f'<a href="{wa_maint_link}" target="_blank" class="wa-btn">📲 إرسال'
+        " البلاغات للصيانة عبر واتساب</a>",
         unsafe_allow_html=True,
     )
   else:
     st.info("لا توجد بلاغات معلقة حالياً.")
 
-  # كشف المنجز
   done_reps = [
       x
       for x in st.session_state["maintenance_db"]
@@ -400,23 +286,27 @@ with tab_repairs:
   if done_reps:
     with st.expander("🔍 وش اللي أُصلح اليوم؟"):
       for d in reversed(done_reps[-4:]):
+        r_num = d.get("room", "")
+        i_name = d.get("item", "")
+        c_time = d.get("closed_at", "اليوم")
+        o_time = d.get("opened_at", d.get("date", ""))
         st.markdown(
             f"""
                     <div class="stat-box" style="border-right: 3px solid #10b981;">
-                        <b>غرفة {d.get('room', '')}</b>: {d.get('item', '')} <span class='done-tag'>تم تصليحه ✓</span><br>
-                        <small style="color:#94a3b8;">أُصلح الساعة: <b>{d.get('closed_at', 'اليوم')}</b> (البلاغ كان {d.get('opened_at', '')})</small>
+                        <b>غرفة {r_num}</b>: {i_name} <span class='done-tag'>تم تصليحه ✓</span><br>
+                        <small style="color:#94a3b8;">أُصلح الساعة: <b>{c_time}</b> (البلاغ كان {o_time})</small>
                     </div>
                     """,
             unsafe_allow_html=True,
         )
 
 # ------------------------------------------------------------------------------
-# 3. تبويب المخالفات (سخان / نظافة + السبب + عداد التكرار)
+# 2. المخالفات: رصد مباشر مع عداد التكرار الآلي والوقت
 # ------------------------------------------------------------------------------
 with tab_viol:
   st.markdown("##### ⚠️ تسجيل مخالفة غرفة:")
 
-  with st.form("viol_input", clear_on_submit=True):
+  with st.form("viol_form", clear_on_submit=True):
     v_room = st.text_input("رقم الغرفة:", placeholder="مثال: 108")
     v_type = st.radio(
         "المخالفة:",
@@ -431,15 +321,15 @@ with tab_viol:
       )
 
     v_reason = st.text_input(
-        "السبب والرصد الميداني:",
-        placeholder="مثال: تشغيل هيتر طبخ / أكياس نفايات...",
+        "السبب والملاحظة:",
+        placeholder="مثال: مشغل هيتر طبخ / مجمع نفايات...",
     )
 
     btn_viol = st.form_submit_button("⚡ حفظ المخالفة")
 
     if btn_viol:
       c_vr = v_room.strip()
-      chosen_t = (
+      chosen_type = (
           custom_v.strip()
           if ("أخرى" in v_type and custom_v.strip())
           else v_type.split()[0]
@@ -451,38 +341,46 @@ with tab_viol:
         past_times = sum(
             1
             for v in st.session_state["violations_db"]
-            if v.get("room") == c_vr and v.get("type") == chosen_t
+            if v.get("room") == c_vr and v.get("type") == chosen_type
         )
         this_count = past_times + 1
+        now_time = datetime.now().strftime("%I:%M %p")
+        now_date = datetime.now().strftime("%Y-%m-%d")
 
         st.session_state["violations_db"].append({
             "room": c_vr,
-            "type": chosen_t,
+            "type": chosen_type,
             "reason": (
                 v_reason.strip() if v_reason.strip() else "رصد مخالفة بالسكن"
             ),
             "count": this_count,
-            "time": datetime.now().strftime("%I:%M %p"),
-            "date": datetime.now().strftime("%Y-%m-%d"),
+            "time": now_time,
+            "date": now_date,
         })
         st.success(
-            f"تم قيد مخالفة غرفة {c_vr} ({chosen_t}) — المرة الـ"
+            f"تم قيد مخالفة غرفة {c_vr} ({chosen_type}) — المرة الـ"
             f" ({this_count})!"
         )
 
   st.markdown("---")
-  st.markdown("##### 📋 المخالفات المرصودة مع التاريخ والوقت:")
+  st.markdown("##### 📋 كشف المخالفات الموثقة:")
   if st.session_state["violations_db"]:
     for v in reversed(st.session_state["violations_db"][-4:]):
       c_num = v.get("count", 1)
       tag_c = "alert-tag" if c_num >= 2 else "done-tag"
+      v_r = v.get("room", "")
+      v_t = v.get("type", "")
+      v_re = v.get("reason", "")
+      v_d = v.get("date", "")
+      v_tm = v.get("time", "")
+
       st.markdown(
           f"""
                 <div class="stat-box" style="border-right: 3px solid #ef4444;">
-                    <b>غرفة {v.get('room', '')}</b> — <span style="color:#f87171; font-weight:800;">{v.get('type', '')}</span>
+                    <b>غرفة {v_r}</b> — <span style="color:#f87171; font-weight:800;">{v_t}</span>
                     <span class='{tag_c}'>المرة الـ {c_num}</span><br>
-                    <small style="color:#cbd5e1;">السبب: {v.get('reason', '')}</small><br>
-                    <small style="color:#94a3b8;">📅 التاريخ: {v.get('date', '')} | ⏰ الوقت: {v.get('time', '')}</small>
+                    <small style="color:#cbd5e1;">السبب: {v_re}</small><br>
+                    <small style="color:#94a3b8;">📅 التاريخ: {v_d} | ⏰ الوقت: {v_tm}</small>
                 </div>
                 """,
           unsafe_allow_html=True,
@@ -491,12 +389,12 @@ with tab_viol:
     st.info("سجل المخالفات نظيف.")
 
 # ------------------------------------------------------------------------------
-# 4. تبويب الإعاشة (جات / كوبون / فائض)
+# 3. الأكل: جات / كوبون / فائض
 # ------------------------------------------------------------------------------
 with tab_meals:
   st.markdown("##### 🍽️ حصر وجبة اليوم:")
 
-  with st.form("meal_input", clear_on_submit=False):
+  with st.form("meal_form", clear_on_submit=False):
     c1, c2, c3 = st.columns(3)
     with c1:
       deliv = st.number_input(
@@ -535,7 +433,7 @@ with tab_meals:
   )
 
 # ------------------------------------------------------------------------------
-# 5. تبويب الجولات الميدانية
+# 4. الجولات الميدانية
 # ------------------------------------------------------------------------------
 with tab_rounds:
   st.markdown("##### 🚶 توثيق جولة اليوم:")
@@ -543,7 +441,7 @@ with tab_rounds:
   curr_hour = datetime.now().hour
   def_round = 0 if curr_hour < 14 else 1
 
-  with st.form("round_input", clear_on_submit=True):
+  with st.form("round_form", clear_on_submit=True):
     sel_r = st.radio(
         "الجولة:",
         ["جولة الصباح (09:30 ص)", "جولة الليل (08:30 م)"],
@@ -551,7 +449,8 @@ with tab_rounds:
         horizontal=True,
     )
     r_notes = st.text_input(
-        "ملاحظة الجولة:", placeholder="مثال: السكن منضبط ونظيف..."
+        "ملاحظة الجولة:",
+        placeholder="مثال: تم التشييك على النظافة والسكن هادئ...",
     )
     btn_r = st.form_submit_button("⚡ حفظ الجولة")
 
@@ -580,103 +479,123 @@ with tab_rounds:
       )
 
 # ------------------------------------------------------------------------------
-# 6. تبويب مركز إرسال الواتساب (تختار لمن ترسل وتنتقل للمحادثة بنقرة)
+# 5. تقرير آخر اليوم: ملخص واتساب المباشر بنقرة واحدة
 # ------------------------------------------------------------------------------
-with tab_wa_center:
-  st.markdown("##### 📲 مركز إرسال رسائل الواتساب الموجهة:")
-  st.caption("اختر الشخص ونوع الرسالة واضغط زر الإرسال المباشر:")
+with tab_daily_report:
+  st.markdown("##### 📋 تقرير آخر اليوم الميداني:")
 
-  # اختيار الجهة المستلمة
-  recipient_choice = st.selectbox(
-      "إرسال إلى من؟",
-      ["المدير", "مقاول الصيانة", "متعهد الإعاشة", "رقم آخر (أكتبه بيدي)"],
+  today_date = datetime.now().strftime("%Y-%m-%d")
+
+  last_meal_data = (
+      st.session_state["meals_db"][-1]
+      if st.session_state["meals_db"]
+      else {"delivered": 77, "coupons": 42, "surplus": 0}
   )
 
-  # تحديد رقم الجوال
-  if recipient_choice == "رقم آخر (أكتبه بيدي)":
-    target_phone = st.text_input("أدخل رقم الجوال مع المفتاح (مثال: 9665...):")
-  else:
-    target_phone = st.session_state["contacts"].get(
-        recipient_choice, "966500000000"
-    )
-    st.info(f"الرقم المعتمد لـ ({recipient_choice}): **{target_phone}**")
-
-  # اختيار نوع الرسالة الجاهزة
-  msg_template = st.radio(
-      "محتوى الرسالة:",
-      [
-          "تقرير آخر اليوم الشامل",
-          "قائمة بلاغات الصيانة المفتوحة",
-          "محضر مطابقة الإعاشة (الوجبات)",
-          "رسالة مخصصة أكتبها بيدي",
-      ],
+  # قائمة الأعطال المصلحة بأمان
+  fixed_today = [
+      x
+      for x in st.session_state["maintenance_db"]
+      if x.get("status") == "تم الإصلاح"
+  ]
+  fixed_lines = [
+      f"  • تم تصليح {x.get('item', '')} غرفة {x.get('room', '')} (الساعة"
+      f" {x.get('closed_at', 'اليوم')})"
+      for x in fixed_today
+  ]
+  fixed_text = (
+      "\n".join(fixed_lines)
+      if fixed_lines
+      else "  • لا توجد أعطال تم إصلاحها اليوم."
   )
 
-  # صياغة محتوى الرسالة بحسب الاختيار
-  final_text = ""
-  if msg_template == "تقرير آخر اليوم الشامل":
-    final_text = mgr_msg
-  elif msg_template == "قائمة بلاغات الصيانة المفتوحة":
-    final_text = (
-        f"السلام عليكم، قائمة أعطال {LOCATION_TAG} المفتوحة:\n{pending_str}\n\nيرجى"
-        " التوجيه بالإصلاح لا هنتوا."
-    )
-  elif msg_template == "محضر مطابقة الإعاشة (الوجبات)":
-    final_text = (
-        f"السلام عليكم، محضر مطابقة وجبة {LOCATION_TAG}:\n- الوجبات اللي جات:"
-        f" {last_meal.get('delivered', 0)}\n- المصروف بكوبون:"
-        f" {last_meal.get('coupons', 0)}\n- الفائض بالصواني:"
-        f" {last_meal.get('surplus', 0)}\n\nيعطيكم العافية."
-    )
-  else:
-    final_text = st.text_area(
-        "اكتب رسالتك هنا:",
-        placeholder="السلام عليكم، بخصوص سكن جامعة 3...",
-        height=120,
-    )
+  # قائمة الأعطال المفتوحة بأمان
+  pending_today = [
+      x
+      for x in st.session_state["maintenance_db"]
+      if x.get("status", "مفتوح") == "مفتوح"
+  ]
+  pending_lines = [
+      f"  • غرفة {x.get('room', '')}: {x.get('item', '')} (مسجل"
+      f" {x.get('opened_at', x.get('date', ''))})"
+      for x in pending_today
+  ]
+  pending_text = (
+      "\n".join(pending_lines) if pending_lines else "  • لا توجد أعطال معلقة."
+  )
 
-  if msg_template != "رسالة مخصصة أكتبها بيدي":
-    st.text_area("معاينة الرسالة قبل الإرسال:", value=final_text, height=180)
+  # قائمة المخالفات بأمان
+  today_viols = st.session_state["violations_db"]
+  viol_lines = [
+      f"  • غرفة {v.get('room', '')}: {v.get('type', '')} (المرة"
+      f" {v.get('count', 1)}) - السبب: {v.get('reason', '')} [{v.get('date', '')}"
+      f" {v.get('time', '')}]"
+      for v in today_viols[-5:]
+  ]
+  viols_text = (
+      "\n".join(viol_lines)
+      if viol_lines
+      else "  • لا توجد مخالفات مرصودة اليوم."
+  )
 
-  if target_phone and target_phone.strip():
-    enc_txt = urllib.parse.quote(final_text)
-    direct_wa_link = f"https://wa.me/{target_phone.strip()}?text={enc_txt}"
-    st.markdown(
-        f'<a href="{direct_wa_link}" target="_blank" class="wa-btn">📲 إرسال'
-        f" الرسالة فوراً إلى {recipient_choice} عبر واتساب</a>",
-        unsafe_allow_html=True,
+  last_rnd = (
+      st.session_state["rounds_db"][-1]
+      if st.session_state["rounds_db"]
+      else {"round": "جولة المساء", "note": "السكن هادئ ونظيف"}
+  )
+
+  daily_report_message = f"""تقرير {LOCATION_TAG} اليومي - {today_date}
+
+1️⃣ الإعاشة:
+- الوجبات اللي جات: {last_meal_data.get('delivered', 0)}
+- المصروف بكوبون: {last_meal_data.get('coupons', 0)}
+- الفائض بالصواني: {last_meal_data.get('surplus', 0)}
+
+2️⃣ الصيانة والأعطال:
+- المنجز اليوم:
+{fixed_text}
+- البلاغات المعلقة:
+{pending_text}
+
+3️⃣ المخالفات المضبوطة:
+{viols_text}
+
+4️⃣ الجولات الميدانية:
+- آخر جولة: {last_rnd.get('round', '')} ({last_rnd.get('note', '')})
+
+الوضع العام بالسكن: منضبط وكل شيء تحت السيطرة."""
+
+  st.text_area(
+      "نص تقرير آخر اليوم (رسالة عادية):",
+      value=daily_report_message,
+      height=260,
+  )
+
+  enc_report = urllib.parse.quote(daily_report_message)
+  wa_report_link = (
+      f"https://wa.me/{st.session_state['phone_mgr']}?text={enc_report}"
+  )
+
+  st.markdown(
+      f'<a href="{wa_report_link}" target="_blank" class="wa-btn">📲 إرسال'
+      " تقرير آخر اليوم للمدير عبر واتساب</a>",
+      unsafe_allow_html=True,
+  )
+
+  with st.expander("⚙️ تعديل رقم جوال المدير للواتساب"):
+    new_mgr_no = st.text_input(
+        "رقم المدير (مع مفتاح 966):", value=st.session_state["phone_mgr"]
     )
-  else:
-    st.warning("الرجاء التأكد من كتابة رقم هاتف صحيح للإرسال.")
-
-  st.divider()
-  with st.expander("⚙️ تعديل وتحديث دليل أرقام الواتساب المعتمدة"):
-    col_u1, col_u2, col_u3 = st.columns(3)
-    with col_u1:
-      u_mgr = st.text_input(
-          "رقم المدير:", value=st.session_state["contacts"]["المدير"]
-      )
-    with col_u2:
-      u_mnt = st.text_input(
-          "رقم الصيانة:", value=st.session_state["contacts"]["مقاول الصيانة"]
-      )
-    with col_u3:
-      u_cat = st.text_input(
-          "رقم الإعاشة:", value=st.session_state["contacts"]["متعهد الإعاشة"]
-      )
-
-    if st.button("حفظ الأرقام الجديدة في الدليل"):
-      st.session_state["contacts"]["المدير"] = u_mgr.strip()
-      st.session_state["contacts"]["مقاول الصيانة"] = u_mnt.strip()
-      st.session_state["contacts"]["متعهد الإعاشة"] = u_cat.strip()
-      st.success("تم تحديث دليل الأرقام بنجاح!")
+    if st.button("حفظ رقم المدير"):
+      st.session_state["phone_mgr"] = new_mgr_no.strip()
+      st.success("تم حفظ الرقم!")
       st.rerun()
 
 # ------------------------------------------------------------------------------
-# 7. الخزنة الرقمية (PIN: 5050) وتصدير Excel
+# 6. الخزنة الرقمية (PIN: 5050) وتصدير Excel
 # ------------------------------------------------------------------------------
 with tab_vault:
-  st.markdown("##### 🔐 الخزنة الرقمية والنسخ الاحتياطي:")
+  st.markdown("##### 🔐 الخزنة الرقمية:")
 
   if not st.session_state["is_supervisor"]:
     pin_in = st.text_input("رمز الدخول (5050):", type="password")
@@ -708,7 +627,7 @@ with tab_vault:
     if st.session_state["maintenance_db"]:
       df_m = pd.DataFrame(st.session_state["maintenance_db"])
       st.download_button(
-          label="تحميل سجل الصيانة والإصلاح (Excel)",
+          label="تحميل سجل الصيانة ووقت الإصلاح (Excel)",
           data=df_m.to_csv(index=False).encode("utf-8-sig"),
           file_name=f"Repairs_{datetime.now().strftime('%Y%m%d')}.csv",
           mime="text/csv",
