@@ -8,8 +8,8 @@ import streamlit as st
 # 1. إعداد الشاشة للجوال الميداني فائق السرعة
 # ==============================================================================
 st.set_page_config(
-    page_title="المشرف فارس العصيمي | سكن جامعة 3",
-    page_icon="⚡",
+    page_title="إدارة سكن جامعة 3",
+    page_icon="🏢",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -89,10 +89,8 @@ div[data-testid="stFormSubmitButton"] > button {
 )
 
 # ==============================================================================
-# 2. الثوابت الرسمية والرمز الدائم (5050)
+# 2. الثوابت العامة (بدون أي أسماء مثبتة بالكود) والرمز الدائم 5050
 # ==============================================================================
-SUPERVISOR_NAME = "فارس العصيمي"
-MANAGER_NAME = "عمر"
 LOCATION_TAG = "سكن جامعة 3"
 MOTTO = "إصرار"
 MAINTENANCE_PHONE = "966500000000"
@@ -106,14 +104,14 @@ if "meals_db" not in st.session_state:
 
 if "maintenance_db" not in st.session_state:
     st.session_state["maintenance_db"] = [
-        {"room": "104", "item": "مكيف ❄️", "date": "2026-11-06", "status": "مفتوح"},
-        {"room": "104", "item": "شطاف 🚿", "date": "2026-11-07", "status": "مفتوح"},
+        {"room": "104", "item": "مكيف", "date": "2026-11-06", "status": "مفتوح"},
+        {"room": "104", "item": "شطاف", "date": "2026-11-07", "status": "مفتوح"},
     ]
 
 if "violations_db" not in st.session_state:
     st.session_state["violations_db"] = [
-        {"room": "108", "type": "سخان ⚡", "count": 1, "date": "2026-11-05 09:15 م"},
-        {"room": "108", "type": "سخان ⚡", "count": 2, "date": "2026-11-07 10:30 م"},
+        {"room": "108", "type": "سخان", "count": 1, "date": "2026-11-05 09:15 م"},
+        {"room": "108", "type": "سخان", "count": 2, "date": "2026-11-07 10:30 م"},
     ]
 
 if "rounds_db" not in st.session_state:
@@ -123,14 +121,14 @@ if "is_supervisor" not in st.session_state:
     st.session_state["is_supervisor"] = False
 
 # ==============================================================================
-# 4. الترويسة الميدانية
+# 4. الترويسة الميدانية العامة
 # ==============================================================================
 st.markdown(
     f"""
 <div class="top-card">
-    <div class="headline">⚡ إدارة {LOCATION_TAG}</div>
-    <div class="sub-headline">المشرف: <b>{SUPERVISOR_NAME}</b> | المدير: <b>{MANAGER_NAME}</b></div>
-    <span class="badge-admin">شعار: {MOTTO}</span>
+    <div class="headline">🏢 بوابة تشغيل {LOCATION_TAG}</div>
+    <div class="sub-headline">نظام العمليات الميدانية السريع</div>
+    <span class="badge-admin">شعار العمل: {MOTTO} ⚡</span>
 </div>
 """,
     unsafe_allow_html=True,
@@ -141,7 +139,7 @@ tab_viol, tab_meals, tab_repairs, tab_rounds, tab_vault = st.tabs([
     "🍽️ الأكل",
     "🛠️ الصيانة",
     "🚶 الجولات",
-    "🔐 الخزنة"
+    "🔐 الخزنة والتقرير"
 ])
 
 # ------------------------------------------------------------------------------
@@ -155,7 +153,7 @@ with tab_viol:
 
         v_type = st.radio(
             "نوع المخالفة:",
-            ["سخان ⚡", "نظافة 🗑️"],
+            ["سخان", "نظافة"],
             horizontal=True
         )
 
@@ -166,7 +164,6 @@ with tab_viol:
             if not clean_r:
                 st.error("أدخل رقم الغرفة أولاً.")
             else:
-                # حساب آلي: المرة الكم لهذه الغرفة ونفس المخالفة
                 past_times = sum(
                     1 for v in st.session_state["violations_db"]
                     if v["room"] == clean_r and v["type"] == v_type
@@ -178,13 +175,12 @@ with tab_viol:
                     "room": clean_r,
                     "type": v_type,
                     "count": current_count,
-                    "date": log_time,
-                    "supervisor": SUPERVISOR_NAME
+                    "date": log_time
                 })
                 st.success(f"تم تسجيل: غرفة {clean_r} ({v_type}) — للمرة الـ ({current_count}) بنجاح!")
 
     st.markdown("---")
-    st.markdown("##### 📋 آخر المخالفات المرصودة بالسكن:")
+    st.markdown("##### 📋 كشف سوابق وتكرار المخالفات:")
     if st.session_state["violations_db"]:
         for row in reversed(st.session_state["violations_db"][-4:]):
             count_num = row.get("count", 1)
@@ -230,8 +226,7 @@ with tab_meals:
                 "coupons": int(coupons),
                 "surplus": int(surplus),
                 "distributed": int(distributed),
-                "no_coupon": int(no_coupon),
-                "supervisor": SUPERVISOR_NAME
+                "no_coupon": int(no_coupon)
             })
             st.success("تم حفظ الأكل بنجاح!")
 
@@ -251,7 +246,7 @@ with tab_repairs:
         
         rep_item = st.radio(
             "القطعة:",
-            ["مكيف ❄️", "شطاف 🚿", "أخرى 🛠️"],
+            ["مكيف", "شطاف", "أخرى"],
             horizontal=True
         )
 
@@ -281,7 +276,7 @@ with tab_repairs:
     if open_reps:
         df_r = pd.DataFrame(open_reps)
         room_reps = df_r["room"].value_counts()
-        wa_lines = [f"*بلاغات صيانة {LOCATION_TAG} - المشرف {SUPERVISOR_NAME}:*"]
+        wa_lines = [f"*بلاغات صيانة {LOCATION_TAG}:*"]
 
         for idx, row in enumerate(open_reps):
             r_id = row["room"]
@@ -312,48 +307,54 @@ with tab_repairs:
         st.info("لا توجد بلاغات معلقة.")
 
 # ------------------------------------------------------------------------------
-# 4. الجولات: صباح (09:30 ص) وليل (08:30 م) بلمسة واحدة
+# 4. الجولات: صباح (09:30 ص) وليل (08:30 م) مع الملاحظة الميدانية
 # ------------------------------------------------------------------------------
 with tab_rounds:
-    st.markdown("##### 🚶 توثيق الجولة:")
+    st.markdown("##### 🚶 توثيق الجولة والملاحظات الميدانية:")
 
     current_hr = datetime.now().hour
     best_round_index = 0 if current_hr < 14 else 1
 
-    selected_round = st.radio(
-        "اختر الجولة المعتمدة:",
-        ["جولة الصباح (09:30 ص)", "جولة الليل (08:30 م)"],
-        index=best_round_index,
-        horizontal=True
-    )
+    with st.form("round_log_form", clear_on_submit=True):
+        selected_round = st.radio(
+            "اختر الجولة المعتمدة:",
+            ["جولة الصباح (09:30 ص)", "جولة الليل (08:30 م)"],
+            index=best_round_index,
+            horizontal=True
+        )
 
-    if st.button("⚡ اعتماد الجولة بنجاح", use_container_width=True):
-        st.session_state["rounds_db"].append({
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "time": datetime.now().strftime("%I:%M %p"),
-            "round": selected_round,
-            "status": "تمت بنجاح وتفقد السكن سليم",
-            "supervisor": SUPERVISOR_NAME
-        })
-        st.success(f"تم توثيق {selected_round} رسمياً.")
+        round_note_input = st.text_input("ملاحظات الجولة الميدانية (ترفع للإدارة):", placeholder="مثال: التزام بالهدوء / نظافة الممرات ممتازة...")
+
+        btn_save_round = st.form_submit_button("⚡ اعتماد الجولة وحفظ الملاحظة")
+
+        if btn_save_round:
+            final_r_note = round_note_input.strip() if round_note_input.strip() else "تمت الجولة والسكن هادئ وسليم"
+            st.session_state["rounds_db"].append({
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "time": datetime.now().strftime("%I:%M %p"),
+                "round": selected_round,
+                "note": final_r_note
+            })
+            st.success(f"تم توثيق {selected_round} بنجاح.")
 
     if st.session_state["rounds_db"]:
         st.markdown("---")
-        for r in st.session_state["rounds_db"][-2:]:
+        for r in st.session_state["rounds_db"][-3:]:
             st.markdown(
                 f"""
                 <div class="stat-box">
-                    <b>{r['round']}</b> — <small style="color:var(--primary);">{r['time']}</small>
+                    <b>{r['round']}</b> — <small style="color:var(--primary);">{r['time']}</small><br>
+                    <small style="color:#cbd5e1;">الملاحظة: {r['note']}</small>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
 # ------------------------------------------------------------------------------
-# 5. الخزنة المشفرة وتصدير Excel للمدير عمر بالرمز الثابت (5050)
+# 5. الخزنة وتصدير Excel (تكتب الاسم والملاحظات بنفسك وقت التصدير)
 # ------------------------------------------------------------------------------
 with tab_vault:
-    st.markdown("##### 🔐 الخزنة الرقمية للمشرف فارس العصيمي:")
+    st.markdown("##### 🔐 الخزنة وإعداد تقرير الإدارة:")
 
     if not st.session_state["is_supervisor"]:
         input_code = st.text_input("أدخل رمز المشرف:", type="password")
@@ -365,25 +366,69 @@ with tab_vault:
             else:
                 st.error("رمز المشرف غير صحيح.")
     else:
-        st.success(f"🟢 مرحباً يا أبو ربيع ({SUPERVISOR_NAME}) - الخزنة مؤمنة.")
+        st.success("🟢 الخزنة مفتوحة ومؤمنة.")
         if st.button("🔒 قفل الخزنة"):
             st.session_state["is_supervisor"] = False
             st.rerun()
 
         st.divider()
-        st.markdown(f"###### 📥 تصدير السجلات المعتمدة للإدارة (المدير: {MANAGER_NAME}):")
 
+        # خانات إدخال الأسماء يدوياً دون أي تثبيت في الكود
+        st.markdown("###### 📝 بيانات التقرير المعتمد للإدارة:")
+        col_n1, col_n2 = st.columns(2)
+        with col_n1:
+            custom_supervisor_name = st.text_input("اسم المشرف:", placeholder="اكتب اسمك هنا...")
+        with col_n2:
+            custom_manager_name = st.text_input("اسم المدير:", placeholder="اكتب اسم المدير هنا...")
+
+        # جلب آخر ملاحظة مسجلة في الجولة تلقائياً لدعم تقرير المدير
+        last_round_note = st.session_state["rounds_db"][-1]["note"] if st.session_state["rounds_db"] else "السكن بحالة جيدة ولا توجد ملاحظات حرجة"
+        manager_note = st.text_area("الملاحظة العامة الموجهة للمدير (مبنية على الجولة):", value=last_round_note)
+
+        sup_val = custom_supervisor_name.strip() if custom_supervisor_name.strip() else "المشرف"
+        mgr_val = custom_manager_name.strip() if custom_manager_name.strip() else "المدير"
+
+        st.divider()
+        st.markdown("###### 📥 تصدير السجلات الميدانية لـ Excel:")
+
+        # 1. تصدير المخالفات
         if st.session_state["violations_db"]:
             df_v = pd.DataFrame(st.session_state["violations_db"])
+            df_v["المشرف"] = sup_val
+            df_v["المدير"] = mgr_val
+            df_v["ملاحظة_الإدارة"] = manager_note
             st.download_button(
-                label="⚠️ تحميل سجل المخالفات (الغرف والتكرار) - Excel",
+                label="تحميل سجل المخالفات (Excel)",
                 data=df_v.to_csv(index=False).encode("utf-8-sig"),
-                file_name=f"Violations_{LOCATION_TAG}_{datetime.now().strftime('%Y%m%d')}.csv",
+                file_name=f"Violations_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv",
                 use_container_width=True
             )
 
+        # 2. تصدير الوجبات
         if st.session_state["meals_db"]:
             df_m = pd.DataFrame(st.session_state["meals_db"])
+            df_m["المشرف"] = sup_val
+            df_m["المدير"] = mgr_val
+            df_m["ملاحظة_الإدارة"] = manager_note
             st.download_button(
-                label="📊
+                label="تحميل كشف الوجبات (Excel)",
+                data=df_m.to_csv(index=False).encode("utf-8-sig"),
+                file_name=f"Meals_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+        # 3. تصدير الصيانة
+        if st.session_state["maintenance_db"]:
+            df_r = pd.DataFrame(st.session_state["maintenance_db"])
+            df_r["المشرف"] = sup_val
+            df_r["المدير"] = mgr_val
+            df_r["ملاحظة_الإدارة"] = manager_note
+            st.download_button(
+                label="تحميل تقرير الصيانة (Excel)",
+                data=df_r.to_csv(index=False).encode("utf-8-sig"),
+                file_name=f"Repairs_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
