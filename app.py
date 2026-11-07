@@ -2,22 +2,13 @@ import base64
 import hmac
 import os
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 import streamlit as st
 
-# التحقق من وجود مكتبة التشفير للأمان المتقدم
-try:
-    from cryptography.fernet import Fernet
-    from cryptography.hazmat.primitives import hashes
-    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-    HAS_CRYPTO = True
-except ImportError:
-    HAS_CRYPTO = False
-
 # ==============================================================================
-# 1. إعداد الصفحة والواجهة للجوال
+# 1. إعداد الصفحة وتصميم الجوال الميداني (RTL / Dark Mode)
 # ==============================================================================
 st.set_page_config(
     page_title="المشرف فارس العصيمي | سكن جامعة 3",
@@ -101,16 +92,37 @@ div[data-testid="stFormSubmitButton"] > button {
 )
 
 # ==============================================================================
-# 2. الثوابت الرسمية والأمان
+# 2. الثوابت الرسمية والرمز السري الدائم
 # ==============================================================================
 SUPERVISOR_NAME = "فارس العصيمي"
 MANAGER_NAME = "عمر"
 LOCATION_TAG = "سكن جامعة 3"
 MOTTO = "إصرار"
-MASTER_KEY = str(st.secrets.get("SUPERVISOR_PIN", "9988")).strip()
 MAINTENANCE_PHONE = "966500000000"
 
-# تهيئة قواعد البيانات المؤقتة
+# الرمز السري الدائم والثابت (يمكن تعديل 5050 لأي رقم تريده)
+PERMANENT_PIN = str(st.secrets.get("SUPERVISOR_PIN", "5050")).strip()
+
+# ==============================================================================
+# 3. درع الأمان (حظر 10 دقائق عند 3 محاولات خاطئة لمنع التطفل)
+# ==============================================================================
+if "failed_attempts" not in st.session_state:
+    st.session_state["failed_attempts"] = 0
+if "lockout_until" not in st.session_state:
+    st.session_state["lockout_until"] = None
+
+def is_system_locked() -> bool:
+    if st.session_state["lockout_until"]:
+        if datetime.now() < st.session_state["lockout_until"]:
+            return True
+        else:
+            st.session_state["lockout_until"] = None
+            st.session_state["failed_attempts"] = 0
+    return False
+
+# ==============================================================================
+# 4. قواعد البيانات المؤقتة (Session State)
+# ==============================================================================
 if "meals_db" not in st.session_state:
     st.session_state["meals_db"] = []
 
@@ -122,7 +134,7 @@ if "maintenance_db" not in st.session_state:
 
 if "violations_db" not in st.session_state:
     st.session_state["violations_db"] = [
-        {"id": "3041", "room": "108", "type": "تعهد إداري", "notes": "إنذار أول للموظف", "date": "2026-11-05 09:15 م"},
+        {"id": "3041", "room": "108", "type": "تعهد إداري 📝", "notes": "إنذار أول للموظف", "date": "2026-11-05 09:15 م"},
     ]
 
 if "rounds_db" not in st.session_state:
@@ -132,7 +144,7 @@ if "is_supervisor" not in st.session_state:
     st.session_state["is_supervisor"] = False
 
 # ==============================================================================
-# 3. ترويسة التطبيق الرسمية والبحث الميداني
+# 5. الترويسة الرسمية
 # ==============================================================================
 st.markdown(
     f"""
@@ -159,12 +171,12 @@ tab_meals, tab_repairs, tab_violations, tab_rounds, tab_vault = st.tabs([
 with tab_meals:
     st.markdown("##### ⏱️ حصر الأكل (كوبون وفائض فقط):")
 
-    with st.form("simple_meal_form", clear_on_submit=False):
+    with st.form("meal_form_direct", clear_on_submit=False):
         coupons_count = st.number_input("عدد الكوبونات المستلمة:", min_value=0, max_value=600, value=42)
         surplus_count = st.number_input("الفائض المتبقي بالصواني:", min_value=0, max_value=600, value=0)
-        meal_note = st.text_input("ملاحظة (اختياري):", placeholder="أي ملاحظة سريعة...")
+        meal_note = st.text_input("ملاحظة (اختياري):", placeholder="سجل طبيعي...")
 
-        btn_save_meal = st.form_submit_button("حفظ الوجبة")
+        btn_save_meal = st.form_submit_button("حفظ بيانات الوجبة")
 
         if btn_save_meal:
             st.session_state["meals_db"].append({
@@ -172,15 +184,15 @@ with tab_meals:
                 "time": datetime.now().strftime("%I:%M %p"),
                 "coupons": int(coupons_count),
                 "surplus": int(surplus_count),
-                "supervisor": SUPERVISOR_NAME,
                 "location": LOCATION_TAG,
+                "supervisor": SUPERVISOR_NAME,
                 "notes": meal_note.strip() if meal_note.strip() else "سليم"
             })
-            st.success("تم حفظ الكوبونات والفائض بنجاح!")
+            st.success("تم تسجيل بيانات الوجبة بنجاح!")
 
     st.markdown("---")
     m1, m2 = st.columns(2)
-    m1.metric("الكوبونات", f"{coupons_count} وجبة")
+    m1.metric("المصروف بكوبون", f"{coupons_count} وجبة")
     m2.metric("الفائض بالصواني", f"{surplus_count} وجبة")
 
 # ------------------------------------------------------------------------------
@@ -189,7 +201,7 @@ with tab_meals:
 with tab_repairs:
     st.markdown("##### 🚨 تسجيل بلاغ صيانة:")
 
-    with st.form("simple_defect_form", clear_on_submit=True):
+    with st.form("defect_form_direct", clear_on_submit=True):
         room_no = st.text_input("رقم الغرفة (مثال: 104):")
         
         defect_choice = st.radio(
@@ -200,17 +212,17 @@ with tab_repairs:
 
         custom_defect = ""
         if "أخرى" in defect_choice:
-            custom_defect = st.text_input("اكتب العطل الآخر بيدك:", placeholder="مثال: فيش كهرباء / سخان...")
+            custom_defect = st.text_input("اكتب العطل الآخر بيدك:", placeholder="مثال: فيش كهرباء / سخان / لمبة...")
 
-        defect_desc = st.text_input("وصف العطل:", placeholder="مثال: يقطر ماء / لا يعمل...")
+        defect_desc = st.text_input("وصف العطل:", placeholder="مثال: يقطر ماء / مفصول...")
         btn_save_defect = st.form_submit_button("إدراج البلاغ")
 
         if btn_save_defect:
             r_clean = room_no.strip()
             final_item = custom_defect.strip() if ("أخرى" in defect_choice and custom_defect.strip()) else defect_choice
-            
+
             if not r_clean:
-                st.error("الرجاء كتابة رقم الغرفة.")
+                st.error("الرجاء كتابة رقم الغرفة أولاً.")
             else:
                 st.session_state["maintenance_db"].append({
                     "room": r_clean,
@@ -220,7 +232,7 @@ with tab_repairs:
                     "status": "مفتوح",
                     "supervisor": SUPERVISOR_NAME
                 })
-                st.success(f"تم تسجيل عطل غرفة {r_clean} ({final_item}).")
+                st.success(f"تم تسجيل بلاغ غرفة {r_clean} ({final_item}).")
 
     st.markdown("---")
     open_defects = [x for x in st.session_state["maintenance_db"] if x["status"] == "مفتوح"]
@@ -245,7 +257,7 @@ with tab_repairs:
             )
             wa_lines.append(f"• غرفة {row['room']}: {row['item']} ({row['desc']})")
 
-            if st.button(f"تم إصلاح بلاغ غرفة {row['room']} ({row['item']})", key=f"fix_btn_{idx}"):
+            if st.button(f"تم إصلاح عطل غرفة {row['room']} ({row['item']})", key=f"fix_btn_{idx}"):
                 row["status"] = "تم الإصلاح ✓"
                 st.rerun()
 
@@ -256,15 +268,15 @@ with tab_repairs:
             unsafe_allow_html=True
         )
     else:
-        st.info("لا توجد بلاغات صيانة مفتوحة حالياً.")
+        st.info("لا توجد بلاغات صيانة معلقة.")
 
 # ------------------------------------------------------------------------------
 # 3. تبويب المخالفات: سخان، تعهد، أو أخرى (دخان وغيره)
 # ------------------------------------------------------------------------------
 with tab_violations:
-    st.markdown("##### ⚠️ تسجيل مخالفة أو تعهد:")
+    st.markdown("##### ⚠️ توثيق مخالفة أو تعهد:")
 
-    with st.form("simple_violation_form", clear_on_submit=True):
+    with st.form("violation_form_direct", clear_on_submit=True):
         emp_id = st.text_input("رقم الآيدي (الرقم الوظيفي):", placeholder="مثال: 3041")
         v_room = st.text_input("رقم الغرفة:")
 
@@ -276,17 +288,17 @@ with tab_violations:
 
         custom_v_type = ""
         if "أخرى" in v_type_choice:
-            custom_v_type = st.text_input("حدد المخالفة الأخرى (دخان / إزعاج / غيره):", placeholder="مثال: تدخين بالغرفة...")
+            custom_v_type = st.text_input("اكتب نوع المخالفة الأخرى بيدك (دخان / إزعاج / غيره):", placeholder="مثال: تدخين بالغرفة...")
 
-        v_details = st.text_input("ملاحظات المخالفة:", placeholder="تفاصيل إضافية...")
-        btn_save_viol = st.form_submit_button("تسجيل المخالفة فوراً")
+        v_details = st.text_input("تفاصيل المخالفة:", placeholder="ملاحظة سريعة...")
+        btn_save_viol = st.form_submit_button("تسجيل المخالفة في السجل")
 
         if btn_save_viol:
             clean_id = emp_id.strip()
             final_viol = custom_v_type.strip() if ("أخرى" in v_type_choice and custom_v_type.strip()) else v_type_choice
-            
+
             if not clean_id:
-                st.error("الرجاء كتابة رقم الآيدي.")
+                st.error("الرجاء كتابة رقم الآيدي أولاً.")
             else:
                 st.session_state["violations_db"].append({
                     "id": clean_id,
@@ -299,7 +311,7 @@ with tab_violations:
                 st.success(f"تم توثيق المخالفة على الموظف ({clean_id}) بنجاح.")
 
     st.markdown("---")
-    st.markdown("##### 📋 سجل المخالفين الأخير:")
+    st.markdown("##### 📋 سجل المخالفين وكشف السوابق:")
     if st.session_state["violations_db"]:
         df_v = pd.DataFrame(st.session_state["violations_db"])
         id_counts = df_v["id"].value_counts()
@@ -327,15 +339,14 @@ with tab_violations:
 with tab_rounds:
     st.markdown("##### 🚶 توثيق الجولتين الميدانيتين:")
 
-    # تحديد أفضل وقت تلقائياً بناءً على ساعة اليوم
     current_hr = datetime.now().hour
-    best_round_default = "جولة الصباح (09:30 ص)" if current_hr < 14 else "جولة الليل (08:30 م)"
+    best_round_index = 0 if current_hr < 14 else 1
 
-    with st.form("simple_round_form", clear_on_submit=True):
+    with st.form("round_form_direct", clear_on_submit=True):
         selected_round = st.radio(
-            "اختر الجولة (أفضل أوقات التفتيش):",
+            "اختر الجولة المعتمدة:",
             ["جولة الصباح (09:30 ص) • نظافة وهدوء شفت الليل", "جولة الليل (08:30 م) • بعد توزيع العشاء والصيانة"],
-            index=0 if "الصباح" in best_round_default else 1
+            index=best_round_index
         )
 
         r_note = st.text_input("ملاحظات الجولة الميدانية:", placeholder="مثال: التزام كامل بالهدوء والنظافة...")
@@ -346,7 +357,7 @@ with tab_rounds:
                 "date": datetime.now().strftime("%Y-%m-%d"),
                 "time": datetime.now().strftime("%I:%M %p"),
                 "round": selected_round.split()[0] + " " + selected_round.split()[1],
-                "notes": r_note.strip() if r_note.strip() else "تمت الجولة وسكن هادئ",
+                "notes": r_note.strip() if r_note.strip() else "تمت الجولة والسكن هادئ",
                 "supervisor": SUPERVISOR_NAME
             })
             st.success("تم توثيق الجولة بنجاح.")
@@ -365,21 +376,34 @@ with tab_rounds:
             )
 
 # ------------------------------------------------------------------------------
-# 5. الخزنة الرقمية والبحث المشفر وتصدير Excel
+# 5. الخزنة الرقمية بالرمز الدائم الثابت (5050)
 # ------------------------------------------------------------------------------
 with tab_vault:
     st.markdown("##### 🔐 الخزنة الرقمية للمشرف فارس العصيمي:")
 
-    if not st.session_state["is_supervisor"]:
-        st.caption("🔒 أدخل رمز المشرف السري (PIN) لاستعراض السجلات وتنزيل التقارير:")
-        input_pin = st.text_input("رمز المشرف:", type="password")
+    if is_system_locked():
+        rem_sec = int((st.session_state["lockout_until"] - datetime.now()).total_seconds())
+        st.error(f"⛔ تم إغلاق الخزنة أمنياً بسبب 3 محاولات خاطئة. يرجى الانتظار: {rem_sec} ثانية.")
+    elif not st.session_state["is_supervisor"]:
+        st.caption("🔒 منطقة آمنة ومشفرة. أدخل رمز المشرف الدائم لفتح السجلات والتقارير:")
+        input_code = st.text_input("أدخل رمز المشرف:", type="password")
 
         if st.button("🔓 فتح الخزنة", use_container_width=True):
-            if hmac.compare_digest(input_pin.strip().encode(), MASTER_KEY.encode()):
+            # التحقق بالزمن الثابت مع الرمز الدائم
+            if hmac.compare_digest(input_code.strip().encode(), PERMANENT_PIN.encode()):
                 st.session_state["is_supervisor"] = True
+                st.session_state["failed_attempts"] = 0
                 st.rerun()
             else:
-                st.error("رمز المشرف غير صحيح.")
+                st.session_state["failed_attempts"] += 1
+                rem_tries = 3 - st.session_state["failed_attempts"]
+
+                if rem_tries <= 0:
+                    st.session_state["lockout_until"] = datetime.now() + timedelta(minutes=10)
+                    st.error("🚨 تم حظر النظام لمدة 10 دقائق بعد 3 محاولات خاطئة.")
+                    st.rerun()
+                else:
+                    st.error(f"الرمز غير صحيح! متبقي لديك ({rem_tries}) محاولات قبل الإغلاق الأمني.")
     else:
         st.success(f"🟢 مرحباً يا أبو ربيع ({SUPERVISOR_NAME}) - الخزنة مؤمنة بالكامل.")
         if st.button("🔒 قفل الخزنة والخروج"):
@@ -388,9 +412,9 @@ with tab_vault:
 
         st.divider()
 
-        # محرك البحث الميداني الشامل
-        st.markdown("###### 🔍 البحث الميداني (بحث برقم الآيدي، الغرفة، أو كلمة):")
-        search_query = st.text_input("اكتب رقم الآيدي أو الغرفة للبحث السريع:", placeholder="مثال: 3041 أو 104...")
+        # محرك البحث الميداني
+        st.markdown("###### 🔍 البحث الميداني السريع:")
+        search_query = st.text_input("ابحث برقم الآيدي أو الغرفة:", placeholder="مثال: 3041 أو 104...")
 
         if search_query.strip():
             sq = search_query.strip().lower()
@@ -437,4 +461,3 @@ with tab_vault:
                 mime="text/csv",
                 use_container_width=True
             )
-
