@@ -1,13 +1,15 @@
+import math
+import re
+import urllib.parse
+from datetime import datetime
 import pandas as pd
 import streamlit as st
-from datetime import datetime
-import urllib.parse
 
 # ==============================================================================
-# 1. إعداد الصفحة وتصميم الجوال الميداني (Mobile-First Dashboard)
+# 1. إعداد الصفحة وضبط الواجهة للجوال
 # ==============================================================================
 st.set_page_config(
-    page_title="المشرف الذكي | إدارة السكن والإعاشة",
+    page_title="المشرف الذكي | سكن الـ 455",
     page_icon="🏢",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -77,27 +79,25 @@ div[data-testid="stFormSubmitButton"] > button {
 )
 
 # ==============================================================================
-# 2. الذاكرة التشغيلية وقواعد البيانات
+# 2. إدارة الحالة التشغيلية (Session State)
 # ==============================================================================
 if "meals_db" not in st.session_state:
     st.session_state["meals_db"] = []
 
 if "maintenance_db" not in st.session_state:
     st.session_state["maintenance_db"] = [
-        {"room": "104", "item": "مكيف", "desc": "تسريب ماء + تبريد ضعيف", "date": "2026-11-06", "status": "مفتوح"},
-        {"room": "104", "item": "شطاف", "desc": "تهريب مستمر من الرأس", "date": "2026-11-07", "status": "مفتوح"},
-        {"room": "212", "item": "فيش كهرباء", "desc": "محروق بسبب الطبخ", "date": "2026-11-07", "status": "مفتوح"},
-        {"room": "301", "item": "سخان مياه", "desc": "محبس الأمان يقطر ماء حار", "date": "2026-11-07", "status": "مفتوح"},
+        {"room": "104", "item": "مكيف", "desc": "تسريب ماء مستمر", "date": "2026-11-06", "status": "مفتوح"},
+        {"room": "104", "item": "شطاف", "desc": "تهريب مياه من اللي", "date": "2026-11-07", "status": "مفتوح"},
+        {"room": "212", "item": "فيش كهرباء", "desc": "فيش مفصول", "date": "2026-11-07", "status": "مفتوح"},
     ]
 
 if "rounds_db" not in st.session_state:
     st.session_state["rounds_db"] = []
 
-# رقم مسؤول الصيانة للواتساب السريع
-MAINTENANCE_CONTRACTOR_PHONE = "966500000000"
+MAINTENANCE_PHONE = "966500000000"
 
 # ==============================================================================
-# 3. الهيدر والتبويبات الميدانية
+# 3. واجهة المستخدم الرئيسية
 # ==============================================================================
 st.markdown(
     """
@@ -112,228 +112,224 @@ st.markdown(
 tab_meals, tab_repairs, tab_rounds, tab_archive = st.tabs([
     "🍽️ العد العكسي للأكل",
     "🛠️ أعطال الغرف",
-    "🚶 الجولات والأدوات",
+    "🚶 الجولات الميدانية",
     "📊 الأرشيف والتكاليف"
 ])
 
-# ==============================================================================
-# تبويب 1: محرك حساب الأكل بطريقة "العد العكسي" والتكلفة
-# ==============================================================================
+# ------------------------------------------------------------------------------
+# تبويب 1: العد العكسي للإعاشة (حساب الهدر والتسريب وتوفير الميزانية)
+# ------------------------------------------------------------------------------
 with tab_meals:
-    st.markdown("##### ⏱️ حساب الوجبة في 60 ثانية (العد العكسي):")
-    st.caption("لا تعد العمال؛ عدّ الفائض بالصواني والبونات بالصندوق فقط:")
-
-    with st.form("reverse_meal_calc", clear_on_submit=False):
-        c_period, c_cost = st.columns(2)
-        with c_period:
-            period = st.selectbox("الوجبة:", ["غداء (11:30 - 1:30)", "عشاء", "فطور"])
-        with c_cost:
-            meal_price = st.number_input("سعر الوجبة (ر.س):", value=12.0, step=1.0)
+    st.markdown("##### ⏱️ الحساب العكسي للوجبة:")
+    
+    with st.form("reverse_meal_form", clear_on_submit=False):
+        c1, c2 = st.columns(2)
+        with c1:
+            period = st.selectbox("الفترة:", ["غداء (11:30 - 1:30)", "عشاء (مساء)", "فطور (صباح)"])
+        with c2:
+            meal_price = st.number_input("سعر الوجبة التقديري (ر.س):", value=12.0, step=0.5)
 
         col_in1, col_in2 = st.columns(2)
         with col_in1:
-            delivered_qty = st.number_input("الوجبات الموردة من المتعهد:", min_value=1, max_value=600, value=455)
+            delivered = st.number_input("المستلم من المتعهد:", min_value=1, max_value=600, value=455)
         with col_in2:
-            leftovers_qty = st.number_input("الفائض المتبقي بالصواني بعد انتهاء الوقت:", min_value=0, max_value=300, value=25)
+            leftovers = st.number_input("الفائض بالصواني بعد الإغلاق:", min_value=0, max_value=300, value=20)
 
-        coupons_found = st.number_input("عدد البونات الموجودة داخل الصندوق:", min_value=0, max_value=600, value=415)
-        notes = st.text_input("ملاحظة (مثال: تأخر الشفت / حالات مرضية):", placeholder="اختياري...")
+        coupons = st.number_input("عدد البونات داخل الصندوق:", min_value=0, max_value=600, value=420)
+        meal_notes = st.text_input("ملاحظات (شفت ليل / حالات مرضية):", placeholder="اختياري...")
 
-        calc_btn = st.form_submit_button("📊 حساب الأثر المالي واعتماد السجل")
+        submitted = st.form_submit_button("📊 حساب الأثر المالي واعتماد السجل")
 
-        # الحسابات الهندسية الفورية
-        consumed_actual = delivered_qty - leftovers_qty
-        leaked_meals = max(0, consumed_actual - coupons_found)
-        waste_cost_sar = leftovers_qty * meal_price
-        suggested_next_order = (delivered_qty - leftovers_qty) + math.ceil(consumed_actual * 0.03)
+        # معالجة منطقية آمنة داخل النطاق
+        actual_eaten = delivered - leftovers
+        unauthorized_meals = max(0, actual_eaten - coupons)
+        waste_cost = leftovers * meal_price
+        
+        # معادلة الأمان: المستهلك الفعلي + 3% هامش طوارئ مجبورة للأعلى
+        safety_margin = math.ceil(actual_eaten * 0.03)
+        suggested_order = actual_eaten + safety_margin
 
-        if calc_btn:
-            entry_time = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+        if submitted:
             st.session_state["meals_db"].append({
                 "date": datetime.now().strftime("%Y-%m-%d"),
-                "time": entry_time,
+                "time": datetime.now().strftime("%I:%M %p"),
                 "period": period.split()[0],
-                "delivered": int(delivered_qty),
-                "consumed": int(consumed_actual),
-                "leftovers": int(leftovers_qty),
-                "coupons": int(coupons_found),
-                "leaked": int(leaked_meals),
-                "waste_cost": float(waste_cost_sar),
-                "suggested_next": int(suggested_next_order),
-                "notes": notes if notes else "سجل طبيعي"
+                "delivered": int(delivered),
+                "consumed": int(actual_eaten),
+                "leftovers": int(leftovers),
+                "coupons": int(coupons),
+                "unauthorized": int(unauthorized_meals),
+                "waste_sar": float(waste_cost),
+                "suggested_order": int(suggested_order),
+                "notes": meal_notes if meal_notes else "لا يوجد"
             })
-            st.success("تم الحفظ في الأرشيف المالي!")
+            st.success("تم الحفظ في الأرشيف المالي بنجاح.")
 
-    # عرض نتائج المعادلة للمشرف
+    # المؤشرات التحليلية الفورية
     st.markdown("---")
-    st.markdown("##### 📌 التحليل المالي والتشغيلي للدفعة الحالية:")
+    st.markdown("##### 📌 قراءة المؤشرات الحالية:")
     
-    r1, r2 = st.columns(2)
-    r1.metric("المستهلك الفعلي", f"{consumed_actual} وجبة")
-    r2.metric("التسريب بدون بون", f"{leaked_meals} وجبة", delta=f"-{leaked_meals}" if leaked_meals > 0 else "0", delta_color="inverse")
+    m1, m2 = st.columns(2)
+    m1.metric("المستهلك الفعلي", f"{actual_eaten} وجبة")
+    m2.metric("التسريب بدون بون", f"{unauthorized_meals} وجبة", delta=f"-{unauthorized_meals}" if unauthorized_meals > 0 else "0", delta_color="inverse")
 
-    r3, r4 = st.columns(2)
-    r3.metric("الهدر المالي بالفائض", f"{waste_cost_sar:.0f} ر.س", delta="خسارة غير مستهلكة", delta_color="inverse")
-    r4.metric("الطلبية المقترحة للغد", f"{suggested_next_order} وجبة", delta="توفير ذكي")
+    m3, m4 = st.columns(2)
+    m3.metric("تكلفة الفائض غير المستهلك", f"{waste_cost:.0f} ر.س", delta="هدر مالي", delta_color="inverse")
+    m4.metric("الطلبية المقترحة للغد", f"{suggested_order} وجبة", delta="توفير ذكي")
 
-    st.info(f"💡 **توصية المشرف لطلبية الغد:** اطلب **{suggested_next_order} وجبة** بدلاً من {delivered_qty}، لتوفير **{delivered_qty - suggested_next_order} وجبة** في اليوم!")
+    st.info(f"💡 **توصية الغد:** اطلب **{suggested_order} وجبة** بدلاً من {delivered} لتوفير **{delivered - suggested_order} وجبة**.")
 
-# ==============================================================================
-# تبويب 2: إدارة أعطال الغرف الأربعة (مكيف - شطاف - فيش - سخان)
-# ==============================================================================
+# ------------------------------------------------------------------------------
+# تبويب 2: أعطال الغرف الأكثر تكراراً (مكيف - شطاف - فيش - سخان)
+# ------------------------------------------------------------------------------
 with tab_repairs:
-    st.markdown("##### 🚨 تسجيل عطل محدد بالغرفة:")
+    st.markdown("##### 🚨 تسجيل بلاغ صيانة للغرفة:")
 
-    with st.form("add_room_issue", clear_on_submit=True):
-        room_no = st.text_input("رقم الغرفة (مثلاً: 104):")
-        item_type = st.selectbox("القطعة المتعطلة:", ["مكيف", "شطاف", "فيش كهرباء", "سخان مياه"])
-        issue_detail = st.text_input("التفاصيل بدقة:", placeholder="مثال: الفيش محترق / الشطاف يسرب من اللي / المكيف ينقط")
-        
-        save_issue = st.form_submit_button("حفظ البلاغ في السجل")
+    with st.form("repair_entry_form", clear_on_submit=True):
+        room_input = st.text_input("رقم الغرفة:")
+        broken_category = st.selectbox("العطل المحدد:", ["مكيف", "شطاف", "فيش كهرباء", "سخان مياه"])
+        desc_input = st.text_input("وصف العطل:", placeholder="مثال: المكيف يقطر ماء داخل الغرفة / الفيش محروق")
 
-        if save_issue:
-            if not room_no.strip():
-                st.error("الرجاء كتابة رقم الغرفة.")
+        btn_repair = st.form_submit_button("حفظ البلاغ بالسجل")
+
+        if btn_repair:
+            r_clean = room_input.strip()
+            if not r_clean:
+                st.error("الرجاء تحديد رقم الغرفة.")
             else:
                 st.session_state["maintenance_db"].append({
-                    "room": room_no.strip(),
-                    "item": item_type,
-                    "desc": issue_detail if issue_detail.strip() else "عطل معتاد",
+                    "room": r_clean,
+                    "item": broken_category,
+                    "desc": desc_input if desc_input.strip() else "عطل تشغيلي معتاد",
                     "date": datetime.now().strftime("%Y-%m-%d"),
                     "status": "مفتوح"
                 })
-                st.success(f"تم إدراج بلاغ غرفة {room_no.strip()} ({item_type}) بنجاح.")
+                st.success(f"تم إدراج بلاغ غرفة {r_clean} بنجاح.")
 
     st.markdown("---")
-    st.markdown("##### 📋 قائمة الأعطال المفتوحة وكشف التكرار:")
+    st.markdown("##### 📋 البلاغات المفتوحة ومؤشر التكرار:")
 
-    open_items = [x for x in st.session_state["maintenance_db"] if x["status"] == "مفتوح"]
-    if open_items:
-        df_m = pd.DataFrame(open_items)
-        room_repeats = df_m["room"].value_counts()
+    open_repairs = [x for x in st.session_state["maintenance_db"] if x["status"] == "مفتوح"]
+    if open_repairs:
+        df_rep = pd.DataFrame(open_repairs)
+        room_counts = df_rep["room"].value_counts()
+        wa_lines = ["*تقرير صيانة السكن اليومي - بلاغات معلقة:*"]
 
-        wa_summary_lines = ["*تقرير صيانة السكن اليومي - أعطال معلقة:*"]
-
-        for idx, row in enumerate(open_items):
+        for idx, row in enumerate(open_repairs):
             r_id = row["room"]
-            count = room_repeats.get(r_id, 1)
-            repeat_tag = f"<span class='alert-tag'>⚠️ متكرر {count} مرات</span>" if count >= 2 else ""
+            repeats = room_counts.get(r_id, 1)
+            alert_badge = f"<span class='alert-tag'>⚠️ متكرر {repeats} مرات</span>" if repeats >= 2 else ""
 
             st.markdown(
                 f"""
                 <div class="stat-box">
-                    <b>غرفة {row['room']}</b> — <span style="color:var(--primary); font-weight:800;">{row['item']}</span> {repeat_tag}<br>
+                    <b>غرفة {row['room']}</b> — <span style="color:var(--primary); font-weight:800;">{row['item']}</span> {alert_badge}<br>
                     <small style="color:#94a3b8;">{row['desc']} | تاريخ: {row['date']}</small>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
-            
-            wa_summary_lines.append(f"• غرفة {row['room']}: {row['item']} ({row['desc']})")
+            wa_lines.append(f"• غرفة {row['room']}: {row['item']} ({row['desc']})")
 
-            if st.button(f"تم إغلاق وإصلاح بلاغ غرفة {row['room']} ({row['item']})", key=f"fix_btn_{idx}"):
+            if st.button(f"تم إصلاح بلاغ غرفة {row['room']} ({row['item']})", key=f"close_rep_{idx}"):
                 row["status"] = "تم الإصلاح ✓"
                 st.rerun()
 
-        # زر الواتساب لإرسال القائمة دفعة واحدة لمقاول الصيانة
-        wa_text = "\n".join(wa_summary_lines)
-        wa_url = f"https://wa.me/{MAINTENANCE_CONTRACTOR_PHONE}?text={urllib.parse.quote(wa_text)}"
+        wa_encoded = urllib.parse.quote("\n".join(wa_lines))
+        wa_target = f"https://wa.me/{MAINTENANCE_PHONE}?text={wa_encoded}"
         st.markdown(
-            f'<a href="{wa_url}" target="_blank" style="display:block; background:#10b981; color:#022c22; text-align:center; padding:12px; border-radius:10px; font-weight:900; text-decoration:none; margin-top:10px;">📲 إرسال قائمة البلاغات لمقاول الصيانة عبر واتساب</a>',
+            f'<a href="{wa_target}" target="_blank" style="display:block; background:#10b981; color:#022c22; text-align:center; padding:12px; border-radius:10px; font-weight:900; text-decoration:none; margin-top:10px;">📲 إرسال البلاغات دفعة واحدة لمقاول الصيانة عبر واتساب</a>',
             unsafe_allow_html=True
         )
     else:
-        st.info("لا توجد أعطال معلقة حالياً في السكن.")
+        st.info("لا توجد بلاغات صيانة معلقة حالياً.")
 
-# ==============================================================================
-# تبويب 3: الجولات الميدانية والأدوات الـ 5
-# ==============================================================================
+# ------------------------------------------------------------------------------
+# تبويب 3: الجولات الميدانية التفتيشية
+# ------------------------------------------------------------------------------
 with tab_rounds:
-    st.markdown("##### 🚶 كشف الجولات اليومية والأدوات:")
+    st.markdown("##### 🚶 توثيق الجولات والتفتيش:")
     
     st.markdown("""
-    **الأدوات الخمسة الإلزامية معك بالجولة:**
-    * [x] **قلم فاحص كهرباء (Test Pen):** لفحص الأفياش في ثانية.
-    * [x] **شريط لاصق عريض (Tagging Tape):** لكتابة العطل ولصقه على الباب.
-    * [x] **شريط تفلون أبيض + جلد شطاف:** لإصلاح تهريب الشطافات فوراً.
-    * [x] **مصباح يدوي / فلاش:** لفحص محابس السخانات ومناور الحمامات.
-    * [x] **الجوال (الكاميرا):** توثيق كل عطل بالفيديو لإنهاء تهرب المقاول.
+    **حقيبة الجولة (الأدوات الـ 5):**
+    * [x] قلم فاحص كهرباء (Test Pen)
+    * [x] شريط لاصق عريض (Tagging Tape)
+    * [x] شريط تفلون أبيض + جلد شطاف احتياطية
+    * [x] مصباح يدوي صغير
+    * [x] كاميرا الجوال (توثيق فيديو 3 ثوانٍ)
     """)
     st.divider()
 
-    round_type = st.radio("نوع الجولة الحالية:", [
-        "جولة الصباح (9:30 ص - 10:30 ص) • هدوء شفت الليل + نظافة الممرات",
-        "جولة المساء (8:30 م - 9:15 م) • مطابقة إنجاز الصيانة + نظافة المطبخ"
+    round_name = st.radio("الجولة:", [
+        "جولة الصباح (9:30 ص) • نظافة الممرات + هدوء شفت الليل",
+        "جولة المساء (8:30 م) • تدقيق إنجاز الصيانة + نظافة المطبخ"
     ])
 
-    with st.form("round_log_form", clear_on_submit=True):
-        corridor_clean = st.checkbox("نظافة الممرات والحمامات مطابقة للمعايير", value=True)
-        heaters_safe = st.checkbox("فحص السخانات والأفياش (لا يوجد التماس أو تنقيط)", value=True)
-        night_shift_quiet = st.checkbox("الهدوء التام في ممرات شفت الليل", value=True)
-        supervisor_notes = st.text_input("ملاحظة سريعة للجولة:")
-        
-        save_round = st.form_submit_button("اعتماد الجولة في السجل")
+    with st.form("round_form", clear_on_submit=True):
+        chk_clean = st.checkbox("نظافة الممرات والحمامات مطابقة", value=True)
+        chk_heaters = st.checkbox("فحص السخانات والأفياش سليم", value=True)
+        chk_quiet = st.checkbox("الهدوء التام بممرات شفت الليل", value=True)
+        r_notes = st.text_input("ملاحظات الجولة:")
 
-        if save_round:
+        btn_round = st.form_submit_button("اعتماد الجولة في السجل")
+
+        if btn_round:
             st.session_state["rounds_db"].append({
                 "time": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
-                "round": round_type.split()[0],
-                "cleaning": "سليم" if corridor_clean else "مخالفة نظافة",
-                "heaters": "سليم" if heaters_safe else "يوجد خلل سخانات",
-                "quiet": "ملتزمون" if night_shift_quiet else "يوجد إزعاج",
-                "notes": supervisor_notes if supervisor_notes else "تمت الجولة بنجاح"
+                "round": round_name.split()[0],
+                "cleaning": "سليم" if chk_clean else "مخالف",
+                "heaters": "سليم" if chk_heaters else "خلل",
+                "quiet": "ملتزمون" if chk_quiet else "إزعاج",
+                "notes": r_notes if r_notes else "تمت بنجاح"
             })
-            st.success("تم توثيق الجولة واعتمادها رسمياً.")
+            st.success("تم توثيق الجولة رسمياً.")
 
-# ==============================================================================
-# تبويب 4: الأرشيف الشامل وتصدير Excel بأقل التكاليف
-# ==============================================================================
+# ------------------------------------------------------------------------------
+# تبويب 4: الأرشيف وتصدير Excel (إخلاء مسؤولية المشرف)
+# ------------------------------------------------------------------------------
 with tab_archive:
-    st.markdown("##### 📥 تصدير تقارير الإدارة لإخلاء المسؤولية:")
-    st.caption("ملفات جاهزة بصيغة Excel تحفظ كل ريال وكل بلاغ:")
+    st.markdown("##### 📥 تصدير البيانات إلى Excel:")
 
     if st.session_state["meals_db"]:
-        df_meals = pd.DataFrame(st.session_state["meals_db"])
-        
-        # ملخص مالي تراكمي
-        total_waste_sar = df_meals["waste_cost"].sum()
-        total_leaked_count = df_meals["leaked"].sum()
+        df_m_export = pd.DataFrame(st.session_state["meals_db"])
+        total_lost_sar = df_m_export["waste_sar"].sum()
+        total_leaked = df_m_export["unauthorized"].sum()
 
         st.markdown(f"""
         <div class="stat-box" style="border-color:var(--primary);">
-            <b>الخلاصة المالية المحسوبة:</b><br>
-            • إجمالي تكلفة الوجبات المهدورة بالفائض: <b style="color:#ef4444;">{total_waste_sar:.1f} ر.س</b><br>
-            • إجمالي الوجبات المسربة بدون بون: <b>{total_leaked_count} وجبة</b>
+            <b>الخلاصة المالية التراكمية:</b><br>
+            • إجمالي الهدر المالي بالفائض: <b style="color:#ef4444;">{total_lost_sar:.1f} ر.س</b><br>
+            • إجمالي الوجبات المصروفة بدون بون: <b>{total_leaked} وجبة</b>
         </div>
         """, unsafe_allow_html=True)
 
-        csv_meals = df_meals.to_csv(index=False).encode("utf-8-sig")
+        csv_meals = df_m_export.to_csv(index=False).encode("utf-8-sig")
         st.download_button(
-            label="📊 تحميل سجل الإعاشة والتكاليف اليومية (Excel)",
+            label="📊 تحميل سجل الإعاشة والتكاليف (Excel)",
             data=csv_meals,
-            file_name=f"Meals_Waste_Control_{datetime.now().strftime('%Y%m%d')}.csv",
+            file_name=f"Meals_Archive_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv",
             use_container_width=True
         )
 
     if st.session_state["maintenance_db"]:
-        df_repairs = pd.DataFrame(st.session_state["maintenance_db"])
-        csv_repairs = df_repairs.to_csv(index=False).encode("utf-8-sig")
+        df_r_export = pd.DataFrame(st.session_state["maintenance_db"])
+        csv_rep = df_r_export.to_csv(index=False).encode("utf-8-sig")
         st.download_button(
-            label="🛠️ تحميل تقرير صيانة الغرف والمكيفات (Excel)",
-            data=csv_repairs,
-            file_name=f"Rooms_Repairs_Log_{datetime.now().strftime('%Y%m%d')}.csv",
+            label="🛠️ تحميل تقرير الصيانة والغرف (Excel)",
+            data=csv_rep,
+            file_name=f"Repairs_Archive_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv",
             use_container_width=True
         )
 
     if st.session_state["rounds_db"]:
-        df_rounds = pd.DataFrame(st.session_state["rounds_db"])
-        csv_rounds = df_rounds.to_csv(index=False).encode("utf-8-sig")
+        df_rnd_export = pd.DataFrame(st.session_state["rounds_db"])
+        csv_rnd = df_rnd_export.to_csv(index=False).encode("utf-8-sig")
         st.download_button(
             label="🚶 تحميل سجل الجولات والنظافة (Excel)",
-            data=csv_rounds,
-            file_name=f"Rounds_Log_{datetime.now().strftime('%Y%m%d')}.csv",
+            data=csv_rnd,
+            file_name=f"Rounds_Archive_{datetime.now().strftime('%Y%m%d')}.csv",
             mime="text/csv",
             use_container_width=True
         )
