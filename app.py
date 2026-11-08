@@ -1,268 +1,838 @@
 from datetime import datetime
+import hmac
+import math
 import urllib.parse
 import pandas as pd
 import streamlit as st
 
+# ==============================================================================
+# 1. إعداد الشاشة للجوال الميداني (RTL / Dark Mode)
+# ==============================================================================
 st.set_page_config(
-    page_title="سكن 3 | جولات المياه والسباكة",
-    page_icon="🚰",
+    page_title="سكن جامعة 3 | العمليات الميدانية",
+    page_icon="🏢",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
 
-def make_wa_url(text: str) -> str:
-    """رابط واتساب مباشر يفتح محادثاتك لاختيار أي مستلم بلمسة واحدة"""
-    return f"https://api.whatsapp.com/send?text={urllib.parse.quote(text)}"
+st.markdown(
+    """
+<style>
+:root {
+    color-scheme: dark;
+    --primary: #10b981;
+    --card-bg: #111827;
+    --border-color: rgba(255, 255, 255, 0.12);
+}
+header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
+.block-container { 
+    padding-top: 0.4rem !important; 
+    padding-bottom: 2rem !important; 
+    max-width: 430px !important; 
+    margin: 0 auto !important;
+}
+html, body, [class*="css"] { 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif; 
+    direction: rtl; 
+    text-align: right; 
+    background-color: #0b0f19 !important; 
+    color: #f8fafc !important; 
+}
+.top-card { 
+    background: var(--card-bg); 
+    border: 1px solid var(--border-color); 
+    border-radius: 12px; 
+    padding: 10px 14px; 
+    margin-bottom: 8px; 
+    text-align: center; 
+}
+.headline { font-size: 1.15em; font-weight: 900; color: #ffffff; margin: 0; }
+.sub-headline { font-size: 0.82em; font-weight: 700; color: #94a3b8; margin-top: 3px; }
+div[data-testid="stFormSubmitButton"] > button { 
+    background: var(--primary) !important; 
+    color: #022c22 !important; 
+    font-weight: 900 !important; 
+    height: 48px !important; 
+    border-radius: 10px !important; 
+    width: 100% !important; 
+    border: none !important; 
+    font-size: 1.05em !important; 
+}
+.alert-tag {
+    background: rgba(239, 68, 68, 0.25);
+    border: 1px solid rgba(239, 68, 68, 0.6);
+    color: #fca5a5;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.78em;
+    font-weight: 900;
+}
+.done-tag {
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.6);
+    color: #6ee7b7;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.76em;
+    font-weight: 800;
+}
+.stat-box {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+}
+.wa-btn {
+    display: block;
+    background: #10b981;
+    color: #022c22 !important;
+    text-align: center;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 900;
+    text-decoration: none !important;
+    margin-top: 8px;
+    margin-bottom: 6px;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
-# قاعدة البيانات الحية لجولات السباكة وهدر المياه
-if "water_db" not in st.session_state:
-    st.session_state.water_db = [
-        {
-            "التاريخ": "2026-11-07",
-            "الشهر": "2026-11",
-            "الوقت": "10:15 ص",
-            "الغرفة_الموقع": "غرفة 302",
-            "البند": "صوبر السيفون (عوامة تالفة)",
-            "مستوى_الهدر": "شديد (ماء مستمر)",
-            "الحالة": "معلق",
-            "وقت_الإصلاح": "-",
-            "الملاحظة": "تهريب مياه مستمر في الكرسي",
-        },
-        {
-            "التاريخ": "2026-11-08",
-            "الشهر": "2026-11",
-            "الوقت": "09:00 ص",
-            "الغرفة_الموقع": "دورات مياه الدور 4",
-            "البند": "سيفون معلق يسرب",
-            "مستوى_الهدر": "شديد (ماء مستمر)",
-            "الحالة": "تم الإصلاح",
-            "وقت_الإصلاح": "09:25 ص",
-            "الملاحظة": "تم فك السيفون وضبط المكبس فوراً",
-        },
+# ==============================================================================
+# 2. الثوابت العامة وإدارة الجلسة الآمنة (الرمز الدائم 5050)
+# ==============================================================================
+LOCATION_TAG = "سكن جامعة 3"
+PERMANENT_PIN = str(st.secrets.get("SUPERVISOR_PIN", "5050")).strip()
+
+if "contacts" not in st.session_state:
+  st.session_state["contacts"] = {
+      "المدير عمر": "966500000000",
+      "مقاول الصيانة": "966500000000",
+      "متعهد الإعاشة": "966500000000",
+  }
+
+# ترقية قواعد البيانات لتفادي أي تعارض في المفاتيح
+if "maintenance_db" not in st.session_state:
+  st.session_state["maintenance_db"] = [
+      {
+          "room": "104",
+          "item": "مكيف",
+          "opened_at": "09:30 ص",
+          "date": "2026-11-06",
+          "closed_at": None,
+          "status": "مفتوح",
+          "photo": None,
+      },
+      {
+          "room": "208",
+          "item": "شطاف",
+          "opened_at": "08:15 م",
+          "date": "2026-11-07",
+          "closed_at": None,
+          "status": "مفتوح",
+          "photo": None,
+      },
+  ]
+else:
+  for row in st.session_state["maintenance_db"]:
+    if "opened_at" not in row:
+      row["opened_at"] = row.get("time", "اليوم")
+    if "date" not in row:
+      row["date"] = datetime.now().strftime("%Y-%m-%d")
+    if "status" not in row:
+      row["status"] = "مفتوح"
+    if "closed_at" not in row:
+      row["closed_at"] = None
+    if "photo" not in row:
+      row["photo"] = None
+
+if "violations_db" not in st.session_state:
+  st.session_state["violations_db"] = [
+      {
+          "room": "108",
+          "type": "سخان",
+          "reason": "استخدام هيتر طبخ في الغرفة",
+          "count": 1,
+          "time": "09:15 م",
+          "date": "2026-11-05",
+          "photo": None,
+      },
+      {
+          "room": "108",
+          "type": "سخان",
+          "reason": "تكرار تشغيل هيتر مخالف",
+          "count": 2,
+          "time": "10:30 م",
+          "date": "2026-11-07",
+          "photo": None,
+      },
+  ]
+
+if "meals_db" not in st.session_state:
+  st.session_state["meals_db"] = []
+
+if "rounds_db" not in st.session_state:
+  st.session_state["rounds_db"] = []
+
+if "is_supervisor" not in st.session_state:
+  st.session_state["is_supervisor"] = False
+
+# ==============================================================================
+# 3. محرك التوقيت الدقيق للوجبات
+# ==============================================================================
+now = datetime.now()
+now_minutes = now.hour * 60 + now.minute
+
+# الفطور: 05:30 (330 دقيقة) حتى 07:00 (420 دقيقة)
+# الغداء: 11:30 (690 دقيقة) حتى 14:30 (870 دقيقة)
+# العشاء: 17:30 (1050 دقيقة) حتى 21:00 (1260 دقيقة)
+
+if now_minutes < 570:
+  auto_meal_idx = 0
+  active_period_name = "الفطور (05:30 ص - 07:00 ص)"
+  is_within_official_window = 330 <= now_minutes <= 420
+elif now_minutes < 990:
+  auto_meal_idx = 1
+  active_period_name = "الغداء (11:30 ص - 02:30 م)"
+  is_within_official_window = 690 <= now_minutes <= 870
+else:
+  auto_meal_idx = 2
+  active_period_name = "العشاء (05:30 م - 09:00 م)"
+  is_within_official_window = 1050 <= now_minutes <= 1260
+
+# ==============================================================================
+# 4. ترويسة التطبيق مع زر التحديث اللحظي
+# ==============================================================================
+st.markdown(
+    f"""
+<div class="top-card">
+    <div class="headline">🏢 إدارة {LOCATION_TAG}</div>
+    <div class="sub-headline">العمليات الميدانية • التوثيق بالصور • القرارات التشغيلية</div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+c_head1, c_head2 = st.columns([2, 1])
+with c_head1:
+  st.caption(f"📅 اليوم: {now.strftime('%Y-%m-%d | %I:%M %p')}")
+with c_head2:
+  if st.button("🔄 تحديث الشاشة", use_container_width=True):
+    st.rerun()
+
+tab_meals, tab_repairs, tab_viol, tab_rounds, tab_dispatch, tab_vault = st.tabs(
+    [
+        "🍽️ الأكل والقرار",
+        "🛠️ الصيانة والصور",
+        "⚠️ المخالفات والصور",
+        "🚶 الجولات",
+        "📲 مركز الواتساب",
+        "🔐 الأدمن والخزنة",
     ]
+)
 
-st.title("🚰 جولات المياه ومكافحة الهدر")
-st.caption(f"📅 اليوم: {datetime.now().strftime('%Y-%m-%d | %I:%M %p')}")
+# ------------------------------------------------------------------------------
+# 1. تبويب الأكل: فطور (5:30-7) / غداء (11:30-2:30) / عشاء (5:30-9)
+# ------------------------------------------------------------------------------
+with tab_meals:
+  st.markdown("##### 🍽️ توثيق الوجبة والقرار التشغيلي:")
 
-tab1, tab2, tab3 = st.tabs([
-    "⚡ جولة الرصد الفوري",
-    "📋 التقرير اليومي",
-    "📊 التقرير الشهري والتراكمي",
-])
+  if is_within_official_window:
+    st.markdown(
+        f"<div class='stat-box' style='border-right: 3px solid #10b981;'>"
+        f"<span class='done-tag'>🟢 فترة صرف رسمية مفتوحة الآن</span><br>"
+        f"<b>{active_period_name}</b></div>",
+        unsafe_allow_html=True,
+    )
+  else:
+    st.markdown(
+        f"<div class='stat-box' style='border-right: 3px solid #94a3b8;'>"
+        f"<span style='color:#94a3b8; font-size:0.8em;'>🕒 خارج نافذة التوزيع المباشرة</span><br>"
+        f"<small>المواعيد: فطور (05:30-07:00 ص) | غداء (11:30-02:30 م) | عشاء (05:30-09:00 م)</small></div>",
+        unsafe_allow_html=True,
+    )
 
-# ==============================================================================
-# 1. جولة الرصد الميداني السريع (صوبر، سيفون، تسريب، شطاف)
-# ==============================================================================
-with tab1:
-    st.subheader("⚡ تسجيل بلاغ صيانة / هدر مياه")
+  with st.form("meal_operational_form", clear_on_submit=False):
+    meal_type_chosen = st.selectbox(
+        "نوع الوجبة:",
+        [
+            "فطور 🌅 (05:30 ص - 07:00 ص)",
+            "غداء ☀️ (11:30 ص - 02:30 م)",
+            "عشاء 🌙 (05:30 م - 09:00 م)",
+        ],
+        index=auto_meal_idx,
+    )
 
-    with st.form("form_water_inspect", clear_on_submit=True):
-        c1, c2 = st.columns([1, 1.2])
-        loc_in = c1.text_input("الغرفة أو الموقع:", placeholder="مثال: 405 أو حمامات دور 2")
-        item_in = c2.selectbox(
-            "بند العطل / الفحص:",
-            [
-                "صوبر السيفون (عوامة تالفة) ⚙️",
-                "سيفون معلق يسرب 🚽",
-                "محبس زاوية / لي شطاف يهرب 🚿",
-                "بلف / صنبور مياه مفتوح وهدر 🚰",
-                "كسر ماسورة / تسريب أرضي ⚠️",
-                "فحص سليم (لا يوجد تسريب) ✅",
-            ],
+    c1, c2, c3 = st.columns(3)
+    with c1:
+      deliv = st.number_input(
+          "كم وجبة جات:", min_value=0, max_value=600, value=77
+      )
+    with c2:
+      coups = st.number_input("كوبون:", min_value=0, max_value=600, value=42)
+    with c3:
+      surp = st.number_input("فائض بالصواني:", min_value=0, max_value=600, value=0)
+
+    meal_note = st.text_input(
+        "ملاحظة الوجبة (اختياري):", placeholder="سليم / تأخر في التوريد..."
+    )
+
+    btn_meal = st.form_submit_button("⚡ حفظ الوجبة وتثبيت الوقت")
+
+    actual_distributed = max(0, deliv - surp)
+    no_coupon_count = max(0, actual_distributed - coups)
+
+    buffer_calc = (
+        math.ceil(actual_distributed * 0.03) if actual_distributed > 0 else 0
+    )
+    recommended_order = actual_distributed + buffer_calc
+
+    exact_time_now = datetime.now().strftime("%I:%M:%S %p")
+    exact_date_now = datetime.now().strftime("%Y-%m-%d")
+
+    clean_meal_name = meal_type_chosen.split()[0]
+
+    if btn_meal:
+      st.session_state["meals_db"].append({
+          "meal_type": clean_meal_name,
+          "date": exact_date_now,
+          "time": exact_time_now,
+          "delivered": int(deliv),
+          "coupons": int(coups),
+          "surplus": int(surp),
+          "distributed": int(actual_distributed),
+          "no_coupon": int(no_coupon_count),
+          "recommended": int(recommended_order),
+          "notes": meal_note.strip() if meal_note.strip() else "سليم",
+      })
+      st.success(
+          f"تم توثيق وجبة {clean_meal_name} رسمياً (الساعة {exact_time_now})!"
+      )
+
+  st.markdown("---")
+  m1, m2 = st.columns(2)
+  m1.metric("الموزع فعلياً", f"{actual_distributed} شخص")
+  m2.metric(
+      "الصرف بدون كوبون",
+      f"{no_coupon_count} وجبة",
+      delta=f"{no_coupon_count}" if no_coupon_count > 0 else "0",
+      delta_color="inverse",
+  )
+
+  st.info(
+      f"💡 **القرار التشغيلي العلمي:**\n"
+      f"المستهلك الفعلي لوجبة ({clean_meal_name}) هو **{actual_distributed} شخص**.\n"
+      f"الطلبية المقترحة للوجبة القادمة هي **{recommended_order} وجبة** (تغطي كافة الأفراد مع 3% طوارئ) لتفادي هدر **{max(0, deliv - recommended_order)} وجبة**."
+  )
+
+# ------------------------------------------------------------------------------
+# 2. تبويب الصيانة: قيد سريع + التقاط أو إرفاق صورة العطل
+# ------------------------------------------------------------------------------
+with tab_repairs:
+  st.markdown("##### 🛠️ بلاغ صيانة جديد مع صورة توثيقية:")
+
+  with st.form("quick_rep_form", clear_on_submit=True):
+    r_room = st.text_input("رقم الغرفة:", placeholder="مثال: 104")
+    r_item = st.radio(
+        "العطل:", ["مكيف ❄️", "شطاف 🚿", "أخرى 🛠️"], horizontal=True
+    )
+
+    other_text = ""
+    if "أخرى" in r_item:
+      other_text = st.text_input(
+          "اكتب العطل الآخر:", placeholder="مثال: لمبة / فيش / سخان موية..."
+      )
+
+    # خانة الصورة: تفتح الكاميرا فوراً في الجوال أو تسمح بالاختيار من الألبوم
+    rep_photo_file = st.file_uploader(
+        "📷 صوّر العطل بالكاميرا أو اختر صورة من الاستوديو:",
+        type=["jpg", "jpeg", "png"],
+        help="بالضغط هنا من الجوال يمكنك التقاط صورة مباشرة أو رفعها",
+    )
+
+    btn_rep = st.form_submit_button("⚡ تسجيل البلاغ وحفظ الصورة")
+
+    if btn_rep:
+      c_r = r_room.strip()
+      final_i = (
+          other_text.strip()
+          if ("أخرى" in r_item and other_text.strip())
+          else r_item.split()[0]
+      )
+      if not c_r:
+        st.error("اكتب رقم الغرفة أولاً.")
+      else:
+        photo_bytes = rep_photo_file.getvalue() if rep_photo_file else None
+        st.session_state["maintenance_db"].append({
+            "room": c_r,
+            "item": final_i,
+            "opened_at": datetime.now().strftime("%I:%M %p"),
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "closed_at": None,
+            "status": "مفتوح",
+            "photo": photo_bytes,
+        })
+        st.success(f"تم قيد بلاغ: غرفة {c_r} ({final_i}) مع الصورة بنجاح!")
+
+  st.markdown("---")
+  st.markdown("##### 📋 البلاغات المعلقة:")
+
+  open_reps = [
+      x
+      for x in st.session_state["maintenance_db"]
+      if x.get("status", "مفتوح") == "مفتوح"
+  ]
+  if open_reps:
+    for idx, row in enumerate(open_reps):
+      r_val = row.get("room", "")
+      i_val = row.get("item", "")
+      t_val = row.get("opened_at", row.get("time", "اليوم"))
+      d_val = row.get("date", "اليوم")
+      has_img = "📸 مرفق صورة" if row.get("photo") else "لا توجد صورة"
+
+      st.markdown(
+          f"""
+                <div class="stat-box">
+                    <b>غرفة {r_val}</b> — <span style="color:var(--primary); font-weight:800;">{i_val}</span> <small style="color:#6ee7b7;">({has_img})</small><br>
+                    <small style="color:#94a3b8;">📅 التاريخ: {d_val} | ⏰ الوقت: {t_val}</small>
+                </div>
+                """,
+          unsafe_allow_html=True,
+      )
+
+      # عرض الصورة إذا وجدت
+      if row.get("photo"):
+        with st.expander(f"🖼️ معاينة صورة عطل غرفة {r_val}"):
+          st.image(row["photo"], use_container_width=True)
+
+      if st.button(f"✅ تم تصليح {i_val} غرفة {r_val}", key=f"fix_btn_{idx}"):
+        row["status"] = "تم الإصلاح"
+        row["closed_at"] = datetime.now().strftime("%I:%M %p")
+        st.success(
+            f"تم تصليح {i_val} غرفة {r_val} (الساعة {row['closed_at']}) ✓"
+        )
+        st.rerun()
+  else:
+    st.info("لا توجد بلاغات صيانة معلقة حالياً.")
+
+  done_reps = [
+      x
+      for x in st.session_state["maintenance_db"]
+      if x.get("status") == "تم الإصلاح"
+  ]
+  if done_reps:
+    with st.expander("🔍 ما تم تصليحه اليوم:"):
+      for d in reversed(done_reps[-4:]):
+        st.markdown(
+            f"""
+                    <div class="stat-box" style="border-right: 3px solid #10b981;">
+                        <b>غرفة {d.get('room', '')}</b>: {d.get('item', '')} <span class='done-tag'>تم تصليحه ✓</span><br>
+                        <small style="color:#94a3b8;">أُصلح الساعة: <b>{d.get('closed_at', 'اليوم')}</b> (البلاغ كان {d.get('opened_at', '')})</small>
+                    </div>
+                    """,
+            unsafe_allow_html=True,
         )
 
-        c3, c4 = st.columns(2)
-        waste_level = c3.selectbox("مستوى الهدر:", ["شديد (ماء مستمر)", "تنقيط / خفيف", "معدوم (سليم)"])
-        init_status = c4.radio("حالة المعالجة:", ["معلق", "تم الإصلاح في الموقع"], horizontal=True)
+# ------------------------------------------------------------------------------
+# 3. تبويب المخالفات: رصد السخانات والنظافة + صورة التوثيق الميداني
+# ------------------------------------------------------------------------------
+with tab_viol:
+  st.markdown("##### ⚠️ تسجيل مخالفة غرفة مع صورة إثبات:")
 
-        notes_in = st.text_input("ملاحظة الجولة:", placeholder="مثال: تم إغلاق المحبس مؤقتاً لحين تبديل الصوبر...")
-        btn_save = st.form_submit_button("⚡ حفظ البلاغ وتوليد رسالة الواتساب", use_container_width=True)
+  with st.form("viol_form", clear_on_submit=True):
+    v_room = st.text_input("رقم الغرفة:", placeholder="مثال: 108")
+    v_type = st.radio(
+        "المخالفة:",
+        ["سخان ⚡", "نظافة 🗑️", "سخان ونظافة ⚠️", "أخرى 📝"],
+        horizontal=True,
+    )
 
-        if btn_save:
-            clean_loc = loc_in.strip()
-            if not clean_loc:
-                st.error("اكتب رقم الغرفة أو الموقع أولاً.")
-            else:
-                d_now = datetime.now().strftime("%Y-%m-%d")
-                m_now = datetime.now().strftime("%Y-%m")
-                t_now = datetime.now().strftime("%I:%M %p")
-                fix_time = t_now if init_status == "تم الإصلاح في الموقع" else "-"
-                clean_item = item_in.split()[0] + " " + item_in.split()[1]
+    custom_v = ""
+    if "أخرى" in v_type:
+      custom_v = st.text_input(
+          "اكتب نوع المخالفة:", placeholder="مثال: تدخين / إزعاج..."
+      )
 
-                st.session_state.water_db.append({
-                    "التاريخ": d_now,
-                    "الشهر": m_now,
-                    "الوقت": t_now,
-                    "الغرفة_الموقع": clean_loc,
-                    "البند": clean_item,
-                    "مستوى_الهدر": waste_level,
-                    "الحالة": "تم الإصلاح" if init_status == "تم الإصلاح في الموقع" else "معلق",
-                    "وقت_الإصلاح": fix_time,
-                    "الملاحظة": notes_in.strip() or "جولة كشف ميداني",
-                })
+    v_reason = st.text_input(
+        "السبب والملاحظة الميدانية:",
+        placeholder="مثال: تشغيل هيتر طبخ / نفايات...",
+    )
 
-                msg_inspect = f"""بلاغ سباكة وهدر مياه عاجل - سكن جامعة 3:
-- الموقع: {clean_loc}
-- العطل: {clean_item}
-- مستوى الهدر: {waste_level}
-- الحالة: {init_status}
-- التوقيت: {t_now} ({d_now})
-- الملاحظة: {notes_in.strip() or 'يرجى المباشرة فوراً'}"""
+    # خانة صورة إثبات المخالفة (سخان / نفايات)
+    viol_photo_file = st.file_uploader(
+        "📷 صوّر المخالفة أو الهيتر مباشرة:",
+        type=["jpg", "jpeg", "png"],
+    )
 
-                st.session_state["active_water_wa"] = msg_inspect
-                st.success(f"تم توثيق {clean_item} لموقع ({clean_loc}) بنجاح!")
+    btn_viol = st.form_submit_button("⚡ حفظ المخالفة والصورة")
 
-    if "active_water_wa" in st.session_state:
-        st.link_button("📲 فتح الواتساب والإرسال الآن لسباك الصيانة / الإدارة", make_wa_url(st.session_state["active_water_wa"]), use_container_width=True)
+    if btn_viol:
+      c_vr = v_room.strip()
+      chosen_t = (
+          custom_v.strip()
+          if ("أخرى" in v_type and custom_v.strip())
+          else v_type.split()[0]
+      )
 
+      if not c_vr:
+        st.error("اكتب رقم الغرفة أولاً.")
+      else:
+        past_times = sum(
+            1
+            for v in st.session_state["violations_db"]
+            if v.get("room") == c_vr and v.get("type") == chosen_t
+        )
+        this_count = past_times + 1
+        v_photo_bytes = viol_photo_file.getvalue() if viol_photo_file else None
+
+        st.session_state["violations_db"].append({
+            "room": c_vr,
+            "type": chosen_t,
+            "reason": (
+                v_reason.strip() if v_reason.strip() else "رصد مخالفة بالسكن"
+            ),
+            "count": this_count,
+            "time": datetime.now().strftime("%I:%M %p"),
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "photo": v_photo_bytes,
+        })
+        st.success(
+            f"تم تسجيل مخالفة غرفة {c_vr} ({chosen_t}) — المرة الـ"
+            f" ({this_count}) مع الصورة!"
+        )
+
+  st.markdown("---")
+  st.markdown("##### 📋 المخالفات المرصودة:")
+  if st.session_state["violations_db"]:
+    for v in reversed(st.session_state["violations_db"][-4:]):
+      c_num = v.get("count", 1)
+      tag_c = "alert-tag" if c_num >= 2 else "done-tag"
+      st.markdown(
+          f"""
+                <div class="stat-box" style="border-right: 3px solid #ef4444;">
+                    <b>غرفة {v.get('room', '')}</b> — <span style="color:#f87171; font-weight:800;">{v.get('type', '')}</span>
+                    <span class='{tag_c}'>المرة الـ {c_num}</span><br>
+                    <small style="color:#cbd5e1;">السبب: {v.get('reason', '')}</small><br>
+                    <small style="color:#94a3b8;">📅 التاريخ: {v.get('date', '')} | ⏰ الوقت: {v.get('time', '')}</small>
+                </div>
+                """,
+          unsafe_allow_html=True,
+      )
+      if v.get("photo"):
+        with st.expander(f"🖼️ صورة مخالفة غرفة {v.get('room')}"):
+          st.image(v["photo"], use_container_width=True)
+  else:
+    st.info("سجل المخالفات نظيف.")
+
+# ------------------------------------------------------------------------------
+# 4. تبويب الجولات الميدانية
+# ------------------------------------------------------------------------------
+with tab_rounds:
+  st.markdown("##### 🚶 توثيق جولة اليوم:")
+
+  def_round = 0 if now.hour < 14 else 1
+
+  with st.form("round_form", clear_on_submit=True):
+    sel_r = st.radio(
+        "الجولة:",
+        ["جولة الصباح (09:30 ص)", "جولة الليل (08:30 م)"],
+        index=def_round,
+        horizontal=True,
+    )
+    r_notes = st.text_input(
+        "ملاحظة الجولة:", placeholder="مثال: هدوء تام ونظافة الممرات ممتازة..."
+    )
+    btn_r = st.form_submit_button("⚡ حفظ الجولة")
+
+    if btn_r:
+      st.session_state["rounds_db"].append({
+          "date": datetime.now().strftime("%Y-%m-%d"),
+          "time": datetime.now().strftime("%I:%M %p"),
+          "round": sel_r.split()[0] + " " + sel_r.split()[1],
+          "note": (
+              r_notes.strip() if r_notes.strip() else "السكن منضبط وسليم"
+          ),
+      })
+      st.success(f"تم توثيق {sel_r} بنجاح!")
+
+  if st.session_state["rounds_db"]:
     st.markdown("---")
-    st.markdown("#### ⏳ تسريبات مياه معلقة تتطلب معالجة فورية:")
-    
-    pending_list = [x for x in st.session_state.water_db if x["الحالة"] == "معلق" and "سليم" not in x["البند"]]
-    if not pending_list:
-        st.info("لا توجد تسريبات مياه معلقة حالياً. السكن خالٍ من الهدر النشط.")
-    else:
-        for idx, row in enumerate(pending_list):
-            with st.container(border=True):
-                st.markdown(f"🚨 **{row['الغرفة_الموقع']}** — <span style='color:#f87171;'>{row['البند']}</span> ({row['مستوى_الهدر']})", unsafe_allow_html=True)
-                st.caption(f"⏰ مرصود الساعة {row['الوقت']} بتاريخ {row['التاريخ']} | الملاحظة: {row['الملاحظة']}")
-                
-                c_act1, c_act2 = st.columns(2)
-                remind_msg = f"تذكير صيانة عاجل: نرجو مباشرة تسريب ({row['البند']}) بموقع {row['الغرفة_الموقع']} لتفادي هدر المياه. مسجل منذ {row['الوقت']}."
-                c_act1.link_button("📲 إرسال تذكير للمقاول", make_wa_url(remind_msg), use_container_width=True)
-                
-                if c_act2.button(f"✅ تم الإصلاح وتغيير القطعة", key=f"fixed_{idx}", use_container_width=True):
-                    row["الحالة"] = "تم الإصلاح"
-                    row["وقت_الإصلاح"] = datetime.now().strftime("%I:%M %p")
-                    st.rerun()
+    for r in st.session_state["rounds_db"][-2:]:
+      st.markdown(
+          f"""
+                <div class="stat-box">
+                    <b>{r.get('round', '')}</b> — <small style="color:var(--primary);">{r.get('time', '')}</small><br>
+                    <small style="color:#cbd5e1;">الملاحظة: {r.get('note', '')}</small>
+                </div>
+                """,
+          unsafe_allow_html=True,
+      )
 
-# ==============================================================================
-# 2. التقرير اليومي الشامل (مخصص لتسليم الوردية وإدارة الصيانة)
-# ==============================================================================
-with tab2:
-    st.subheader("📋 تقرير موقف المياه اليومي المعتمد")
-    
-    df_all = pd.DataFrame(st.session_state.water_db)
-    today_date = datetime.now().strftime("%Y-%m-%d")
-    df_today = df_all[df_all["التاريخ"] == today_date] if not df_all.empty else pd.DataFrame()
+# ------------------------------------------------------------------------------
+# 5. تبويب مركز الواتساب: اختيار المستلم وتحديد المحتوى بضغطة زر
+# ------------------------------------------------------------------------------
+with tab_dispatch:
+  st.markdown("##### 📲 مركز إرسال الواتساب والتقارير:")
+  st.caption("تحكم كامل: حدد لمن تريد الإرسال، واضغط زر الإرسال المباشر:")
 
-    total_today = len(df_today)
-    pending_today = len(df_today[df_today["الحالة"] == "معلق"])
-    fixed_today = len(df_today[df_today["الحالة"] == "تم الإصلاح"])
-    severe_waste = len(df_today[df_today["مستوى_الهدر"].str.contains("شديد", na=False)])
+  recipient = st.selectbox(
+      "إرسال الرسالة إلى من؟",
+      ["المدير عمر", "مقاول الصيانة", "متعهد الإعاشة", "رقم مخصص (أكتبه بيدي)"],
+  )
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("فحوصات اليوم", total_today)
-    m2.metric("هدر شديد", severe_waste, delta_color="inverse")
-    m3.metric("تم إصلاحه", fixed_today)
-    m4.metric("معلق حالياً", pending_today, delta_color="inverse")
+  if recipient == "رقم مخصص (أكتبه بيدي)":
+    target_wa_phone = st.text_input(
+        "أدخل رقم الجوال مع المفتاح (مثال: 966500000000):"
+    )
+  else:
+    target_wa_phone = st.session_state["contacts"].get(
+        recipient, "966500000000"
+    )
+    st.info(f"رقم الواتساب المعتمد لـ ({recipient}): **{target_wa_phone}**")
 
-    # صياغة التقرير اليومي الجاهز للإرسال
-    open_details = "\n".join([f"  • {r['الغرفة_الموقع']}: {r['البند']} ({r['مستوى_الهدر']})" for _, r in df_today[df_today['الحالة'] == 'معلق'].iterrows()]) if pending_today > 0 else "  • لا توجد أعطال معلقة."
-    done_details = "\n".join([f"  • تم إصلاح {r['البند']} في {r['الغرفة_الموقع']} (الساعة {r['وقت_الإصلاح']})" for _, r in df_today[df_today['الحالة'] == 'تم الإصلاح'].iterrows()]) if fixed_today > 0 else "  • لا يوجد."
+  report_scope = st.radio(
+      "محتوى الرسالة المراد إرساله:",
+      [
+          "1. تقرير الموقف اليومي الشامل للمدير (مع القرار والتوصية)",
+          "2. كشف الصيانة فقط (كم شخص/غرفة معلقة ومصلحة)",
+          "3. كشف الإعاشة فقط (مواعيد الوجبة والكميات والقرار)",
+          "4. كشف المخالفات فقط (الغرف والسخانات والتكرار)",
+          "5. رسالة مخصصة أكتبها بيدي",
+      ],
+  )
 
-    daily_report_txt = f"""مساك الله بالخير،،
-تقرير جولات السباكة ومكافحة هدر المياه اليومي - سكن جامعة 3
-التاريخ: {today_date}
+  today_str = datetime.now().strftime("%Y-%m-%d | %I:%M %p")
+  last_meal_record = (
+      st.session_state["meals_db"][-1]
+      if st.session_state["meals_db"]
+      else {
+          "meal_type": "عشاء",
+          "date": datetime.now().strftime("%Y-%m-%d"),
+          "time": "08:30 م",
+          "delivered": 77,
+          "coupons": 42,
+          "surplus": 0,
+          "distributed": 77,
+          "recommended": 77,
+      }
+  )
 
-📊 الإحصائيات الميدانية:
-- إجمالي المواقع المفحوصة: {total_today}
-- بلاغات هدر المياه النشطة: {severe_waste}
-- تم إصلاحه ومعالجته: {fixed_today}
-- البلاغات المعلقة قيد التنفيذ: {pending_today}
+  open_m_list = [
+      x
+      for x in st.session_state["maintenance_db"]
+      if x.get("status", "مفتوح") == "مفتوح"
+  ]
+  fixed_m_list = [
+      x
+      for x in st.session_state["maintenance_db"]
+      if x.get("status") == "تم الإصلاح"
+  ]
 
-🔴 البلاغات المعلقة المطلوب إنهاؤها:
-{open_details}
+  open_m_str = (
+      "\n".join([
+          f"  • غرفة {x.get('room')}: {x.get('item')} (مسجل {x.get('opened_at')})"
+          + (" [مرفق صورة بالسيستم]" if x.get("photo") else "")
+          for x in open_m_list
+      ])
+      if open_m_list
+      else "  • لا توجد أعطال معلقة."
+  )
+  fixed_m_str = (
+      "\n".join([
+          f"  • تم تصليح {x.get('item')} غرفة {x.get('room')} ({x.get('closed_at')})"
+          for x in fixed_m_list
+      ])
+      if fixed_m_list
+      else "  • لا توجد أعطال مصلحة اليوم."
+  )
 
-🟢 ما تم إنجازه وضبطه اليوم:
-{done_details}
+  viols_all = st.session_state["violations_db"]
+  viols_str = (
+      "\n".join([
+          f"  • غرفة {v.get('room')}: {v.get('type')} (المرة"
+          f" {v.get('count')}) - {v.get('reason')} [{v.get('date')}]"
+          + (" [مرفق صورة]" if v.get("photo") else "")
+          for v in viols_all[-4:]
+      ])
+      if viols_all
+      else "  • السجل نظيف ولا توجد مخالفات."
+  )
 
-الوضع العام: متابعة مستمرة لمنع أي هدر مائي بالسكن."""
+  message_to_send = ""
+  if "تقرير الموقف اليومي الشامل" in report_scope:
+    message_to_send = f"""مساك الله بالخير أبو عمر،،
+تقرير {LOCATION_TAG} اليومي المعتمد ({today_str}):
 
-    st.text_area("معاينة التقرير اليومي الموجه للمدير / المشرف:", value=daily_report_txt, height=220)
-    st.link_button("📲 إرسال التقرير اليومي بالواتساب", make_wa_url(daily_report_txt), use_container_width=True)
+1️⃣ الإعاشة [{last_meal_record.get('meal_type', 'عشاء')}]:
+- توثيق الوقت: {last_meal_record.get('time', '')}
+- الوجبات اللي جات: {last_meal_record.get('delivered', 0)}
+- المستلم بكوبون: {last_meal_record.get('coupons', 0)}
+- الفائض بالصواني: {last_meal_record.get('surplus', 0)}
+- المستهلك الفعلي: {last_meal_record.get('distributed', 0)} شخص.
+💡 القرار التشغيلي للطلبية القادمة: {last_meal_record.get('recommended', 0)} وجبة.
 
-    st.markdown("---")
-    st.markdown("##### 📥 جدول إكسل بلاغات اليوم:")
-    st.dataframe(df_today, use_container_width=True, hide_index=True)
-    
-    if not df_today.empty:
-        csv_daily = df_today.to_csv(index=False).encode("utf-8-sig")
-        st.download_button(
-            "📥 تحميل إكسل بلاغات اليوم (CSV)",
-            data=csv_daily,
-            file_name=f"water_daily_{today_date}.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
+2️⃣ الصيانة ({len(open_m_list)} بلاغات معلقة / {len(fixed_m_list)} مصلحة):
+- المعلق:
+{open_m_str}
+- المنجز:
+{fixed_m_str}
 
-# ==============================================================================
-# 3. التقرير الشهري التراكمي (تحليل الهدر + مؤشرات الأداء + تقرير قيادي)
-# ==============================================================================
-with tab3:
-    st.subheader("📊 التقرير الشهري والتحليلي لهدر السباكة")
-    st.caption("يعطيك تحليلاً دقيقاً لكل شهر: أكثر الأعطال تكراراً، الغرف المكررة، ونسبة الإنجاز:")
+3️⃣ المخالفات المضبوطة بالسكن:
+{viols_str}
 
-    if not df_all.empty:
-        available_months = sorted(df_all["الشهر"].unique().tolist(), reverse=True)
-        selected_month = st.selectbox("اختر شهر التقرير:", available_months)
+الوضع العام بالسكن: منضبط وتحت السيطرة الكاملة."""
 
-        df_month = df_all[df_all["الشهر"] == selected_month]
+  elif "كشف الصيانة فقط" in report_scope:
+    message_to_send = f"""السلام عليكم، بلاغات صيانة {LOCATION_TAG}:
+التاريخ: {today_str}
 
-        m_total = len(df_month)
-        m_fixed = len(df_month[df_month["الحالة"] == "تم الإصلاح"])
-        m_pending = len(df_month[df_month["الحالة"] == "معلق"])
-        fix_rate = round((m_fixed / m_total * 100), 1) if m_total > 0 else 0
+الأعطال المعلقة المطلوب صيانتها ({len(open_m_list)} غرف):
+{open_m_str}
 
-        c_m1, c_m2, c_m3 = st.columns(3)
-        c_m1.metric("إجمالي البلاغات بالشهر", m_total)
-        c_m2.metric("نسبة الإغلاق والإصلاح", f"{fix_rate}%")
-        c_m3.metric("متبقي معلق", m_pending, delta_color="inverse")
+المنجز الذي تم إصلاحه اليوم:
+{fixed_m_str}
 
-        # تحليل أكثر قطع السباكة استهلاكاً وتلفاً
-        st.markdown("##### 🔍 الأعطال الأكثر تكراراً خلال الشهر:")
-        top_issues = df_month["البند"].value_counts()
-        st.dataframe(top_issues.rename("عدد المرات"), use_container_width=True)
+يرجى سرعة معالجة الغرف المعلقة وإشعارنا بالإنجاز."""
 
-        # الغرف الأكثر تكراراً للتسريب (لحفظ حقوق السكن وعدم التكرار)
-        repeats_room = df_month["الغرفة_الموقع"].value_counts()
-        frequent_rooms = repeats_room[repeats_room >= 2]
-        
-        repeat_str = "لا توجد مواقع متكررة بشكل ملحوظ."
-        if not frequent_rooms.empty:
-            repeat_str = "، ".join([f"{k} ({v} مرات)" for k, v in frequent_rooms.items()])
-            st.warning(f"⚠️ **مواقع تكرر فيها هدر المياه هذا الشهر:** {repeat_str}")
+  elif "كشف الإعاشة فقط" in report_scope:
+    message_to_send = f"""السلام عليكم، محضر مطابقة الإعاشة - {LOCATION_TAG}:
+التاريخ: {today_str}
+الوجبة: {last_meal_record.get('meal_type', 'عشاء')} (وقت التسجيل: {last_meal_record.get('time', '')})
 
-        # صياغة التقرير الشهري القيادي
-        monthly_report_txt = f"""مساك الله بالخير أبو عمر،،
-التقرير الشهري الشامل لصيانة السباكة وهدر المياه - {selected_month}
-سكن جامعة 3:
+- الوجبات الموردة (جات): {last_meal_record.get('delivered', 0)}
+- المستلم بموجب كوبون: {last_meal_record.get('coupons', 0)}
+- الفائض بالصواني: {last_meal_record.get('surplus', 0)}
+- المستهلك الفعلي: {last_meal_record.get('distributed', 0)} شخص.
 
-📈 مؤشرات الأداء الشهري:
-- إجمالي البلاغات المسجلة: {m_total}
-- البلاغات المنجزة والمصلحة: {m_fixed} ({fix_rate}%)
-- البلاغات المعلقة بنهاية الشهر: {m_pending}
+💡 التوصية التشغيلية للوجبة القادمة: {last_meal_record.get('recommended', 0)} وجبة."""
 
-🔧 أكثر الأعطال المسجلة تكراراً:
-{chr(10).join([f"  • {issue}: {count} مرات" for issue, count in top_issues.head(3).items()])}
+  elif "كشف المخالفات فقط" in report_scope:
+    message_to_send = f"""إشعار أمن وسلامة ومخالفات - {LOCATION_TAG}:
+التاريخ: {today_str}
 
-⚠️ المواقع التي تكرر فيها التسريب:
-- {repeat_str}
+بيان المخالفات المضبوطة:
+{viols_str}
 
-💡 التوصية التشغيلية: إلزام مقاول الصيانة بتوفير كميات كافية من صوبر السيفونات وجلود العوامات الأصلية للحد من الهدر المتكرر في الكراسي."""
+يرجى اتخاذ الإجراء اللائحي وتطبيق الجزاءات بحق المخالفين لا سيما تكرار السخانات."""
 
-        st.text_area("نص التقرير الشهري التنفيذي:", value=monthly_report_txt, height=220)
-        st.link_button("📲 إرسال التقرير الشهري بالواتساب للإدارة", make_wa_url(monthly_report_txt), use_container_width=True)
+  else:
+    message_to_send = st.text_area(
+        "اكتب رسالتك المخصصة هنا:",
+        placeholder="السلام عليكم بخصوص سكن جامعة 3...",
+        height=140,
+    )
 
-        st.markdown("---")
-        # تنزيل السجل الشهري الكامل
-        csv_monthly = df_month.to_csv(index=False).encode("utf-8-sig")
-        st.download_button(
-            label=f"📥 تنزيل كشف شهر {selected_month} كاملاً (Excel/CSV)",
-            data=csv_monthly,
-            file_name=f"water_monthly_report_{selected_month}.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-    else:
-        st.info("لا توجد بيانات مسجلة حتى الآن.")
+  if "رسالة مخصصة" not in report_scope:
+    st.text_area("معاينة الرسالة قبل الإرسال:", value=message_to_send, height=220)
+
+  if target_wa_phone and target_wa_phone.strip():
+    enc_payload = urllib.parse.quote(message_to_send)
+    direct_link = f"https://wa.me/{target_wa_phone.strip()}?text={enc_payload}"
+    st.markdown(
+        f'<a href="{direct_link}" target="_blank" class="wa-btn">📲 إرسال'
+        f" الرسالة فوراً إلى {recipient} عبر واتساب</a>",
+        unsafe_allow_html=True,
+    )
+  else:
+    st.warning("الرجاء التأكد من كتابة رقم هاتف صالح للإرسال.")
+
+# ------------------------------------------------------------------------------
+# 6. تبويب الأدمن والخزنة (PIN: 5050 وتنزيل السجلات النظيفة)
+# ------------------------------------------------------------------------------
+with tab_vault:
+  st.markdown("##### 🔐 لوحة الأدمن والخزنة الرقمية:")
+
+  if not st.session_state["is_supervisor"]:
+    pin_code = st.text_input("أدخل رمز المشرف للدخول:", type="password")
+    if st.button("🔓 فتح لوحة الأدمن", use_container_width=True):
+      if hmac.compare_digest(pin_code.strip().encode(), PERMANENT_PIN.encode()):
+        st.session_state["is_supervisor"] = True
+        st.rerun()
+      else:
+        st.error("رمز المشرف غير صحيح.")
+  else:
+    st.success("🟢 لوحة الأدمن مفتوحة ومؤمنة.")
+    if st.button("🔒 قفل لوحة الأدمن"):
+      st.session_state["is_supervisor"] = False
+      st.rerun()
+
+    st.divider()
+
+    st.markdown("###### ⚙️ إدارة أرقام الواتساب المعتمدة للتواصل:")
+    col_u1, col_u2, col_u3 = st.columns(3)
+    with col_u1:
+      edit_mgr = st.text_input(
+          "رقم المدير عمر:",
+          value=st.session_state["contacts"].get(
+              "المدير عمر", "966500000000"
+          ),
+      )
+    with col_u2:
+      edit_mnt = st.text_input(
+          "رقم الصيانة:",
+          value=st.session_state["contacts"].get(
+              "مقاول الصيانة", "966500000000"
+          ),
+      )
+    with col_u3:
+      edit_cat = st.text_input(
+          "رقم الإعاشة:",
+          value=st.session_state["contacts"].get(
+              "متعهد الإعاشة", "966500000000"
+          ),
+      )
+
+    if st.button("حفظ وتثبيت الأرقام في النظام"):
+      st.session_state["contacts"]["المدير عمر"] = edit_mgr.strip()
+      st.session_state["contacts"]["مقاول الصيانة"] = edit_mnt.strip()
+      st.session_state["contacts"]["متعهد الإعاشة"] = edit_cat.strip()
+      st.success("تم تحديث وحفظ أرقام الواتساب بنجاح!")
+      st.rerun()
+
+    st.divider()
+    st.markdown("###### 📥 تنزيل سجلات وتقارير Excel الرسمية:")
+
+    # تنزيل الإعاشة
+    if st.session_state["meals_db"]:
+      df_meals = pd.DataFrame(st.session_state["meals_db"])
+      st.download_button(
+          label="تحميل سجل الإعاشة والقرارات (Excel)",
+          data=df_meals.to_csv(index=False).encode("utf-8-sig"),
+          file_name=f"Meals_Decisions_{datetime.now().strftime('%Y%m%d')}.csv",
+          mime="text/csv",
+          use_container_width=True,
+      )
+
+    # تنزيل الصيانة (تجهيز نظيف يستبدل بايتات الصور بكلمة يوجد مرفق)
+    if st.session_state["maintenance_db"]:
+      clean_maint_data = []
+      for m_item in st.session_state["maintenance_db"]:
+        c_copy = m_item.copy()
+        c_copy["photo"] = "يوجد صورة مرفقة" if c_copy.get("photo") else "لا يوجد"
+        clean_maint_data.append(c_copy)
+      df_m = pd.DataFrame(clean_maint_data)
+      st.download_button(
+          label="تحميل سجل الصيانة ووقت الإصلاح (Excel)",
+          data=df_m.to_csv(index=False).encode("utf-8-sig"),
+          file_name=f"Repairs_{datetime.now().strftime('%Y%m%d')}.csv",
+          mime="text/csv",
+          use_container_width=True,
+      )
+
+    # تنزيل المخالفات (تجهيز نظيف للصور)
+    if st.session_state["violations_db"]:
+      clean_viol_data = []
+      for v_item in st.session_state["violations_db"]:
+        v_copy = v_item.copy()
+        v_copy["photo"] = "يوجد صورة مرفقة" if v_copy.get("photo") else "لا يوجد"
+        clean_viol_data.append(v_copy)
+      df_v = pd.DataFrame(clean_viol_data)
+      st.download_button(
+          label="تحميل سجل المخالفات والتكرار (Excel)",
+          data=df_v.to_csv(index=False).encode("utf-8-sig"),
+          file_name=f"Violations_{datetime.now().strftime('%Y%m%d')}.csv",
+          mime="text/csv",
+          use_container_width=True,
+      )
