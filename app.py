@@ -1,6 +1,5 @@
 from datetime import datetime
 import hmac
-import math
 import urllib.parse
 import pandas as pd
 import streamlit as st
@@ -9,8 +8,8 @@ import streamlit as st
 # 1. إعداد الشاشة للجوال الميداني (RTL / Dark Mode / Mobile-First)
 # ==============================================================================
 st.set_page_config(
-    page_title="سكن جامعة 3 | العمليات الميدانية",
-    page_icon="🏢",
+    page_title="سكن جامعة 3 | رصد الواقع الميداني",
+    page_icon="👁️",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -26,7 +25,7 @@ st.markdown(
 }
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 .block-container { 
-    padding-top: 0.4rem !important; 
+    padding-top: 0.5rem !important; 
     padding-bottom: 2rem !important; 
     max-width: 430px !important; 
     margin: 0 auto !important;
@@ -38,12 +37,12 @@ html, body, [class*="css"] {
     background-color: #0b0f19 !important; 
     color: #f8fafc !important; 
 }
-.top-card { 
+.header-box { 
     background: var(--card-bg); 
     border: 1px solid var(--border-color); 
     border-radius: 12px; 
-    padding: 10px 14px; 
-    margin-bottom: 8px; 
+    padding: 12px; 
+    margin-bottom: 10px; 
     text-align: center; 
 }
 .headline { font-size: 1.15em; font-weight: 900; color: #ffffff; margin: 0; }
@@ -58,30 +57,39 @@ div[data-testid="stFormSubmitButton"] > button {
     border: none !important; 
     font-size: 1.05em !important; 
 }
-.alert-tag {
+.obs-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+.tag-critical {
     background: rgba(239, 68, 68, 0.25);
     border: 1px solid rgba(239, 68, 68, 0.6);
     color: #fca5a5;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 0.78em;
-    font-weight: 900;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 0.75em;
+    font-weight: 800;
 }
-.done-tag {
+.tag-warning {
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.6);
+    color: #fcd34d;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 0.75em;
+    font-weight: 800;
+}
+.tag-pass {
     background: rgba(16, 185, 129, 0.2);
     border: 1px solid rgba(16, 185, 129, 0.6);
     color: #6ee7b7;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 0.76em;
+    padding: 2px 7px;
+    border-radius: 5px;
+    font-size: 0.75em;
     font-weight: 800;
-}
-.stat-box {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin-bottom: 6px;
 }
 .wa-btn {
     display: block;
@@ -102,668 +110,289 @@ div[data-testid="stFormSubmitButton"] > button {
 )
 
 # ==============================================================================
-# 2. الثوابت العامة وقواعد البيانات الميدانية
+# 2. الثوابت وقاعدة بيانات الرصد الميداني
 # ==============================================================================
 LOCATION_TAG = "سكن جامعة 3"
-SUPERVISOR_NAME = "فارس العصيمي"
+OBSERVER_NAME = "فارس العصيمي"
 PERMANENT_PIN = str(st.secrets.get("SUPERVISOR_PIN", "5050")).strip()
 
-if "maintenance_db" not in st.session_state:
-  st.session_state["maintenance_db"] = [
+if "observations_db" not in st.session_state:
+  st.session_state["observations_db"] = [
       {
-          "location": "غرفة 104",
-          "item": "مكيف",
-          "desc": "تنقيط ماء وتجمع أوساخ تحت الوحدة",
-          "opened_at": "09:30 ص",
-          "date": "2026-11-07",
-          "closed_at": None,
-          "status": "مفتوح",
-          "photo": None,
-      },
-      {
+          "id": "OBS-01",
           "location": "السطح",
-          "item": "صنبور / بزبوز موية",
-          "desc": "تهريب شديد ويبق موية بقوة",
-          "opened_at": "10:15 ص",
-          "date": "2026-11-08",
-          "closed_at": None,
-          "status": "مفتوح",
+          "category": "سباكة وهدر مياه",
+          "what_i_saw": (
+              "صنبور الخط الرئيسي مكسور ويبق موية بقوة وتجمع مياه على العازل"
+          ),
+          "compliance_status": "غير مطابق - خلل تشغيلي حرج",
+          "assigned_to": "مقاول الصيانة",
           "photo": None,
-      },
-  ]
-else:
-  for row in st.session_state["maintenance_db"]:
-    if "location" not in row:
-      row["location"] = row.get("room", "موقع عام")
-    if "desc" not in row:
-      row["desc"] = ""
-    if "opened_at" not in row:
-      row["opened_at"] = row.get("time", "اليوم")
-    if "date" not in row:
-      row["date"] = datetime.now().strftime("%Y-%m-%d")
-    if "status" not in row:
-      row["status"] = "مفتوح"
-    if "closed_at" not in row:
-      row["closed_at"] = None
-    if "photo" not in row:
-      row["photo"] = None
-
-if "violations_db" not in st.session_state:
-  st.session_state["violations_db"] = [
-      {
-          "location": "غرفة 108",
-          "type": "سخان",
-          "reason": "استخدام هيتر طبخ على الأرض",
-          "count": 1,
-          "time": "09:15 م",
-          "date": "2026-11-05",
-          "photo": None,
+          "time": "10:15 ص",
+          "date": "2026-11-10",
       },
       {
-          "location": "غرفة 108",
-          "type": "سخان",
-          "reason": "تكرار تشغيل هيتر مخالف (خطر حريق)",
-          "count": 2,
-          "time": "10:30 م",
-          "date": "2026-11-07",
+          "location": "غرفة 213",
+          "category": "تكييف وتبريد",
+          "what_i_saw": (
+              "كمبروسر المكيف له صوت اهتزاز عالي جداً والتبريد ضعيف لا يطابق"
+              " معايير التسكين"
+          ),
+          "compliance_status": "غير مطابق للوعد التسويقي",
+          "assigned_to": "إدارة السكن والتسويق",
           "photo": None,
+          "time": "11:30 ص",
+          "date": "2026-11-10",
       },
   ]
-else:
-  for v in st.session_state["violations_db"]:
-    if "location" not in v:
-      v["location"] = v.get("room", "غرفة غير محددة")
 
-if "meals_db" not in st.session_state:
-  st.session_state["meals_db"] = []
-
-if "rounds_db" not in st.session_state:
-  st.session_state["rounds_db"] = []
-
-if "is_supervisor" not in st.session_state:
-  st.session_state["is_supervisor"] = False
-
-# محرك التوقيت الدقيق لمواعيد الوجبات الرسمية
 now = datetime.now()
-now_minutes = now.hour * 60 + now.minute
-is_friday = now.weekday() == 4
-
-if now_minutes < 570:
-  auto_meal_idx = 0
-  active_period_name = "الفطور (05:30 ص - 07:00 ص)"
-  is_within_official_window = 330 <= now_minutes <= 420
-elif now_minutes < 990:
-  auto_meal_idx = 1
-  active_period_name = "الغداء (11:30 ص - 02:30 م)"
-  is_within_official_window = 690 <= now_minutes <= 870
-else:
-  auto_meal_idx = 2
-  active_period_name = "العشاء (05:30 م - 09:00 م)"
-  is_within_official_window = 1050 <= now_minutes <= 1260
 
 # ==============================================================================
-# 3. الترويسة الرئيسية
+# 3. ترويسة التطبيق
 # ==============================================================================
 st.markdown(
     f"""
-<div class="top-card">
-    <div class="headline">🏢 إدارة {LOCATION_TAG}</div>
-    <div class="sub-headline">المشرف: {SUPERVISOR_NAME} • تسلسل الوردية الميداني</div>
+<div class="header-box">
+    <div class="headline">👁️ توثيق الواقع المشاهد | {LOCATION_TAG}</div>
+    <div class="sub-headline">المشرف الراصد: {OBSERVER_NAME} • مطابقة الوعد للواقع الميداني</div>
 </div>
 """,
     unsafe_allow_html=True,
 )
 
-c_h1, c_h2 = st.columns([2, 1])
-with c_h1:
-  st.caption(f"📅 التوقيت: {now.strftime('%Y-%m-%d | %I:%M %p')}")
-with c_h2:
+c_t1, c_t2 = st.columns([2, 1])
+with c_t1:
+  st.caption(f"📅 توقيت الرصد: {now.strftime('%Y-%m-%d | %I:%M %p')}")
+with c_t2:
   if st.button("🔄 تحديث الشاشة", use_container_width=True):
     st.rerun()
 
-# تبويبات متسلسلة حسب ترتيب يومك الميداني
-tab_rounds, tab_repairs, tab_viol, tab_meals, tab_report, tab_vault = st.tabs([
-    "🚶 1. جولة الصباح",
-    "🛠️ 2. الصيانة والسباكة",
-    "⚠️ 3. رصد المخالفات",
-    "🍽️ 4. الإعاشة والقرار",
-    "📊 5. تقرير الوردية (واتساب)",
-    "🔐 الخزنة والأرشيف",
+tab_record, tab_feed, tab_report, tab_archive = st.tabs([
+    "✍️ رصد ما أراه",
+    "📋 سجل المشاهدات الحية",
+    "📲 تقرير الواتساب",
+    "🔐 الخزنة والتصدير",
 ])
 
 # ------------------------------------------------------------------------------
-# 1. جولة الصباح (أول ما تقوم) أو حملة نظافة الجمعة
+# 1. شاشة "رصد ما أراه بنفسي" (تسجيل مفصل ودقيق للواقع)
 # ------------------------------------------------------------------------------
-with tab_rounds:
-  st.markdown("##### 🚶 1. التفتيش الميداني الصباحي:")
+with tab_record:
+  st.markdown("##### 📝 تسجيل الواقع كما رأيته بعينك:")
 
-  r_idx = (
-      2
-      if is_friday and now.hour < 12
-      else (0 if now.hour < 14 else 1)
-  )
+  with st.form("observation_entry_form", clear_on_submit=True):
+    raw_loc = st.text_input(
+        "📍 أين أنت الآن؟ (الموقع بدقة):",
+        placeholder="مثال: السطح، غرفة 104، ممر الدور 2، صالة الطعام...",
+    )
 
-  with st.form("morning_round_form", clear_on_submit=True):
-    sel_round = st.radio(
-        "نوع الجولة:",
+    category = st.selectbox(
+        "🔍 ما هو قطاع المشاهدة؟",
         [
-            "جولة الصباح اليومية (09:30 ص)",
-            "جولة الليل اليومية (08:30 م)",
-            (
-                "حملة نظافة الجمعة الصباح 🧹 (غسيل ممرات وتفتيش شامل للأسطح"
-                " والسباكة)"
-            ),
-        ],
-        index=r_idx,
-    )
-    r_note = st.text_input(
-        "الملاحظة الميدانية:",
-        placeholder=(
-            "مثال: تم التفتيش الصباحي، الممرات نظيفة، تم رصد تسريب ماء بالسطح..."
-        ),
-    )
-    btn_rnd = st.form_submit_button("⚡ اعتماد الجولة الصباحية")
-
-    if btn_rnd:
-      round_title = (
-          sel_round.split()[0]
-          + " "
-          + sel_round.split()[1]
-          + (" " + sel_round.split()[2] if "الجمعة" in sel_round else "")
-      )
-      st.session_state["rounds_db"].append({
-          "date": datetime.now().strftime("%Y-%m-%d"),
-          "time": datetime.now().strftime("%I:%M %p"),
-          "round": round_title,
-          "note": (
-              r_note.strip()
-              if r_note.strip()
-              else (
-                  "تمت الجولة الصباحية بنجاح والسكن سليم"
-                  if "الصباح" in sel_round
-                  else "السكن مستقر"
-              )
-          ),
-      })
-      st.success(f"تم اعتماد {round_title} بنجاح!")
-
-  if st.session_state["rounds_db"]:
-    st.markdown("---")
-    for r in st.session_state["rounds_db"][-3:]:
-      st.markdown(
-          f"""
-                <div class="stat-box">
-                    <b>{r.get('round', '')}</b> — <small style="color:var(--primary);">{r.get('time', '')}</small><br>
-                    <small style="color:#cbd5e1;">الملاحظة: {r.get('note', '')}</small>
-                </div>
-                """,
-          unsafe_allow_html=True,
-      )
-
-# ------------------------------------------------------------------------------
-# 2. الصيانة والسباكة (السطح / الغرف / المكيفات / بزبوز يبق موية)
-# ------------------------------------------------------------------------------
-with tab_repairs:
-  st.markdown("##### 🛠️ 2. بلاغات الصيانة والسباكة المرصودة:")
-
-  with st.form("quick_rep_form", clear_on_submit=True):
-    r_loc = st.text_input(
-        "الموقع أو رقم الغرفة (مثل: السطح، 104، الحمامات، ممر 1):",
-        placeholder="مثال: السطح أو 104",
-    )
-    r_item = st.radio(
-        "العطل:",
-        [
-            "صنبور / بزبوز موية 🚰 (تهريب / يبق موية)",
-            "مكيف ❄️ (تنقيط / تبريد)",
-            "شطاف 🚿 (تهريب / كسر)",
-            "سخان موية 🔥",
-            "أخرى 🛠️",
-        ],
-        horizontal=False,
-    )
-    other_text = ""
-    if "أخرى" in r_item:
-      other_text = st.text_input(
-          "حدد العطل الآخر:", placeholder="لمبة / فيش / تسريب..."
-      )
-
-    r_desc = st.text_input(
-        "شرح العطل بالتفصيل:",
-        placeholder=(
-            "مثال: الصنبور مكسور ويبق موية بقوة / المكيف يصب ماء تحت"
-            " الوحدة..."
-        ),
-    )
-    rep_photo = st.file_uploader(
-        "📷 صورة العطل (كاميرا أو استوديو):", type=["jpg", "jpeg", "png"]
-    )
-
-    btn_rep = st.form_submit_button("⚡ حفظ بلاغ الصيانة")
-
-    if btn_rep:
-      clean_loc = r_loc.strip()
-      final_loc = f"غرفة {clean_loc}" if clean_loc.isdigit() else clean_loc
-      final_item = (
-          other_text.strip()
-          if ("أخرى" in r_item and other_text.strip())
-          else r_item.split()[0] + " " + r_item.split()[1]
-      )
-
-      if clean_loc:
-        photo_bytes = rep_photo.getvalue() if rep_photo else None
-        st.session_state["maintenance_db"].append({
-            "location": final_loc,
-            "item": final_item,
-            "desc": (
-                r_desc.strip() if r_desc.strip() else "تم رصد العطل ميدانياً"
-            ),
-            "opened_at": datetime.now().strftime("%I:%M %p"),
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "closed_at": None,
-            "status": "مفتوح",
-            "photo": photo_bytes,
-        })
-        st.success(f"تم قيد بلاغ {final_loc} ({final_item})!")
-      else:
-        st.error("اكتب الموقع أو رقم الغرفة.")
-
-  st.markdown("---")
-  st.markdown("##### 📋 البلاغات المعلقة (اضغط للإصلاح الفوري):")
-  open_reps = [
-      x
-      for x in st.session_state["maintenance_db"]
-      if x.get("status", "مفتوح") == "مفتوح"
-  ]
-  if open_reps:
-    for idx, row in enumerate(open_reps):
-      c_a, c_b = st.columns([2, 1])
-      with c_a:
-        st.markdown(
-            f"<b>{row.get('location')}</b>: {row.get('item')}<br><small"
-            f" style='color:#cbd5e1;'>{row.get('desc')}</small> <small"
-            f" style='color:#94a3b8;'>({row.get('opened_at')})</small>",
-            unsafe_allow_html=True,
-        )
-        if row.get("photo"):
-          with st.expander("🖼️ صورة العطل"):
-            st.image(row["photo"], use_container_width=True)
-      with c_b:
-        if st.button("تم إصلاحه ✓", key=f"rep_btn_{idx}"):
-          row["status"] = "تم الإصلاح"
-          row["closed_at"] = datetime.now().strftime("%I:%M %p")
-          st.success(
-              f"أُصلح عطل {row.get('location')} الساعة {row['closed_at']}!"
-          )
-          st.rerun()
-  else:
-    st.info("لا توجد بلاغات صيانة معلقة.")
-
-# ------------------------------------------------------------------------------
-# 3. رصد المخالفات والسلامة (السخانات والهيترات والنظافة)
-# ------------------------------------------------------------------------------
-with tab_viol:
-  st.markdown("##### ⚠️ 3. رصد مخالفات الغرف واشتراطات السلامة:")
-
-  with st.form("quick_viol_form", clear_on_submit=True):
-    v_loc = st.text_input(
-        "الموقع أو رقم الغرفة المخالفة:", placeholder="مثال: 108 أو السطح"
-    )
-    v_type = st.radio(
-        "نوع المخالفة:",
-        [
-            "سخان / هيتر طبخ ⚡ (خطر حريق مباشر)",
-            "إهمال نظافة ونفايات 🗑️",
-            "هدر ماء أو صنبور مفتوح 🚰",
-            "سخان ونظافة معاً ⚠️",
+            "سباكة وهدر مياه 🚰",
+            "تكييف وتهوية ❄️",
+            "نظافة وتراكم نفايات 🗑️",
+            "سلامة وسخانات مخالفة ⚡",
+            "مطابقة التسكين للوعد التسويقي 🏢",
+            "إعاشة وتوزيع وجبات 🍽️",
             "أخرى 📝",
         ],
-        horizontal=False,
-    )
-    custom_v = ""
-    if "أخرى" in v_type:
-      custom_v = st.text_input(
-          "اكتب نوع المخالفة:", placeholder="تدخين / إزعاج..."
-      )
-    v_reason = st.text_input(
-        "التفاصيل والرصد الميداني:",
-        placeholder="مثال: تشغيل هيتر طبخ على الأرض / رمي نفايات...",
-    )
-    viol_photo = st.file_uploader(
-        "📷 صورة إثبات المخالفة:", type=["jpg", "jpeg", "png"]
     )
 
-    btn_v = st.form_submit_button("⚡ حفظ المخالفة وحساب التكرار")
+    what_i_saw = st.text_area(
+        "👁️ صِف ما رأيته بعينك بدقة وتفصيل:",
+        placeholder=(
+            "اكتب المشهد بدقة: مثل: لقيت تسريب ماء متجمع في الزاوية، المكيف"
+            " يقطر على الفرش، النظافة غير مقبولة في مدخل الدور..."
+        ),
+        height=110,
+    )
 
-    if btn_v:
-      clean_v = v_loc.strip()
-      final_v = f"غرفة {clean_v}" if clean_v.isdigit() else clean_v
-      chosen_t = (
-          custom_v.strip()
-          if ("أخرى" in v_type and custom_v.strip())
-          else v_type.split()[0] + " " + v_type.split()[1]
+    col_st1, col_st2 = st.columns(2)
+    with col_st1:
+      compliance = st.selectbox(
+          "⚖️ تقييم ما رأيته مقارنة بالمعايير:",
+          [
+              "مطابق وسليم 100% ✓",
+              "ملاحظة بسيطة تحت المتابعة ⚠️",
+              "غير مطابق للوعد التسويقي ❌",
+              "خلل تشغيلي حرج / خطر حريق 🚨",
+          ],
+          index=1,
       )
 
-      if clean_v:
-        repeats = (
-            sum(
-                1
-                for v in st.session_state["violations_db"]
-                if v.get("location") == final_v and v.get("type") == chosen_t
-            )
-            + 1
-        )
-        v_bytes = viol_photo.getvalue() if viol_photo else None
-        st.session_state["violations_db"].append({
-            "location": final_v,
-            "type": chosen_t,
-            "reason": (
-                v_reason.strip()
-                if v_reason.strip()
-                else "رصد مخالفة باشتراطات السكن"
-            ),
-            "count": repeats,
+    with col_st2:
+      assigned = st.selectbox(
+          "🎯 من المسؤول المعني بما رأيت؟",
+          [
+              "مقاول الصيانة",
+              "مقاول النظافة",
+              "متعهد الإعاشة",
+              "فريق التسويق (لتعديل الوعد)",
+              "مدير السكن (عمر)",
+          ],
+      )
+
+    obs_photo = st.file_uploader(
+        "📷 التقط صورة تثبت ما رأيته بعينك (كاميرا أو استوديو):",
+        type=["jpg", "jpeg", "png"],
+        help="الصورة ترفع فوراً وتثبت الحالة كما شاهدتها ميدانياً",
+    )
+
+    btn_submit = st.form_submit_button("⚡ توثيق وتثبيت المشاهدة في السجل")
+
+    if btn_submit:
+      clean_loc = raw_loc.strip()
+      final_loc = (
+          f"غرفة {clean_loc}"
+          if (clean_loc.isdigit() and len(clean_loc) < 5)
+          else clean_loc
+      )
+      clean_desc = what_i_saw.strip()
+
+      if not clean_loc or not clean_desc:
+        st.error("الرجاء تحديد الموقع وكتابة وصف ما شاهدته.")
+      else:
+        photo_bytes = obs_photo.getvalue() if obs_photo else None
+        new_obs = {
+            "id": f"OBS-{len(st.session_state['observations_db'])+1:02d}",
+            "location": final_loc,
+            "category": category.split()[0] + " " + category.split()[1],
+            "what_i_saw": clean_desc,
+            "compliance_status": compliance,
+            "assigned_to": assigned,
+            "photo": photo_bytes,
             "time": datetime.now().strftime("%I:%M %p"),
             "date": datetime.now().strftime("%Y-%m-%d"),
-            "photo": v_bytes,
-        })
-        st.success(
-            f"تم توثيق مخالفة {final_v} ({chosen_t}) — للمرة الـ ({repeats})!"
-        )
-      else:
-        st.error("اكتب الموقع أو رقم الغرفة.")
+        }
+        st.session_state["observations_db"].append(new_obs)
+        st.success(f"تم توثيق مشاهدة ({final_loc}) بدقة وإسنادها بنجاح!")
+        st.rerun()
 
-  st.markdown("---")
-  st.markdown("##### 📋 كشف سوابق ومخالفات الغرف:")
-  if st.session_state["violations_db"]:
-    for v in reversed(st.session_state["violations_db"][-4:]):
-      c_num = v.get("count", 1)
-      tag_c = "alert-tag" if c_num >= 2 else "done-tag"
+# ------------------------------------------------------------------------------
+# 2. سجل المشاهدات الحية (عرض تفصيلي لما تم رصده)
+# ------------------------------------------------------------------------------
+with tab_feed:
+  st.markdown("##### 📋 سجل الواقع المرصود في السكن:")
+
+  if not st.session_state["observations_db"]:
+    st.info("لم يتم رصد أي مشاهدات ميدانية حتى الآن.")
+  else:
+    for idx, obs in enumerate(
+        reversed(st.session_state["observations_db"][-6:])
+    ):
+      status_txt = obs.get("compliance_status", "")
+      tag_cls = "tag-pass"
+      if "حرج" in status_txt or "خطر" in status_txt:
+        tag_cls = "tag-critical"
+      elif "غير مطابق" in status_txt or "ملاحظة" in status_txt:
+        tag_cls = "tag-warning"
+
       st.markdown(
           f"""
-                <div class="stat-box" style="border-right: 3px solid #ef4444;">
-                    <b>{v.get('location', '')}</b> — <span style="color:#f87171; font-weight:800;">{v.get('type', '')}</span>
-                    <span class='{tag_c}'>المرة الـ {c_num}</span><br>
-                    <small style="color:#cbd5e1;">السبب: {v.get('reason', '')}</small><br>
-                    <small style="color:#94a3b8;">📅 التاريخ: {v.get('date', '')} | ⏰ الوقت: {v.get('time', '')}</small>
+            <div class="obs-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <b>📍 {obs.get('location')}</b>
+                    <span class="{tag_cls}">{status_txt}</span>
                 </div>
-                """,
+                <div style="color:var(--primary); font-size:0.85em; font-weight:700; margin-top:3px;">
+                    القطاع: {obs.get('category')} | المعني: {obs.get('assigned_to')}
+                </div>
+                <div style="color:#e2e8f0; font-size:0.92em; margin:6px 0; background:rgba(0,0,0,0.25); padding:8px; border-radius:6px;">
+                    👁️ <b>المشاهدة الفعلية:</b> {obs.get('what_i_saw')}
+                </div>
+                <small style="color:#94a3b8;">📅 التاريخ: {obs.get('date')} | ⏰ الوقت: {obs.get('time')}</small>
+            </div>
+            """,
           unsafe_allow_html=True,
       )
-      if v.get("photo"):
-        with st.expander(f"🖼️ صورة مخالفة ({v.get('location')})"):
-          st.image(v["photo"], use_container_width=True)
-  else:
-    st.info("سجل المخالفات نظيف.")
+
+      if obs.get("photo"):
+        with st.expander(f"🖼️ صورة الإثبات المشاهدة ({obs.get('location')})"):
+          st.image(obs["photo"], use_container_width=True)
 
 # ------------------------------------------------------------------------------
-# 4. الإعاشة والقرار العلمي لحساب طلبية الوجبة القادمة
-# ------------------------------------------------------------------------------
-with tab_meals:
-  st.markdown("##### 🍽️ 4. حصر الوجبة والقرار التشغيلي العلمي:")
-
-  if is_within_official_window:
-    st.markdown(
-        f"<div class='stat-box' style='border-right: 3px solid #10b981;'>"
-        f"<span class='done-tag'>🟢 فترة صرف رسمية مفتوحة الآن</span><br>"
-        f"<b>{active_period_name}</b></div>",
-        unsafe_allow_html=True,
-    )
-  else:
-    st.markdown(
-        f"<div class='stat-box' style='border-right: 3px solid #94a3b8;'>"
-        f"<span style='color:#94a3b8; font-size:0.8em;'>🕒 خارج نافذة التوزيع المباشرة</span><br>"
-        f"<small>المواعيد: فطور (05:30-07:00 ص) | غداء (11:30-02:30 م) | عشاء (05:30-09:00 م)</small></div>",
-        unsafe_allow_html=True,
-    )
-
-  with st.form("quick_meal_form", clear_on_submit=False):
-    meal_name = st.selectbox(
-        "نوع الوجبة:",
-        [
-            "فطور 🌅 (05:30-07:00 ص)",
-            "غداء ☀️ (11:30-02:30 م)",
-            "عشاء 🌙 (05:30-09:00 م)",
-        ],
-        index=auto_meal_idx,
-    )
-    c1, c2, c3 = st.columns(3)
-    with c1:
-      deliv = st.number_input(
-          "المستلم (جات):", min_value=0, max_value=600, value=77
-      )
-    with c2:
-      coups = st.number_input("كوبون:", min_value=0, max_value=600, value=42)
-    with c3:
-      surp = st.number_input(
-          "فائض صواني:", min_value=0, max_value=600, value=0
-      )
-
-    btn_m = st.form_submit_button("⚡ حفظ الوجبة واحتساب القرار")
-
-    actual_eaten = max(0, deliv - surp)
-    no_cp = max(0, actual_eaten - coups)
-    buff = math.ceil(actual_eaten * 0.03) if actual_eaten > 0 else 0
-    rec_order = actual_eaten + buff
-
-    if btn_m:
-      st.session_state["meals_db"].append({
-          "meal_type": meal_name.split()[0],
-          "date": datetime.now().strftime("%Y-%m-%d"),
-          "time": datetime.now().strftime("%I:%M:%S %p"),
-          "delivered": int(deliv),
-          "coupons": int(coups),
-          "surplus": int(surp),
-          "distributed": int(actual_eaten),
-          "no_coupon": int(no_cp),
-          "recommended": int(rec_order),
-      })
-      st.success(
-          f"تم توثيق وجبة {meal_name.split()[0]}! المستهلك الفعلي:"
-          f" {actual_eaten} شخص | التوصية القادمة: {rec_order} وجبة."
-      )
-
-  st.markdown("---")
-  m1, m2 = st.columns(2)
-  m1.metric("الموزع فعلياً", f"{actual_eaten} شخص")
-  m2.metric(
-      "بدون كوبون",
-      f"{no_cp} وجبة",
-      delta=f"{no_cp}" if no_cp > 0 else "0",
-      delta_color="inverse",
-  )
-
-  st.info(
-      f"💡 **القرار التشغيلي العلمي:**\nالمستهلك الفعلي: **{actual_eaten} شخص**."
-      f" الطلبية المعتمدة للوجبة القادمة: **{rec_order} وجبة** لمنع هدر"
-      f" **{max(0, deliv - rec_order)} وجبة**."
-  )
-
-# ------------------------------------------------------------------------------
-# 5. تقرير الوردية الشامل (مشاركة حرة للواتساب بدون الحاجة لكتابة رقم جوال)
+# 3. توليد تقرير الواتساب الميداني (لغة رصينة ومباشرة للإدارة والتسويق)
 # ------------------------------------------------------------------------------
 with tab_report:
-  st.markdown("##### 📊 5. تقرير الوردية الشامل والمنطقي:")
+  st.markdown("##### 📊 تقرير مطابقة الواقع الميداني:")
   st.caption(
-      "صياغة علمية مفصلة تغطي كل ما قمت به؛ تضغط الزر ويفتح الواتساب لتحدد"
-      " المستلم بيدك مباشرة:"
+      "تقرير تحليلي يترجم ما رأيته بعينك إلى نقاط عمل واضحة لكل قسم لمنع"
+      " التضارب:"
   )
 
-  last_m = (
-      st.session_state["meals_db"][-1]
-      if st.session_state["meals_db"]
-      else {
-          "meal_type": "عشاء",
-          "time": "08:30 م",
-          "delivered": 77,
-          "coupons": 42,
-          "surplus": 0,
-          "distributed": 77,
-          "recommended": 77,
-          "no_coupon": 35,
-      }
+  today_str = datetime.now().strftime("%Y-%m-%d | %I:%M %p")
+
+  obs_list = st.session_state["observations_db"]
+  obs_lines = []
+  for o in obs_list[-5:]:
+    obs_lines.append(
+        f"• الموقع: {o.get('location')} [{o.get('category')}]\n"
+        f"  - المشاهدة الواقعية: {o.get('what_i_saw')}\n"
+        f"  - التقييم: {o.get('compliance_status')} (المعني:"
+        f" {o.get('assigned_to')})"
+    )
+
+  obs_text_block = (
+      "\n\n".join(obs_lines)
+      if obs_lines
+      else "• كافة المرافق المرصودة مطابقة وسليمة."
   )
 
-  open_m = [
-      x
-      for x in st.session_state["maintenance_db"]
-      if x.get("status", "مفتوح") == "مفتوح"
-  ]
-  fixed_m = [
-      x
-      for x in st.session_state["maintenance_db"]
-      if x.get("status") == "تم الإصلاح"
-  ]
-
-  open_lines = [
-      f"  • {x.get('location')}: {x.get('item')} [{x.get('desc')}] (رُصد:"
-      f" {x.get('opened_at')})"
-      for x in open_m
-  ]
-  open_m_txt = (
-      "\n".join(open_lines)
-      if open_lines
-      else "  • لا توجد أعطال معلقة (كافة المرافق سليمة)."
-  )
-
-  fixed_lines = [
-      f"  • {x.get('location')}: تم إنهاء وإصلاح {x.get('item')} (أُنجز:"
-      f" {x.get('closed_at')})"
-      for x in fixed_m
-  ]
-  fixed_m_txt = (
-      "\n".join(fixed_lines)
-      if fixed_lines
-      else "  • لم تسجل أعمال صيانة منجزة خلال الوردية."
-  )
-
-  viols = st.session_state["violations_db"]
-  viol_lines = [
-      f"  • {v.get('location')}: مخالفة ({v.get('type')}) - المرة الـ"
-      f" ({v.get('count')}) - التفاصيل: {v.get('reason')} [{v.get('time')}]"
-      for v in viols[-4:]
-  ]
-  viols_txt = (
-      "\n".join(viol_lines)
-      if viol_lines
-      else "  • السجل منضبط وخالٍ من المخالفات."
-  )
-
-  last_r = (
-      st.session_state["rounds_db"][-1]
-      if st.session_state["rounds_db"]
-      else {
-          "round": "جولة الصباح التفتيشية",
-          "note": "السكن مستقر وهادئ وكافة الممرات نظيفة",
-      }
-  )
-
-  today_full = datetime.now().strftime("%Y-%m-%d | %I:%M %p")
-
-  comprehensive_shift_report = f"""*تقرير الوردية الميداني الشامل - {LOCATION_TAG}*
-*التاريخ والوقت:* {today_full}
-*المشرف المسؤول:* {SUPERVISOR_NAME}
+  whatsapp_report = f"""*تقرير رصد الواقع الميداني - {LOCATION_TAG}*
+*التاريخ والوقت:* {today_str}
+*الراصد الميداني:* {OBSERVER_NAME}
 -------------------------------------------
-*1️⃣ الجولة التفتيشية الصباحية وحملة النظافة:*
-• نوع الجولة: {last_r.get('round', '')}.
-• الرصد الميداني: {last_r.get('note', '')}.
+*بيان المشاهدات الحية ومطابقة المعايير:*
 
-*2️⃣ كفاءة الأصول وصيانة السباكة والتبريد:*
-• إجمالي البلاغات: {len(open_m)} معلقة | {len(fixed_m)} منجزة ومصلحة بالوردية.
-• المنجز والمعالج:
-{fixed_m_txt}
-• الأعطال المعلقة قيد المتابعة:
-{open_m_txt}
+{obs_text_block}
 
-*3️⃣ الرقابة والامتثال لاشتراطات السلامة (Zero-Tolerance):*
-{viols_txt}
+-------------------------------------------
+💡 *التوصية الإدارية والتسويقية المشتركة:*
+1. إلزام مقاولي الصيانة والنظافة بمعالجة المواقع غير المطابقة فوراً.
+2. عدم تسكين أو ترويج أي غرفة مسجل عليها خلل حتى إشعار الإغلاق الرسمي.
+3. العمليات موثقة بالصور والتوقيت الزمني لحماية الجميع."""
 
-*4️⃣ التحليل التشغيلي للإعاشة [{last_m.get('meal_type', 'الوجبة')}]:*
-• توثيق التوقيت: الساعة {last_m.get('time', '')} (ضمن نافذة التوزيع الرسمية).
-• الكميات: المستلم: {last_m.get('delivered', 0)} | المصروف بكوبون: {last_m.get('coupons', 0)} | الفائض: {last_m.get('surplus', 0)}.
-• المستهلك الفعلي: {last_m.get('distributed', 0)} شخص.
-💡 *القرار العلمي للطلبية القادمة:* اعتماد ({last_m.get('recommended', 0)} وجبة) شاملة 3% طوارئ لمنع هدر ({max(0, last_m.get('delivered', 0) - last_m.get('recommended', 0))} وجبة).
+  st.text_area("معاينة التقرير:", value=whatsapp_report, height=260)
 
-*الخلاصة الميدانية:*
-الوضع العام بالسكن منضبط وتحت السيطرة التشغيلية الكاملة، وكافة البلاغات موثقة بالسجلات.
--------------------------------------------"""
-
-  st.text_area(
-      "معاينة تقرير الوردية المنطقي:",
-      value=comprehensive_shift_report,
-      height=270,
-  )
-
-  enc_report = urllib.parse.quote(comprehensive_shift_report)
-  wa_direct_share_url = f"https://api.whatsapp.com/send?text={enc_report}"
+  encoded_report = urllib.parse.quote(whatsapp_report)
+  wa_link = f"https://api.whatsapp.com/send?text={encoded_report}"
 
   st.markdown(
-      f'<a href="{wa_direct_share_url}" target="_blank" class="wa-btn">📲 مشاركة'
-      " التقرير عبر واتساب (أنت تختار الشخص أو القروب من جوالك)</a>",
+      f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 إرسال التقرير'
+      " بالواتساب (اختر الإدارة / التسويق / المقاول من جوالك)</a>",
       unsafe_allow_html=True,
   )
 
 # ------------------------------------------------------------------------------
-# 6. الخزنة الرقمية والأرشيف (PIN: 5050 وتنزيل ملفات Excel المعتمدة)
+# 4. الخزنة والتصدير المعتمد (PIN: 5050)
 # ------------------------------------------------------------------------------
-with tab_vault:
+with tab_archive:
   st.markdown("##### 🔐 الخزنة الرقمية والأرشيف المعتمد:")
 
-  if not st.session_state["is_supervisor"]:
-    pin_code = st.text_input("أدخل رمز المشرف للدخول (5050):", type="password")
-    if st.button("🔓 فتح الخزنة", use_container_width=True):
-      if hmac.compare_digest(pin_code.strip().encode(), PERMANENT_PIN.encode()):
-        st.session_state["is_supervisor"] = True
-        st.rerun()
-      else:
-        st.error("رمز المشرف غير صحيح.")
-  else:
-    st.success(
-        f"🟢 الخزنة مؤمنة ومفتوحة بصلاحية المشرف ({SUPERVISOR_NAME})."
-    )
-    if st.button("🔒 قفل الخزنة"):
-      st.session_state["is_supervisor"] = False
-      st.rerun()
+  pin_in = st.text_input("أدخل رمز المشرف للدخول (5050):", type="password")
+  if pin_in == PERMANENT_PIN:
+    st.success(f"🟢 الخزنة مؤمنة ومفتوحة بصلاحية المشرف ({OBSERVER_NAME}).")
 
-    st.divider()
-    st.markdown("###### 📥 تنزيل سجلات وتقارير Excel الرسمية:")
+    if st.session_state["observations_db"]:
+      clean_data = []
+      for row in st.session_state["observations_db"]:
+        r_copy = row.copy()
+        r_copy["photo"] = (
+            "يوجد صورة موثقة" if r_copy.get("photo") else "بدون صورة"
+        )
+        clean_data.append(r_copy)
 
-    if st.session_state["meals_db"]:
-      df_meals = pd.DataFrame(st.session_state["meals_db"])
+      df_obs = pd.DataFrame(clean_data)
+      csv_bytes = df_obs.to_csv(index=False).encode("utf-8-sig")
+
       st.download_button(
-          label="تحميل كشف الإعاشة والقرارات (Excel)",
-          data=df_meals.to_csv(index=False).encode("utf-8-sig"),
-          file_name=f"Meals_Log_{datetime.now().strftime('%Y%m%d')}.csv",
+          label="📥 تحميل سجل المشاهدات الميدانية الكامل (Excel CSV)",
+          data=csv_bytes,
+          file_name=f"Ground_Truth_Observations_{datetime.now().strftime('%Y%m%d')}.csv",
           mime="text/csv",
           use_container_width=True,
       )
-
-    if st.session_state["maintenance_db"]:
-      clean_maint = []
-      for m in st.session_state["maintenance_db"]:
-        c_c = m.copy()
-        c_c["photo"] = "يوجد صورة مرفقة" if c_c.get("photo") else "لا يوجد"
-        clean_maint.append(c_c)
-      df_m = pd.DataFrame(clean_maint)
-      st.download_button(
-          label="تحميل سجل الصيانة ووقت الإصلاح (Excel)",
-          data=df_m.to_csv(index=False).encode("utf-8-sig"),
-          file_name=f"Repairs_Log_{datetime.now().strftime('%Y%m%d')}.csv",
-          mime="text/csv",
-          use_container_width=True,
-      )
-
-    if st.session_state["violations_db"]:
-      clean_viols = []
-      for v in st.session_state["violations_db"]:
-        v_c = v.copy()
-        v_c["photo"] = "يوجد صورة مرفقة" if v_c.get("photo") else "لا يوجد"
-        clean_viols.append(v_c)
-      df_v = pd.DataFrame(clean_viols)
-      st.download_button(
-          label="تحميل سجل المخالفات والتكرار (Excel)",
-          data=df_v.to_csv(index=False).encode("utf-8-sig"),
-          file_name=f"Violations_Log_{datetime.now().strftime('%Y%m%d')}.csv",
-          mime="text/csv",
-          use_container_width=True,
-      )
+  elif pin_in:
+    st.error("رمز المشرف غير صحيح.")
