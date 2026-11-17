@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 # ==============================================================================
-# الطبقة 1: الثوابت ونظام التصميم البصري (Config & Design Tokens)
+# 1. الثوابت والتصميم الميداني السريع (420px RTL / Dark Mode)
 # ==============================================================================
 KSA_TZ = timezone(timedelta(hours=3))
 LOCATION_TAG = "سكن جامعة 3"
@@ -16,7 +16,7 @@ ADMIN_PIN = str(st.secrets.get("SUPERVISOR_PIN", "5050")).strip()
 MAX_RECORDS = 150
 
 st.set_page_config(
-    page_title="سكن جامعة 3 | النظام الذكي",
+    page_title="سكن جامعة 3 | عمليات المشرف",
     page_icon="🏢",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -96,8 +96,6 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
     font-size: 0.92em;
     margin-bottom: 4px;
 }
-.cp-ok { background: rgba(16,185,129,0.18); border: 1px solid #10b981; border-radius: 8px; padding: 6px; text-align: center; font-size: 0.8em; color: #6ee7b7; }
-.cp-no { background: rgba(239,68,68,0.15); border: 1px solid #ef4444; border-radius: 8px; padding: 6px; text-align: center; font-size: 0.8em; color: #fca5a5; }
 .wa-btn {
     display: block;
     background: #10b981 !important;
@@ -117,23 +115,15 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
 
 
 # ==============================================================================
-# الطبقة 2: محرك التخزين الآمن ومنع التضارب (Thread-Safe Storage Layer)
+# 2. قاعدة البيانات المشتركة الآمنة (Thread-Safe + UUID)
 # ==============================================================================
 @st.cache_resource
 def get_shared_db():
     return {
-        "lock": threading.Lock(),  # قفل تزامن يمنع تضارب البيانات عند مسح NFC من عدة جوالات
+        "lock": threading.Lock(),
         "repairs": [],
         "followups": [],
         "room_history": {},
-        "checkpoints": {
-            "السطح والخزانات": {"done": False, "time": "", "note": ""},
-            "الدور 1": {"done": False, "time": "", "note": ""},
-            "الدور 2": {"done": False, "time": "", "note": ""},
-            "الدور 3": {"done": False, "time": "", "note": ""},
-            "الدور 4": {"done": False, "time": "", "note": ""},
-            "استلام الإعاشة": {"done": False, "time": "", "note": ""},
-        },
     }
 
 
@@ -150,7 +140,6 @@ def now_stamp() -> str:
 
 
 def parse_room_and_floor(raw_txt: str) -> str:
-    """ذكاء مكاني: يحول 310 إلى 'غرفة 310 (الدور 3)' تلقائياً."""
     clean = raw_txt.strip()
     digits = "".join(filter(str.isdigit, clean))
     if len(digits) >= 3:
@@ -161,7 +150,7 @@ def parse_room_and_floor(raw_txt: str) -> str:
 
 
 # ==============================================================================
-# الطبقة 3: منطق الأعمال (Domain Services & Triage Engine)
+# 3. منطق الحفظ ومنع التكرار
 # ==============================================================================
 def save_maintenance_ticket(raw_room: str, issue_label: str, severity: str, source_tag: str = "المشرف"):
     loc_clean = parse_room_and_floor(raw_room)
@@ -190,9 +179,8 @@ def save_maintenance_ticket(raw_room: str, issue_label: str, severity: str, sour
         if len(db["room_history"]) > 500:
             del db["room_history"][next(iter(db["room_history"]))]
 
-        ticket_id = uuid.uuid4().hex[:8]
         db["repairs"].append({
-            "id": ticket_id,
+            "id": uuid.uuid4().hex[:8],
             "loc": loc_clean,
             "item": issue_label,
             "severity": severity,
@@ -285,19 +273,9 @@ def on_click_followup(category: str, detail_label: str):
 
 
 # ==============================================================================
-# الطبقة 4: الموجه الذكي (URL Router) لعزل بوابات NFC/QR عن لوحة المشرف
+# 4. التوجيه: بوابة NFC/QR الوحيدة (?mode=qr) مقابل لوحة المشرف
 # ==============================================================================
-CP_MAP = {
-    "roof": "السطح والخزانات",
-    "floor1": "الدور 1",
-    "floor2": "الدور 2",
-    "floor3": "الدور 3",
-    "floor4": "الدور 4",
-    "catering": "استلام الإعاشة",
-}
-
-q_mode = st.query_params.get("mode", "")
-q_cp = st.query_params.get("cp", "")
+is_public_nfc = st.query_params.get("mode", "") in ["qr", "nfc"]
 
 st.markdown(
     f"""
@@ -308,10 +286,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ------------------------------------------------------------------------------
-# البوابة A: بوابة السكان والعمال (?mode=qr) — 3 لغات تترجم تلقائياً للعربي
-# ------------------------------------------------------------------------------
-if q_mode == "qr":
+if is_public_nfc:
     LANGS = {
         "العربية 🇸🇦": {
             "room": "1️⃣ اكتب رقم غرفتك فقط (مثال: 310):",
@@ -359,32 +334,11 @@ if q_mode == "qr":
     for idx_b, (btn_txt, ar_item, ar_sev) in enumerate(L["btns"]):
         if st.button(btn_txt, key=f"qr_btn_{idx_b}"):
             if qr_room.strip():
-                save_maintenance_ticket(qr_room, ar_item, ar_sev, source_tag=f"بوابة QR ({sel_lang})")
+                save_maintenance_ticket(qr_room, ar_item, ar_sev, source_tag=f"بوابة NFC/QR ({sel_lang})")
                 st.success(L["ok"])
             else:
                 st.warning(L["err"])
 
-# ------------------------------------------------------------------------------
-# البوابة B: بوابة نقاط رقابة NFC (?cp=roof / floor1..4 / catering)
-# ------------------------------------------------------------------------------
-elif q_cp in CP_MAP:
-    cp_title = CP_MAP[q_cp]
-    st.info(f"🛡️ نقطة رقابة NFC مفعّلة: **{cp_title}**")
-    cp_note = st.text_input("ملاحظة التفتيش أو النظافة:", placeholder="مثال: السطح سليم / تم غسيل الممر / وصلت الوجبة...")
-    live_cam = st.camera_input("📸 التقط صورة حية لإثبات التواجد في الموقع:")
-
-    if st.button("⚡ تثبيت البصمة الزمنية الآن", key="btn_nfc_cp"):
-        with db["lock"]:
-            db["checkpoints"][cp_title] = {
-                "done": True,
-                "time": now_stamp(),
-                "note": cp_note.strip() if cp_note.strip() else "تم المسح والتوثيق الميداني",
-            }
-        st.success(f"🟢 تم إثبات فحص ({cp_title}) بنجاح!")
-
-# ------------------------------------------------------------------------------
-# البوابة C: لوحة عمليات المشرف (الواجهة الافتراضية السريعة)
-# ------------------------------------------------------------------------------
 else:
     tab_maint, tab_viol = st.tabs([
         "🛠️ 1. الصيانة والمبيدات",
@@ -440,7 +394,6 @@ else:
                     f" style='color:#94a3b8;'>📅 {r['time']}{rep_badge}{src_badge}</small></div>",
                     unsafe_allow_html=True,
                 )
-                # مفتاح فريد UUID يمنع أي تصادم برمجي
                 if col_btn.button("تم ✓", key=f"done_{r['id']}"):
                     with db["lock"]:
                         r["status"] = "تم الإصلاح"
@@ -514,22 +467,11 @@ else:
     st.divider()
 
     # ==========================================================================
-    # قسم الإدارة المغلق برمز 5050 [رادار NFC + التقرير الشامل + الخزنة]
+    # قسم الإدارة المغلق برمز 5050
     # ==========================================================================
-    with st.expander("🔐 التقرير الشامل ورادار NFC وبدء يوم جديد"):
+    with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
         pin_in = st.text_input("رمز الدخول (5050):", type="password", key="admin_pin_box")
         if hmac.compare_digest(pin_in.strip().encode("utf-8"), ADMIN_PIN.encode("utf-8")):
-            # رادار نقاط الرقابة NFC
-            st.markdown("##### 🛡️ رادار نقاط الرقابة (NFC):")
-            cp_cols = st.columns(3)
-            for idx_c, (cp_k, cp_v) in enumerate(db["checkpoints"].items()):
-                with cp_cols[idx_c % 3]:
-                    if cp_v["done"]:
-                        st.markdown(f'<div class="cp-ok">🟢 {cp_k}<br><small>{cp_v["time"]}</small></div>', unsafe_allow_html=True)
-                    else:
-                        st.markdown(f'<div class="cp-no">🔴 {cp_k}<br><small>لم يُمسح</small></div>', unsafe_allow_html=True)
-
-            st.markdown("---")
             open_reps = [r for r in db["repairs"] if r["status"] == "مفتوح"]
             fixed_reps = [r for r in db["repairs"] if r["status"] == "تم الإصلاح"]
 
@@ -581,16 +523,8 @@ else:
                 for f in exemplary_records
             ]) or "• لا يوجد"
 
-            cp_lines = "\n".join([
-                f"• {k}: {'🟢 تم (' + v['time'] + ')' if v['done'] else '🔴 لم يُمسح'}"
-                for k, v in db["checkpoints"].items()
-            ])
-
             clean_report = f"""*{LOCATION_TAG}*
 *المشرف: {SUPERVISOR_NAME}*
-
-*🛡️ رادار الرقابة ونقاط NFC:*
-{cp_lines}
 
 *🛠️ الصيانة:*
 قيد التنفيذ ({len(open_reps)}):
@@ -645,12 +579,10 @@ else:
                         f for f in db["followups"]
                         if f["state"] in ["بانتظار التشيك", "بانتظار المراجعة", "مخالفة مستمرة"]
                     ]
-                    for k_cp in db["checkpoints"]:
-                        db["checkpoints"][k_cp] = {"done": False, "time": "", "note": ""}
                 for k in ["last_maint_action", "last_viol_action"]:
                     if k in st.session_state:
                         del st.session_state[k]
-                st.success("✅ تم تصفير تقرير اليوم وتصفير نقاط NFC والاحتفاظ بالمهام المعلقة!")
+                st.success("✅ تم تصفير تقرير اليوم والاحتفاظ بالغرف التي تنتظر المراجعة والتكرار!")
                 st.rerun()
 
             if st.button("🗑️ مسح شامل لكل السجلات من الصفر", key="btn_wipe_all"):
@@ -658,8 +590,6 @@ else:
                     db["repairs"].clear()
                     db["followups"].clear()
                     db["room_history"].clear()
-                    for k_cp in db["checkpoints"]:
-                        db["checkpoints"][k_cp] = {"done": False, "time": "", "note": ""}
                 for k in ["last_maint_action", "last_viol_action"]:
                     if k in st.session_state:
                         del st.session_state[k]
