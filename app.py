@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 # ==============================================================================
-# 1. الثوابت والتصميم الميداني السريع (420px RTL / Dark Mode)
+# 1. الثوابت وخريطة الأدوار والتصميم الميداني السريع (420px RTL / Dark Mode)
 # ==============================================================================
 KSA_TZ = timezone(timedelta(hours=3))
 LOCATION_TAG = "سكن جامعة 3"
@@ -124,7 +124,7 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
 
 
 # ==============================================================================
-# 2. قاعدة البيانات المشتركة الآمنة (Thread-Safe + UUID)
+# 2. قاعدة البيانات المشتركة الآمنة والتعرف المكاني (Thread-Safe + UUID)
 # ==============================================================================
 @st.cache_resource
 def get_shared_db():
@@ -309,7 +309,7 @@ st.markdown(
 if is_public_nfc:
     LANGS = {
         "العربية 🇸🇦": {
-            "room": "1️⃣ اكتب رقم غرفتك فقط (مثال: 310):",
+            "room": "1️⃣ اكتب رقم غرفتك فقط (مثال: 108 أو 213):",
             "pick": "2️⃣ اضغط نوع الطلب:",
             "ok": "✅ تم استلام بلاغك وتوجيهه للمشرف فوراً!",
             "err": "⚠️ فضلاً اكتب رقم الغرفة أولاً.",
@@ -321,7 +321,7 @@ if is_public_nfc:
             ],
         },
         "اردو 🇵🇰": {
-            "room": "1️⃣ صرف کمرہ نمبر لکھیں (مثال: 310):",
+            "room": "1️⃣ صرف کمرہ نمبر لکھیں (مثال: 108):",
             "pick": "2️⃣ مسئلہ منتخب کریں:",
             "ok": "✅ آپ کی شکایت سپروائزر کو بھیج دی گئی ہے!",
             "err": "⚠️ پہلے کمرہ نمبر لکھیں۔",
@@ -333,7 +333,7 @@ if is_public_nfc:
             ],
         },
         "English 🇬🇧": {
-            "room": "1️⃣ Room Number Only (e.g. 310):",
+            "room": "1️⃣ Room Number Only (e.g. 108):",
             "pick": "2️⃣ Tap Issue Type:",
             "ok": "✅ Request sent directly to Supervisor!",
             "err": "⚠️ Please enter room number first.",
@@ -350,7 +350,7 @@ if is_public_nfc:
         "🌐 اللغة / زبان / Language:", list(LANGS.keys()), horizontal=True
     )
     L = LANGS[sel_lang]
-    qr_room = st.text_input(L["room"], placeholder="310", key="qr_room_box")
+    qr_room = st.text_input(L["room"], placeholder="108", key="qr_room_box")
     st.caption(L["pick"])
 
     for idx_b, (btn_txt, ar_item, ar_sev) in enumerate(L["btns"]):
