@@ -8,6 +8,8 @@ import streamlit as st
 # 1. إعدادات السرعة القصوى وتوقيت جدة (UTC+3) والواجهة الميدانية (420px RTL)
 # ==============================================================================
 KSA_TZ = timezone(timedelta(hours=3))
+now_ksa = datetime.now(KSA_TZ)
+now_time_str = now_ksa.strftime("%I:%M %p").replace("AM", "ص").replace("PM", "م")
 
 st.set_page_config(
     page_title="سكن جامعة 3 | عمليات المشرف",
@@ -22,8 +24,8 @@ st.markdown(
 header[data-testid="stHeader"], #MainMenu, footer { display: none !important; }
 .block-container {
     max-width: 420px !important;
-    padding-top: 0.45rem !important;
-    padding-bottom: 2rem !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 2.5rem !important;
     margin: 0 auto !important;
 }
 html, body, [class*="css"] {
@@ -33,9 +35,9 @@ html, body, [class*="css"] {
     color: #f8fafc !important;
     font-family: -apple-system, BlinkMacSystemFont, "Cairo", sans-serif;
 }
-/* أزرار كبيرة متتالية تحت إصبع الإبهام (58px) */
+/* أزرار كبيرة متتالية تحت إصبع الإبهام (60px) */
 div.stButton > button {
-    height: 58px !important;
+    height: 60px !important;
     font-size: 1.05em !important;
     font-weight: 900 !important;
     border-radius: 14px !important;
@@ -49,7 +51,7 @@ div.stButton > button:active, div.stButton > button:hover {
     background: #10b981 !important;
     color: #022c22 !important;
 }
-/* إبقاء الأعمدة متجاورة على الآيباد والآيفون (عجلة الساعة + زر تم) */
+/* إبقاء الأعمدة متجاورة على الآيباد والآيفون (عجلة الساعة + زر الإغلاق) */
 div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     flex-direction: row !important;
@@ -63,47 +65,40 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
 .header-box {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 10px;
-    margin-bottom: 8px;
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 10px;
     text-align: center;
 }
 .success-box {
     background: rgba(16, 185, 129, 0.12);
     border: 1.5px solid #10b981;
-    border-radius: 12px;
-    padding: 12px;
-    margin-top: 6px;
+    border-radius: 14px;
+    padding: 14px;
+    margin-top: 8px;
     margin-bottom: 8px;
     color: #6ee7b7;
 }
 .crimson-box {
     background: rgba(190, 18, 60, 0.14);
     border: 1px solid rgba(244, 63, 94, 0.4);
-    border-radius: 12px;
-    padding: 12px;
-    margin-top: 6px;
+    border-radius: 14px;
+    padding: 14px;
+    margin-top: 8px;
     margin-bottom: 8px;
     color: #fda4af;
-}
-.task-row {
-    background: #111827;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 0.96em;
 }
 .wa-btn {
     display: block;
     background: #10b981 !important;
     color: #022c22 !important;
     text-align: center;
-    padding: 13px;
+    padding: 14px;
     border-radius: 12px;
     font-weight: 900;
-    font-size: 1.04em;
+    font-size: 1.05em;
     text-decoration: none !important;
-    margin-top: 6px;
+    margin-top: 8px;
     margin-bottom: 8px;
 }
 </style>
@@ -152,7 +147,7 @@ def format_room_only(raw_txt: str) -> str:
   return clean
 
 
-def save_maintenance_ticket(raw_room: str, issue_label: str):
+def save_maintenance_ticket(raw_room: str, issue_label: str, photo_bytes=None):
   loc_clean = format_room_only(raw_room)
   t_now = (
       datetime.now(KSA_TZ)
@@ -161,7 +156,6 @@ def save_maintenance_ticket(raw_room: str, issue_label: str):
       .replace("PM", "م")
   )
 
-  # منع التكرار إذا كان البلاغ مفتوحاً حالياً لنفس الغرفة ونفس العطل
   for r in db["repairs"]:
     if (
         r["loc"] == loc_clean
@@ -169,22 +163,16 @@ def save_maintenance_ticket(raw_room: str, issue_label: str):
         and r["status"] == "مفتوح"
     ):
       r["pings"] = r.get("pings", 1) + 1
+      if photo_bytes and not r.get("photo"):
+        r["photo"] = photo_bytes
       st.session_state["last_maint_action"] = {
           "loc": r["loc"],
           "item": r["item"],
           "time": r["time"],
-          "repeat_count": r.get("repeat_count", 1),
+          "has_photo": bool(r.get("photo")),
           "is_duplicate": True,
       }
       return
-
-  # حساب عدد مرات تكرار نفس العطل في نفس الغرفة (حتى لو أُصلح سابقاً)
-  prior_count = sum(
-      1
-      for r in db["repairs"]
-      if r["loc"] == loc_clean and r["item"] == issue_label
-  )
-  current_repeat = prior_count + 1
 
   db["repairs"].append({
       "loc": loc_clean,
@@ -192,7 +180,7 @@ def save_maintenance_ticket(raw_room: str, issue_label: str):
       "time": t_now,
       "status": "مفتوح",
       "pings": 1,
-      "repeat_count": current_repeat,
+      "photo": photo_bytes,
   })
   if len(db["repairs"]) > MAX_RECORDS:
     db["repairs"] = db["repairs"][-MAX_RECORDS:]
@@ -201,12 +189,12 @@ def save_maintenance_ticket(raw_room: str, issue_label: str):
       "loc": loc_clean,
       "item": issue_label,
       "time": t_now,
-      "repeat_count": current_repeat,
+      "has_photo": bool(photo_bytes),
       "is_duplicate": False,
   }
 
 
-def save_violation_record(raw_room: str, viol_label: str):
+def save_violation_record(raw_room: str, viol_label: str, photo_bytes=None):
   loc_clean = format_room_only(raw_room)
   t_now = (
       datetime.now(KSA_TZ)
@@ -221,6 +209,7 @@ def save_violation_record(raw_room: str, viol_label: str):
       "type": viol_label,
       "count": repeat_cnt,
       "time": t_now,
+      "photo": photo_bytes,
   })
   if len(db["violations"]) > MAX_RECORDS:
     db["violations"] = db["violations"][-MAX_RECORDS:]
@@ -239,7 +228,8 @@ def save_violation_record(raw_room: str, viol_label: str):
 st.markdown(
     f"""
     <div class="header-box">
-        <b style="font-size:1.12em;">🏢 {LOCATION_TAG} | {SUPERVISOR_NAME}</b>
+        <b style="font-size:1.15em;">🏢 {LOCATION_TAG} | التشغيل الميداني</b><br>
+        <small style="color:#94a3b8;">المشرف: {SUPERVISOR_NAME}</small>
     </div>
     """,
     unsafe_allow_html=True,
@@ -252,149 +242,140 @@ tab_maint, tab_viol, tab_meals = st.tabs([
 ])
 
 # ------------------------------------------------------------------------------
-# المهمة 1: الصيانة + قائمة الإنجاز الفوري (تم ✓) في الواجهة مباشرة
+# المهمة 1: رفع بلاغات الصيانة (خطوتان + الصورة في الأسفل + إرسال واتساب حر)
 # ------------------------------------------------------------------------------
 with tab_maint:
-  m_room = st.text_input(
-      "1️⃣ رقم الغرفة أو الموقع:",
-      placeholder="مثال: 213 أو السطح",
-      key="m_room_in",
-  )
+  c_m_input = st.container()
+  c_m_btns = st.container()
+  c_m_feedback = st.container()
+  c_m_photo = st.container()
 
-  st.caption("2️⃣ اضغط نوع الطلب للحفظ الفوري:")
-  b_elec = st.button("🔌 كهربائي / فيش", key="btn_m_elec")
-  b_ac = st.button("❄️ مكيف AC", key="btn_m_ac")
-  b_plumb = st.button("🚰 سباكة / صنبور", key="btn_m_plumb")
-  b_pest = st.button("🪲 مبيد حشرات", key="btn_m_pest")
-
-  chosen_m_issue = None
-  if b_elec:
-    chosen_m_issue = "كهربائي / فيش"
-  elif b_ac:
-    chosen_m_issue = "مكيف AC"
-  elif b_plumb:
-    chosen_m_issue = "سباكة / صنبور"
-  elif b_pest:
-    chosen_m_issue = "مبيد حشرات"
-
-  if chosen_m_issue:
-    if not m_room.strip():
-      st.warning("⚠️ اكتب رقم الغرفة أو الموقع أولاً.")
-    else:
-      save_maintenance_ticket(m_room, chosen_m_issue)
-
-  if "last_maint_action" in st.session_state:
-    act = st.session_state["last_maint_action"]
-    rep_note = (
-        f" (تكرار {act['repeat_count']})" if act.get("repeat_count", 1) > 1 else ""
-    )
-    wa_maint_msg = (
-        f"*{LOCATION_TAG} — صيانة*\n• الموقع: {act['loc']}\n• الطلب:"
-        f" {act['item']}{rep_note}\n• الوقت: {act['time']}"
-    )
-    wa_maint_url = (
-        f"https://api.whatsapp.com/send?text={urllib.parse.quote(wa_maint_msg)}"
+  with c_m_input:
+    m_room = st.text_input(
+        "1️⃣ رقم الغرفة أو الموقع:",
+        placeholder="مثال: 213 أو السطح",
+        key="m_room_in",
     )
 
-    if act.get("is_duplicate"):
-      st.markdown(
-          f"""
-                <div class="crimson-box">
-                    <b>⏳ قيد التنفيذ مسبقاً:</b> {act['loc']} — {act['item']} ({act['time']})
-                </div>
-                <a href="{wa_maint_url}" target="_blank" class="wa-btn">📲 إرسال تذكير عبر واتساب</a>
-                """,
-          unsafe_allow_html=True,
+  with c_m_photo:
+    m_photo_file = st.file_uploader(
+        "📷 إرفاق صورة العطل (اختياري):",
+        type=["jpg", "jpeg", "png"],
+        key="m_photo_up",
+    )
+    m_photo_bytes = m_photo_file.getvalue() if m_photo_file else None
+
+  with c_m_btns:
+    st.caption("2️⃣ اضغط نوع العطل للحفظ الفوري:")
+    b_elec = st.button("🔌 كهربائي / فيش", key="btn_m_elec")
+    b_ac = st.button("❄️ مكيف AC", key="btn_m_ac")
+    b_plumb = st.button("🚰 سباكة / صنبور", key="btn_m_plumb")
+    b_clean = st.button("🧹 نظافة / حشرات", key="btn_m_clean")
+
+    chosen_m_issue = None
+    if b_elec:
+      chosen_m_issue = "كهربائي / فيش"
+    elif b_ac:
+      chosen_m_issue = "مكيف AC"
+    elif b_plumb:
+      chosen_m_issue = "سباكة / صنبور"
+    elif b_clean:
+      chosen_m_issue = "نظافة / حشرات"
+
+    if chosen_m_issue:
+      if not m_room.strip():
+        st.warning("⚠️ اكتب رقم الغرفة أو الموقع أولاً.")
+      else:
+        save_maintenance_ticket(m_room, chosen_m_issue, m_photo_bytes)
+
+  with c_m_feedback:
+    if "last_maint_action" in st.session_state:
+      act = st.session_state["last_maint_action"]
+      photo_txt = " (مرفق صورة)" if act.get("has_photo") else ""
+      wa_maint_msg = (
+          f"*{LOCATION_TAG} — صيانة*\n• الموقع: {act['loc']}\n• العطل:"
+          f" {act['item']}{photo_txt}\n• الوقت: {act['time']}"
       )
-    else:
+      wa_maint_url = (
+          f"https://api.whatsapp.com/send?text={urllib.parse.quote(wa_maint_msg)}"
+      )
+
+      if act.get("is_duplicate"):
+        st.markdown(
+            f"""
+                    <div class="crimson-box">
+                        <b>⏳ قيد التنفيذ مسبقاً:</b> {act['loc']} — {act['item']} (مسجل الساعة {act['time']})<br>
+                        <small>تم تسجيل استعجال دون تكرار السجل في السيرفر.</small>
+                    </div>
+                    <a href="{wa_maint_url}" target="_blank" class="wa-btn">📲 إرسال تذكير لمشرف الصيانة عبر واتساب</a>
+                    """,
+            unsafe_allow_html=True,
+        )
+      else:
+        st.markdown(
+            f"""
+                    <div class="success-box">
+                        <b>✅ تم حفظ البلاغ:</b> {act['loc']} — {act['item']} ({act['time']})
+                    </div>
+                    <a href="{wa_maint_url}" target="_blank" class="wa-btn">📲 إرسال لمشرف الصيانة عبر واتساب</a>
+                    """,
+            unsafe_allow_html=True,
+        )
+
+# ------------------------------------------------------------------------------
+# المهمة 2: رصد المخالفات (خطوتان + الصورة في الأسفل + بدون زر واتساب)
+# ------------------------------------------------------------------------------
+with tab_viol:
+  c_v_input = st.container()
+  c_v_btns = st.container()
+  c_v_feedback = st.container()
+  c_v_photo = st.container()
+
+  with c_v_input:
+    v_room = st.text_input(
+        "1️⃣ رقم الغرفة المخالفة:", placeholder="مثال: 108", key="v_room_in"
+    )
+
+  with c_v_photo:
+    v_photo_file = st.file_uploader(
+        "📷 إرفاق صورة المخالفة (اختياري):",
+        type=["jpg", "jpeg", "png"],
+        key="v_photo_up",
+    )
+    v_photo_bytes = v_photo_file.getvalue() if v_photo_file else None
+
+  with c_v_btns:
+    st.caption("2️⃣ اضغط نوع المخالفة للحفظ الفوري:")
+    bv_heater = st.button("⚡ مخالفة سخان", key="btn_v_heater")
+    bv_clean = st.button("🗑️ مخالفة نظافة", key="btn_v_clean")
+    bv_both = st.button("⚠️ مخالفة سخان ونظافة معاً", key="btn_v_both")
+
+    chosen_v_type = None
+    if bv_heater:
+      chosen_v_type = "مخالفة سخان"
+    elif bv_clean:
+      chosen_v_type = "مخالفة نظافة"
+    elif bv_both:
+      chosen_v_type = "مخالفة سخان ونظافة معاً"
+
+    if chosen_v_type:
+      if not v_room.strip():
+        st.warning("⚠️ اكتب رقم الغرفة المخالفة أولاً.")
+      else:
+        save_violation_record(v_room, chosen_v_type, v_photo_bytes)
+
+  with c_v_feedback:
+    if "last_viol_action" in st.session_state:
+      v_act = st.session_state["last_viol_action"]
       st.markdown(
           f"""
                 <div class="success-box">
-                    <b>✅ تم الحفظ:</b> {act['loc']} — {act['item']}{rep_note} ({act['time']})
+                    <b>✅ تم تسجيل المخالفة:</b> {v_act['loc']} — {v_act['type']}<br>
+                    <small>عدد مرات التكرار للغرفة: <b>{v_act['count']}</b> • الوقت: {v_act['time']}</small>
                 </div>
-                <a href="{wa_maint_url}" target="_blank" class="wa-btn">📲 إرسال عبر واتساب</a>
                 """,
           unsafe_allow_html=True,
       )
-
-  # قائمة الطلبات المفتوحة في الواجهة مباشرة — ضغطة (تم ✓) تنقلها للمنجز فوراً
-  open_reps_main = [r for r in db["repairs"] if r["status"] == "مفتوح"]
-  if open_reps_main:
-    st.markdown("---")
-    st.markdown(
-        f"##### ⏳ قيد التنفيذ ({len(open_reps_main)}) — اضغط تم عند الإنجاز:"
-    )
-    for idx, r in enumerate(reversed(open_reps_main)):
-      col_txt, col_btn = st.columns([2.5, 1.1])
-      rep_badge = (
-          f" • تكرار {r['repeat_count']}" if r.get("repeat_count", 1) > 1 else ""
-      )
-      ping_badge = f" • استعجال {r['pings']}" if r.get("pings", 1) > 1 else ""
-      col_txt.markdown(
-          f"<div class='task-row'><b>{r['loc']}</b> — {r['item']}<br><small"
-          f" style='color:#94a3b8;'>⏰"
-          f" {r['time']}{rep_badge}{ping_badge}</small></div>",
-          unsafe_allow_html=True,
-      )
-      if col_btn.button(
-          "تم ✓", key=f"main_done_{idx}_{r['loc']}_{r['item']}_{r['time']}"
-      ):
-        r["status"] = "تم الإصلاح"
-        st.rerun()
-
-# ------------------------------------------------------------------------------
-# المهمة 2: رصد المخالفات (خطوتان + بدون زر واتساب + حفظ التكرار)
-# ------------------------------------------------------------------------------
-with tab_viol:
-  v_room = st.text_input(
-      "1️⃣ رقم الغرفة المخالفة:", placeholder="مثال: 108", key="v_room_in"
-  )
-
-  st.caption("2️⃣ اضغط نوع المخالفة للحفظ الفوري:")
-  bv_heater = st.button("⚡ مخالفة سخان", key="btn_v_heater")
-  bv_clean = st.button("🗑️ مخالفة نظافة", key="btn_v_clean")
-  bv_both = st.button("⚠️ مخالفة سخان ونظافة معاً", key="btn_v_both")
-
-  chosen_v_type = None
-  if bv_heater:
-    chosen_v_type = "مخالفة سخان"
-  elif bv_clean:
-    chosen_v_type = "مخالفة نظافة"
-  elif bv_both:
-    chosen_v_type = "مخالفة سخان ونظافة معاً"
-
-  if chosen_v_type:
-    if not v_room.strip():
-      st.warning("⚠️ اكتب رقم الغرفة المخالفة أولاً.")
-    else:
-      save_violation_record(v_room, chosen_v_type)
-
-  if "last_viol_action" in st.session_state:
-    v_act = st.session_state["last_viol_action"]
-    st.markdown(
-        f"""
-            <div class="success-box">
-                <b>✅ تم تسجيل المخالفة:</b> {v_act['loc']} — {v_act['type']}<br>
-                <small>التكرار للغرفة: <b>{v_act['count']}</b> • الوقت: {v_act['time']}</small>
-            </div>
-            """,
-        unsafe_allow_html=True,
-    )
-
-  if db["violations"]:
-    st.markdown("---")
-    st.markdown(f"##### 📋 مخالفات اليوم ({len(db['violations'])}):")
-    for v_idx, v_item in enumerate(reversed(db["violations"])):
-      vc1, vc2 = st.columns([2.6, 1.0])
-      vc1.markdown(
-          f"<div class='task-row'><b>{v_item['loc']}</b> — {v_item['type']}"
-          f" <small style='color:#fda4af;'>(تكرار"
-          f" {v_item['count']})</small></div>",
-          unsafe_allow_html=True,
-      )
-      if vc2.button("حذف", key=f"del_v_{v_idx}_{v_item['loc']}_{v_item['time']}"):
-        db["violations"].remove(v_item)
-        st.rerun()
 
 # ------------------------------------------------------------------------------
 # المهمة 3: توثيق وصول الوجبات (عجلة ساعة Apple الدوارة + قاعدة التأخير > 30 دقيقة)
@@ -505,6 +486,29 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
     open_reps = [r for r in db["repairs"] if r["status"] == "مفتوح"]
     fixed_reps = [r for r in db["repairs"] if r["status"] == "تم الإصلاح"]
 
+    st.markdown("##### 🛠️ متابعة الصيانة المعلقة:")
+    if open_reps:
+      for idx, r in enumerate(reversed(open_reps)):
+        col_txt, col_btn = st.columns([2.5, 1.2])
+        pic_badge = " 📷" if r.get("photo") else ""
+        ping_badge = (
+            f" (استعجال {r.get('pings', 1)})" if r.get("pings", 1) > 1 else ""
+        )
+        col_txt.markdown(
+            f"**{r['loc']}** — {r['item']}{pic_badge}{ping_badge}"
+        )
+        if col_btn.button("تم ✓", key=f"close_m_{idx}_{r['loc']}_{r['item']}"):
+          r["status"] = "تم الإصلاح"
+          st.rerun()
+        if r.get("photo"):
+          with st.expander(f"🖼️ معاينة صورة {r['loc']}"):
+            st.image(r["photo"], use_container_width=True)
+    else:
+      st.info("لا توجد بلاغات صيانة معلقة.")
+
+    st.markdown("---")
+
+    st.markdown("##### 📄 معاينة التقرير المختصر الصافي:")
     if db["meals"]:
       lm = db["meals"][-1]
     else:
@@ -517,40 +521,14 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
       }
 
     open_lines = (
-        "\n".join([
-            f"• {r['loc']}: {r['item']}"
-            + (
-                f" (تكرار {r['repeat_count']})"
-                if r.get("repeat_count", 1) > 1
-                else ""
-            )
-            for r in open_reps
-        ])
+        "\n".join([f"• {r['loc']}: {r['item']}" for r in open_reps])
         if open_reps
         else "• لا يوجد"
     )
     fixed_lines = (
-        "\n".join([
-            f"• {r['loc']}: {r['item']} ✓"
-            + (
-                f" (تكرار {r['repeat_count']})"
-                if r.get("repeat_count", 1) > 1
-                else ""
-            )
-            for r in fixed_reps
-        ])
+        "\n".join([f"• {r['loc']}: {r['item']} ✓" for r in fixed_reps])
         if fixed_reps
         else "• لا يوجد"
-    )
-
-    # حصر الغرف المتكررة في الصيانة أو المخالفات لتوثيقها بالأرقام
-    recurring_items = [
-        f"{r['loc']} ({r['item']} ×{r['repeat_count']})"
-        for r in db["repairs"]
-        if r.get("repeat_count", 1) > 1
-    ]
-    recurring_summary = (
-        "، ".join(dict.fromkeys(recurring_items)) if recurring_items else "لا يوجد"
     )
 
     viol_total = len(db["violations"])
@@ -576,12 +554,11 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
 {open_lines}
 تم الإصلاح ({len(fixed_reps)}):
 {fixed_lines}
-• المتكرر: {recurring_summary}
 
 *⚠️ المخالفات اليوم ({viol_total}):*
 {viol_lines}"""
 
-    st.text_area("نص التقرير الجاهز:", value=clean_report, height=240)
+    st.text_area("نص التقرير الجاهز:", value=clean_report, height=230)
 
     wa_rep_url = (
         f"https://api.whatsapp.com/send?text={urllib.parse.quote(clean_report)}"
@@ -592,15 +569,19 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
         unsafe_allow_html=True,
     )
 
-    repairs_df = pd.DataFrame(db["repairs"])
-    viols_df = pd.DataFrame(db["violations"])
-    meals_df = pd.DataFrame(db["meals"])
+    clean_repairs_df = pd.DataFrame(
+        [{k: v for k, v in r.items() if k != "photo"} for r in db["repairs"]]
+    )
+    clean_viols_df = pd.DataFrame(
+        [{k: v for k, v in v.items() if k != "photo"} for v in db["violations"]]
+    )
+    clean_meals_df = pd.DataFrame(db["meals"])
 
     dl_c1, dl_c2, dl_c3 = st.columns(3)
     with dl_c1:
       st.download_button(
           "📥 الصيانة CSV",
-          data=repairs_df.to_csv(index=False).encode("utf-8-sig"),
+          data=clean_repairs_df.to_csv(index=False).encode("utf-8-sig"),
           file_name="Maintenance.csv",
           mime="text/csv",
           use_container_width=True,
@@ -608,7 +589,7 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
     with dl_c2:
       st.download_button(
           "📥 المخالفات CSV",
-          data=viols_df.to_csv(index=False).encode("utf-8-sig"),
+          data=clean_viols_df.to_csv(index=False).encode("utf-8-sig"),
           file_name="Violations.csv",
           mime="text/csv",
           use_container_width=True,
@@ -616,7 +597,7 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
     with dl_c3:
       st.download_button(
           "📥 الوجبات CSV",
-          data=meals_df.to_csv(index=False).encode("utf-8-sig"),
+          data=clean_meals_df.to_csv(index=False).encode("utf-8-sig"),
           file_name="Meals.csv",
           mime="text/csv",
           use_container_width=True,
