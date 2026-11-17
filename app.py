@@ -16,13 +16,15 @@ ADMIN_PIN = str(st.secrets.get("SUPERVISOR_PIN", "5050")).strip()
 MAX_RECORDS = 150
 
 FLOOR_MAP = {
-    "1": "دور M2",
-    "2": "دور M",
+    "1": "الدور M2",
+    "2": "الدور M",
     "3": "الدور الأول",
     "4": "الدور الثاني",
     "5": "الدور الثالث",
     "6": "الدور الرابع",
 }
+
+ARABIC_TO_EN_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
 
 st.set_page_config(
     page_title="سكن جامعة 3 | عمليات المشرف",
@@ -149,10 +151,10 @@ def now_stamp() -> str:
 
 
 def parse_room_and_floor(raw_txt: str) -> str:
-    clean = raw_txt.strip()
+    clean = raw_txt.strip().translate(ARABIC_TO_EN_DIGITS)
     digits = "".join(filter(str.isdigit, clean))
     if len(digits) >= 3:
-        floor_name = FLOOR_MAP.get(digits[0], f"دور {digits[0]}")
+        floor_name = FLOOR_MAP.get(digits[0], f"الدور {digits[0]}")
         return f"غرفة {digits} ({floor_name})"
     if digits:
         return f"غرفة {digits}"
@@ -309,7 +311,7 @@ st.markdown(
 if is_public_nfc:
     LANGS = {
         "العربية 🇸🇦": {
-            "room": "1️⃣ اكتب رقم غرفتك فقط (مثال: 108 أو 213):",
+            "room": "1️⃣ اكتب رقم غرفتك فقط (مثال: 101 أو 213):",
             "pick": "2️⃣ اضغط نوع الطلب:",
             "ok": "✅ تم استلام بلاغك وتوجيهه للمشرف فوراً!",
             "err": "⚠️ فضلاً اكتب رقم الغرفة أولاً.",
@@ -321,7 +323,7 @@ if is_public_nfc:
             ],
         },
         "اردو 🇵🇰": {
-            "room": "1️⃣ صرف کمرہ نمبر لکھیں (مثال: 108):",
+            "room": "1️⃣ صرف کمرہ نمبر لکھیں (مثال: 101):",
             "pick": "2️⃣ مسئلہ منتخب کریں:",
             "ok": "✅ آپ کی شکایت سپروائزر کو بھیج دی گئی ہے!",
             "err": "⚠️ پہلے کمرہ نمبر لکھیں۔",
@@ -333,7 +335,7 @@ if is_public_nfc:
             ],
         },
         "English 🇬🇧": {
-            "room": "1️⃣ Room Number Only (e.g. 108):",
+            "room": "1️⃣ Room Number Only (e.g. 101):",
             "pick": "2️⃣ Tap Issue Type:",
             "ok": "✅ Request sent directly to Supervisor!",
             "err": "⚠️ Please enter room number first.",
@@ -350,7 +352,7 @@ if is_public_nfc:
         "🌐 اللغة / زبان / Language:", list(LANGS.keys()), horizontal=True
     )
     L = LANGS[sel_lang]
-    qr_room = st.text_input(L["room"], placeholder="108", key="qr_room_box")
+    qr_room = st.text_input(L["room"], placeholder="101", key="qr_room_box")
     st.caption(L["pick"])
 
     for idx_b, (btn_txt, ar_item, ar_sev) in enumerate(L["btns"]):
@@ -372,7 +374,7 @@ else:
     with tab_maint:
         st.text_input(
             "1️⃣ رقم الغرفة أو الموقع:",
-            placeholder="مثال: 108 أو 213 أو السطح",
+            placeholder="مثال: 101 أو 213 أو السطح",
             key="m_room_in",
         )
         st.radio(
@@ -473,7 +475,7 @@ else:
                     st.rerun()
 
     with tab_viol:
-        st.text_input("1️⃣ رقم الغرفة:", placeholder="مثال: 108", key="v_room_in")
+        st.text_input("1️⃣ رقم الغرفة:", placeholder="مثال: 101", key="v_room_in")
         st.caption("2️⃣ اضغط التصنيف (يُحفظ بالتاريخ ويُمسح الرقم تلقائياً):")
         st.button(
             "⚡ إنذار سخان",
