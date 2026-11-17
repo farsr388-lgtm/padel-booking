@@ -113,7 +113,7 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
 )
 
 # ==============================================================================
-# 2. الذاكرة المشتركة خفيفة الاستهلاك (سقف 150 سجل + سجل ذاكرة الغرف الدائم)
+# 2. الذاكرة المشتركة خفيفة الاستهلاك (سقف 150 سجل + ذاكرة الغرف المستمرة)
 # ==============================================================================
 MAX_RECORDS = 150
 
@@ -123,10 +123,9 @@ def get_shared_db():
   return {
       "repairs": [],  # بلاغات الصيانة والمبيدات
       "followups": [],  # سجل المتابعة والتشيك بالتاريخ (مبيدات + إنذارات + نظافة)
-      "meals": [],  # سجل الوجبات
       "room_history": (
           {}
-      ),  # ذاكرة مستمرة لعدد التكرارات والإنذارات لكل غرفة حتى بعد بدء يوم جديد
+      ),  # ذاكرة تراكمية لعدد التكرارات لكل غرفة حتى بعد بدء يوم جديد
   }
 
 
@@ -136,21 +135,9 @@ LOCATION_TAG = "سكن جامعة 3"
 SUPERVISOR_NAME = "فارس العصيمي"
 ADMIN_PIN = str(st.secrets.get("SUPERVISOR_PIN", "5050")).strip()
 
-OFFICIAL_MEAL_MINS = {
-    "فطور": 5 * 60 + 30,  # 05:30 ص
-    "غداء": 11 * 60 + 30,  # 11:30 ص
-    "عشاء": 17 * 60 + 30,  # 05:30 م
-}
-
-DEFAULT_MEAL_PICKER = {
-    "فطور": (5, 30, "ص"),
-    "غداء": (11, 30, "ص"),
-    "عشاء": (5, 30, "م"),
-}
-
 
 def now_stamp() -> str:
-  """إرجاع التاريخ والساعة بتوقيت جدة بصيغة مختصرة واضحة (مثال: 11/17 - 10:45 م)."""
+  """التاريخ والساعة بتوقيت جدة (مثال: 11/17 - 11:05 م)."""
   return (
       datetime.now(KSA_TZ)
       .strftime("%m/%d - %I:%M %p")
@@ -195,6 +182,10 @@ def save_maintenance_ticket(raw_room: str, issue_label: str, severity: str):
   db["room_history"][hist_key] = db["room_history"].get(hist_key, 0) + 1
   current_repeat = db["room_history"][hist_key]
 
+  if len(db["room_history"]) > 500:
+    oldest_key = next(iter(db["room_history"]))
+    del db["room_history"][oldest_key]
+
   db["repairs"].append({
       "loc": loc_clean,
       "item": issue_label,
@@ -209,7 +200,7 @@ def save_maintenance_ticket(raw_room: str, issue_label: str, severity: str):
     db["repairs"] = db["repairs"][-MAX_RECORDS:]
 
   # إذا كان الطلب (مبيد حشرات)، يُضاف تلقائياً لقائمة المراجعة والتشيك بالتاريخ
-  if issue_label == "مبيد حشرات":
+  if "مبيد حشرات" in issue_label:
     db["followups"].append({
         "loc": loc_clean,
         "category": "مبيد حشرات",
@@ -264,7 +255,6 @@ def save_followup_record(raw_room: str, category: str, detail_label: str):
       "detail": detail_label,
       "count": cnt,
       "time": ts,
-      "is_clean": category == "غرفة نظيفة",
   }
 
 
@@ -277,7 +267,7 @@ def on_click_maint(issue_label: str):
   st.session_state["maint_err"] = ""
   sev = st.session_state.get("m_sev_radio", "🔴 طارئ")
   save_maintenance_ticket(raw_room, issue_label, sev)
-  st.session_state["m_room_in"] = ""  # مسح رقم الغرفة تلقائياً
+  st.session_state["m_room_in"] = ""
 
 
 def on_click_followup(category: str, detail_label: str):
@@ -287,11 +277,11 @@ def on_click_followup(category: str, detail_label: str):
     return
   st.session_state["viol_err"] = ""
   save_followup_record(raw_room, category, detail_label)
-  st.session_state["v_room_in"] = ""  # مسح رقم الغرفة تلقائياً
+  st.session_state["v_room_in"] = ""
 
 
 # ==============================================================================
-# 3. الترويسة والتبويبات الثلاثة المفتوحة مباشرة (بدون كلمة مرور)
+# 3. الترويسة والتبويبان الأساسيان (الصيانة والمبيدات | الإنذارات والنظافة)
 # ==============================================================================
 st.markdown(
     f"""
@@ -302,10 +292,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab_maint, tab_viol, tab_meals = st.tabs([
+tab_maint, tab_viol = st.tabs([
     "🛠️ 1. الصيانة والمبيدات",
     "📋 2. الإنذارات والنظافة",
-    "🍱 3. الوجبات",
 ])
 
 # ------------------------------------------------------------------------------
@@ -528,101 +517,6 @@ with tab_viol:
             f_item["checked_at"] = now_stamp()
             st.rerun()
 
-# ------------------------------------------------------------------------------
-# المهمة 3: توثيق وصول الوجبات (عجلة ساعة Apple الدوارة + قاعدة التأخير > 30 دقيقة)
-# ------------------------------------------------------------------------------
-with tab_meals:
-  meal_choice = st.radio(
-      "1️⃣ اختر الوجبة:", ["فطور", "غداء", "عشاء"], index=1, horizontal=True
-  )
-
-  st.caption("2️⃣ اسحب عجلة الوقت لتحديد ساعة الوصول:")
-  def_h, def_m, def_p = DEFAULT_MEAL_PICKER[meal_choice]
-  hours_opts = list(range(1, 13))
-  mins_opts = list(range(0, 60))
-  period_opts = ["ص", "م"]
-
-  w_col1, w_col2, w_col3 = st.columns([1, 1, 1])
-  with w_col1:
-    sel_h = st.selectbox(
-        "الساعة",
-        hours_opts,
-        index=hours_opts.index(def_h),
-        key=f"wheel_h_{meal_choice}",
-    )
-  with w_col2:
-    sel_m = st.selectbox(
-        "الدقيقة",
-        mins_opts,
-        index=mins_opts.index(def_m),
-        format_func=lambda x: f"{x:02d}",
-        key=f"wheel_m_{meal_choice}",
-    )
-  with w_col3:
-    sel_p = st.selectbox(
-        "الفترة",
-        period_opts,
-        index=period_opts.index(def_p),
-        key=f"wheel_p_{meal_choice}",
-    )
-
-  if sel_p == "ص":
-    h24 = 0 if sel_h == 12 else sel_h
-  else:
-    h24 = 12 if sel_h == 12 else sel_h + 12
-
-  actual_mins = h24 * 60 + sel_m
-  official_mins = OFFICIAL_MEAL_MINS[meal_choice]
-  raw_delay = actual_mins - official_mins
-  counted_delay = raw_delay if raw_delay > 30 else 0
-  arr_formatted = f"{sel_h:02d}:{sel_m:02d} {sel_p}"
-
-  if counted_delay > 0:
-    status_text = f"تأخير {counted_delay} دقيقة - وصل الساعة {arr_formatted}"
-    st.markdown(
-        f"<div class='crimson-box'>🟣 <b>{status_text}</b></div>",
-        unsafe_allow_html=True,
-    )
-  else:
-    status_text = "في الموعد"
-    st.markdown(
-        f"<div class='success-box'>🟢 <b>{status_text}</b> (الوصول:"
-        f" {arr_formatted})</div>",
-        unsafe_allow_html=True,
-    )
-
-  deliv_qty = st.text_input("العدد المستلم:", value="77", key="meal_deliv_qty")
-  has_surplus = st.radio(
-      "هل يوجد فائض؟", ["لا", "نعم"], horizontal=True, key="meal_has_surp"
-  )
-  surplus_qty = (
-      st.text_input("كم الفائض؟", value="0", key="meal_surp_qty")
-      if has_surplus == "نعم"
-      else "0"
-  )
-
-  if st.button("✅ اعتماد الوجبة", key="btn_save_meal"):
-    db["meals"].append({
-        "meal": meal_choice,
-        "arrival": arr_formatted,
-        "delay_mins": counted_delay,
-        "status_text": status_text,
-        "delivered": deliv_qty.strip() or "0",
-        "has_surplus": has_surplus,
-        "surplus": surplus_qty.strip() or "0",
-        "time": now_stamp(),
-    })
-    if len(db["meals"]) > MAX_RECORDS:
-      db["meals"] = db["meals"][-MAX_RECORDS:]
-    st.session_state["last_meal_saved"] = f"{meal_choice} ({status_text})"
-
-  if "last_meal_saved" in st.session_state:
-    st.markdown(
-        "<div class='success-box'>✅ <b>تم اعتماد الوجبة:</b>"
-        f" {st.session_state['last_meal_saved']}</div>",
-        unsafe_allow_html=True,
-    )
-
 st.divider()
 
 # ==============================================================================
@@ -637,17 +531,6 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
   ):
     open_reps = [r for r in db["repairs"] if r["status"] == "مفتوح"]
     fixed_reps = [r for r in db["repairs"] if r["status"] == "تم الإصلاح"]
-
-    if db["meals"]:
-      lm = db["meals"][-1]
-    else:
-      lm = {
-          "meal": meal_choice,
-          "status_text": status_text,
-          "delivered": deliv_qty.strip() or "0",
-          "has_surplus": has_surplus,
-          "surplus": surplus_qty.strip() or "0",
-      }
 
     # 1. الصيانة بالتواريخ والتصنيف
     open_lines = (
@@ -743,11 +626,6 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
     clean_report = f"""*{LOCATION_TAG}*
 *المشرف: {SUPERVISOR_NAME}*
 
-*🍱 الإعاشة ({lm['meal']}):* {lm['status_text']}
-• العدد المستلم: {lm['delivered']}
-• هل يوجد فائض: {lm['has_surplus']}
-• كم الفائض: {lm['surplus']}
-
 *🛠️ الصيانة:*
 قيد التنفيذ ({len(open_reps)}):
 {open_lines}
@@ -778,10 +656,10 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
         unsafe_allow_html=True,
     )
 
-    dl_c1, dl_c2, dl_c3 = st.columns(3)
+    dl_c1, dl_c2 = st.columns(2)
     with dl_c1:
       st.download_button(
-          "📥 الصيانة CSV",
+          "📥 إكسل الصيانة CSV",
           data=pd.DataFrame(db["repairs"]).to_csv(index=False).encode("utf-8-sig"),
           file_name="Maintenance.csv",
           mime="text/csv",
@@ -789,24 +667,15 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
       )
     with dl_c2:
       st.download_button(
-          "📥 المتابعة CSV",
+          "📥 إكسل المتابعة CSV",
           data=pd.DataFrame(db["followups"]).to_csv(index=False).encode("utf-8-sig"),
           file_name="Followups_History.csv",
-          mime="text/csv",
-          use_container_width=True,
-      )
-    with dl_c3:
-      st.download_button(
-          "📥 الوجبات CSV",
-          data=pd.DataFrame(db["meals"]).to_csv(index=False).encode("utf-8-sig"),
-          file_name="Meals.csv",
           mime="text/csv",
           use_container_width=True,
       )
 
     st.markdown("---")
 
-    # زر بدء يوم جديد: يصفر تقارير اليوم ويحتفظ بالغرف التي تنتظر المراجعة وسجل التكرار
     if st.button(
         "🌅 بدء يوم جديد (مع حفظ سجل التكرار والمراجعة)", key="btn_new_day"
     ):
@@ -817,8 +686,7 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
           if f["state"]
           in ["بانتظار التشيك", "بانتظار المراجعة", "مخالفة مستمرة"]
       ]
-      db["meals"].clear()
-      for k in ["last_maint_action", "last_viol_action", "last_meal_saved"]:
+      for k in ["last_maint_action", "last_viol_action"]:
         if k in st.session_state:
           del st.session_state[k]
       st.success(
@@ -829,9 +697,8 @@ with st.expander("🔐 التقرير الشامل وبدء يوم جديد"):
     if st.button("🗑️ مسح شامل لكل السجلات من الصفر", key="btn_wipe_all"):
       db["repairs"].clear()
       db["followups"].clear()
-      db["meals"].clear()
       db["room_history"].clear()
-      for k in ["last_maint_action", "last_viol_action", "last_meal_saved"]:
+      for k in ["last_maint_action", "last_viol_action"]:
         if k in st.session_state:
           del st.session_state[k]
       st.success("✅ تم مسح جميع السجلات بالكامل.")
