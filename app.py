@@ -25,9 +25,13 @@ FLOOR_MAP = {
     "6": "الدور الرابع",
 }
 
-FLOOR_ROWS = [
-    [("1", "M2"), ("2", "M"), ("3", "دور 1")],
-    [("4", "دور 2"), ("5", "دور 3"), ("6", "دور 4")],
+FLOOR_BAR = [
+    ("1", "M2"),
+    ("2", "M"),
+    ("3", "1"),
+    ("4", "2"),
+    ("5", "3"),
+    ("6", "4"),
 ]
 
 ARABIC_TO_EN_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
@@ -44,10 +48,11 @@ st.markdown(
 <style>
 header[data-testid="stHeader"], #MainMenu, footer, iframe[height="0"] { display: none !important; }
 
-/* مقاس الجوال المريح بيد واحدة */
+/* عرض متجاوب يملأ الجوال بالكامل ويتوازن على الآيباد */
 .block-container {
-    max-width: 400px !important;
-    padding: 0.35rem 0.65rem 2.5rem 0.65rem !important;
+    max-width: 500px !important;
+    width: 100% !important;
+    padding: 0.35rem 0.6rem 2rem 0.6rem !important;
     margin: 0 auto !important;
 }
 html, body, [class*="css"] {
@@ -58,7 +63,7 @@ html, body, [class*="css"] {
     font-family: -apple-system, BlinkMacSystemFont, "Cairo", sans-serif;
 }
 
-/* منع تكبير شاشة الجوال عند فتح الكيبورد */
+/* منع تكبير الشاشة التلقائي عند لمس خانة الكتابة */
 input[type="text"] {
     font-size: 16px !important;
     height: 44px !important;
@@ -68,47 +73,78 @@ input[type="text"] {
     border: 1px solid rgba(255, 255, 255, 0.16) !important;
 }
 
-/* أزرار مريحة للإبهام */
+/* إجبار كل زر على أخذ 100% من عرض عموده بدون انكماش */
+div.stButton {
+    width: 100% !important;
+}
 div.stButton > button {
-    min-height: 52px !important;
-    font-size: 0.98em !important;
+    min-height: 48px !important;
+    font-size: 0.96em !important;
     font-weight: 800 !important;
-    border-radius: 14px !important;
+    border-radius: 13px !important;
     width: 100% !important;
     padding: 0 6px !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 3px !important;
     background: #161f30 !important;
     color: #f8fafc !important;
-    border: 1.5px solid rgba(16, 185, 129, 0.42) !important;
-    transition: all 0.1s ease !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.14) !important;
+    transition: transform 0.08s ease, background 0.12s ease !important;
 }
-div.stButton > button:active, div.stButton > button:hover {
+div.stButton > button:active {
+    transform: scale(0.97) !important;
     background: #10b981 !important;
     color: #022c22 !important;
 }
 
-/* إبقاء الأعمدة بجانب بعضها دائماً في الجوال */
+/* تمييز لوني صامت للأقسام لالتقاط الزر بالعين فوراً */
+div.st-key-act_elec button,
+div.st-key-act_ac button,
+div.st-key-act_plumb button,
+div.st-key-act_pest button {
+    background: rgba(14, 165, 233, 0.12) !important;
+    border-color: rgba(56, 189, 248, 0.45) !important;
+}
+div.st-key-act_heater button,
+div.st-key-act_clean_warn button,
+div.st-key-act_both button,
+div.st-key-act_half_clean button {
+    background: rgba(245, 158, 11, 0.11) !important;
+    border-color: rgba(251, 191, 36, 0.42) !important;
+}
+div.st-key-act_clean_star button {
+    background: rgba(16, 185, 129, 0.16) !important;
+    border-color: #10b981 !important;
+    color: #6ee7b7 !important;
+}
+div.st-key-btn_prev_room button,
+div.st-key-btn_next_room button {
+    background: #1e293b !important;
+    border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+/* إبقاء الأعمدة بجانب بعضها دائماً */
 div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 5px !important;
 }
 div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
     min-width: 0 !important;
+    flex: 1 1 0% !important;
 }
 
-/* تنسيق التبويبات للجوال */
+/* تنسيق التبويبات */
 button[data-baseweb="tab"] {
     flex: 1 !important;
     justify-content: center !important;
     font-weight: 800 !important;
     font-size: 0.92em !important;
-    padding: 8px 4px !important;
+    padding: 7px 4px !important;
 }
 
-/* شريط علوي مدمج في سطر واحد */
+/* شريط علوي مدمج */
 .top-bar {
     display: flex;
     justify-content: space-between;
@@ -116,8 +152,8 @@ button[data-baseweb="tab"] {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    padding: 8px 10px;
-    margin-bottom: 8px;
+    padding: 7px 10px;
+    margin-bottom: 6px;
 }
 .top-title {
     font-weight: 900;
@@ -126,7 +162,7 @@ button[data-baseweb="tab"] {
 }
 .top-kpis {
     display: flex;
-    gap: 6px;
+    gap: 5px;
     font-size: 0.8em;
     font-weight: 800;
 }
@@ -142,43 +178,43 @@ button[data-baseweb="tab"] {
     background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
     border: 2px solid #10b981;
     border-radius: 14px;
-    padding: 10px 12px;
-    margin-bottom: 8px;
+    padding: 9px 12px;
+    margin-bottom: 6px;
     text-align: center;
 }
 .room-hero-num {
-    font-size: 1.28em;
+    font-size: 1.26em;
     font-weight: 900;
     color: #ecfdf5;
 }
 .room-hero-note {
-    font-size: 0.82em;
+    font-size: 0.8em;
     color: #a7f3d0;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 .sec-title {
-    font-size: 0.84em;
+    font-size: 0.82em;
     font-weight: 800;
     color: #94a3b8;
-    margin: 8px 0 4px 0;
+    margin: 6px 0 3px 0;
 }
 .success-box {
     background: rgba(16, 185, 129, 0.14);
     border: 1.5px solid #10b981;
     border-radius: 12px;
-    padding: 10px;
-    margin: 6px 0;
+    padding: 9px 10px;
+    margin: 5px 0;
     color: #6ee7b7;
-    font-size: 0.94em;
+    font-size: 0.92em;
 }
 .crimson-box {
     background: rgba(190, 18, 60, 0.16);
     border: 1px solid rgba(244, 63, 94, 0.45);
     border-radius: 12px;
-    padding: 10px;
-    margin: 6px 0;
+    padding: 9px 10px;
+    margin: 5px 0;
     color: #fda4af;
-    font-size: 0.94em;
+    font-size: 0.92em;
 }
 .task-row {
     background: #111827;
@@ -197,19 +233,18 @@ button[data-baseweb="tab"] {
     background: #10b981 !important;
     color: #022c22 !important;
     text-align: center;
-    padding: 13px;
-    border-radius: 13px;
+    padding: 12px;
+    border-radius: 12px;
     font-weight: 900;
-    font-size: 1.03em;
+    font-size: 1.02em;
     text-decoration: none !important;
-    margin: 6px 0 8px 0;
+    margin: 5px 0 6px 0;
 }
 </style>
 """,
     unsafe_allow_html=True,
 )
 
-# تفعيل لوحة الأرقام الفورية على الجوال لحقل الغرفة اليدوي
 components.html(
     """
     <script>
@@ -541,7 +576,7 @@ def execute_undo():
 
 
 # ==============================================================================
-# 4. الواجهة الرئيسية (ترتيب الجوال بيد واحدة)
+# 4. الواجهة الرئيسية (كل الأدوات في شاشة واحدة متناسقة)
 # ==============================================================================
 open_list = [r for r in db["repairs"] if r["status"] == "مفتوح"]
 fixed_list = [r for r in db["repairs"] if r["status"] == "تم الإصلاح"]
@@ -551,7 +586,6 @@ pending_list = [
     if f["state"] in ["بانتظار التشيك", "بانتظار المراجعة", "مخالفة مستمرة"]
 ]
 
-# شريط علوي مدمج في سطر واحد لتوفير مساحة شاشة الجوال
 st.markdown(
     f"""
     <div class="top-bar">
@@ -571,6 +605,7 @@ if "undo_action" in st.session_state:
         f"↩️ تراجع: {st.session_state['undo_action']['label']}",
         key="btn_undo",
         on_click=execute_undo,
+        use_container_width=True,
     )
 
 tab_field, tab_tasks, tab_report = st.tabs([
@@ -580,7 +615,7 @@ tab_field, tab_tasks, tab_report = st.tabs([
 ])
 
 # ------------------------------------------------------------------------------
-# التبويب 1: الجولة الميدانية (ترتيب الجوال بالإبهام)
+# التبويب 1: الجولة الميدانية (بدون تمرير + أزرار كاملة العرض)
 # ------------------------------------------------------------------------------
 with tab_field:
     active_raw = st.session_state["active_room"]
@@ -602,7 +637,18 @@ with tab_field:
         unsafe_allow_html=True,
     )
 
-    # أزرار التنقل العريضة (50% / 50%) للغرفة السابقة والتالية
+    # 1. شريط الأدوار في الأعلى مباشرة (صف واحد كامل العرض)
+    f_cols = st.columns(len(FLOOR_BAR))
+    for idx, (f_code, f_lbl) in enumerate(FLOOR_BAR):
+        f_cols[idx].button(
+            f_lbl,
+            key=f"flr_{f_code}",
+            on_click=set_active_room,
+            args=(f"{f_code}01",),
+            use_container_width=True,
+        )
+
+    # 2. التنقل الثنائي العريض (السابقة / التالية)
     prev_r, next_r = get_adjacent_rooms(active_raw)
     nav_c1, nav_c2 = st.columns(2)
     with nav_c1:
@@ -612,6 +658,7 @@ with tab_field:
                 key="btn_prev_room",
                 on_click=set_active_room,
                 args=(prev_r,),
+                use_container_width=True,
             )
     with nav_c2:
         if next_r:
@@ -620,9 +667,10 @@ with tab_field:
                 key="btn_next_room",
                 on_click=set_active_room,
                 args=(next_r,),
+                use_container_width=True,
             )
 
-    # 3 أزرار عريضة للغرف المتجاورة
+    # 3. شريط 3 غرف متجاورة كاملة العرض
     room_strip = get_three_room_strip(active_raw)
     r_cols = st.columns(3)
     for idx, r_num in enumerate(room_strip):
@@ -632,9 +680,10 @@ with tab_field:
             key=f"rm_pill_{r_num}",
             on_click=set_active_room,
             args=(r_num,),
+            use_container_width=True,
         )
 
-    # إشعار آخر حركة + زر واتساب يظهر في المنتصف قريباً من الإبهام
+    # إشعار آخر حركة + زر واتساب فوري
     if "last_action" in st.session_state:
         act = st.session_state["last_action"]
         rep_txt = f" (تكرار {act['repeat']})" if act["repeat"] > 1 else ""
@@ -668,7 +717,7 @@ with tab_field:
                 unsafe_allow_html=True,
             )
 
-    # القسم الأول: الصيانة (شبكة 2×2 عريضة)
+    # 4. الصيانة والمبيدات (شبكة 2×2 كاملة العرض بلمسة زرقاء هادئة)
     st.markdown('<div class="sec-title">🛠️ الصيانة والمبيدات:</div>', unsafe_allow_html=True)
     m_c1, m_c2 = st.columns(2)
     with m_c1:
@@ -677,12 +726,14 @@ with tab_field:
             key="act_elec",
             on_click=add_repair,
             args=(active_raw, "كهربائي / فيش", "🔴 طارئ"),
+            use_container_width=True,
         )
         st.button(
             "🚰 سباكة / صنبور",
             key="act_plumb",
             on_click=add_repair,
             args=(active_raw, "سباكة / صنبور", "🔴 طارئ"),
+            use_container_width=True,
         )
     with m_c2:
         st.button(
@@ -690,17 +741,19 @@ with tab_field:
             key="act_ac",
             on_click=add_repair,
             args=(active_raw, "مكيف AC", "🔴 طارئ"),
+            use_container_width=True,
         )
         st.button(
             "🪲 مبيد حشرات",
             key="act_pest",
             on_click=add_repair,
             args=(active_raw, "مبيد حشرات", "🟡 نص حالة"),
+            use_container_width=True,
         )
 
     st.checkbox("🟡 اجعل البلاغ القادم (نص حالة)", key="override_half_sev")
 
-    # القسم الثاني: الإنذارات والنظافة (شبكة 2×2 عريضة + زر التميز)
+    # 5. الإنذارات والنظافة (شبكة 2×2 كاملة العرض بلمسة عنبرية + زر التميز الأخضر)
     st.markdown('<div class="sec-title">📋 الإنذارات والنظافة:</div>', unsafe_allow_html=True)
     v_c1, v_c2 = st.columns(2)
     with v_c1:
@@ -709,12 +762,14 @@ with tab_field:
             key="act_heater",
             on_click=add_followup,
             args=(active_raw, "إنذار", "إنذار سخان"),
+            use_container_width=True,
         )
         st.button(
             "⚠️ سخان ونظافة",
             key="act_both",
             on_click=add_followup,
             args=(active_raw, "إنذار", "إنذار سخان ونظافة"),
+            use_container_width=True,
         )
     with v_c2:
         st.button(
@@ -722,12 +777,14 @@ with tab_field:
             key="act_clean_warn",
             on_click=add_followup,
             args=(active_raw, "إنذار", "إنذار نظافة"),
+            use_container_width=True,
         )
         st.button(
             "🟡 غرفة نص نص",
             key="act_half_clean",
             on_click=add_followup,
             args=(active_raw, "متابعة نظافة", "غرفة نص نص"),
+            use_container_width=True,
         )
 
     st.button(
@@ -735,23 +792,12 @@ with tab_field:
         key="act_clean_star",
         on_click=add_followup,
         args=(active_raw, "غرفة نظيفة", "غرفة نظيفة ومميزة"),
+        use_container_width=True,
     )
-
-    # اختيار الدور (صفّان 3×2 عريضة) + خانة كتابة رقم بعيد أو موقع
-    st.markdown('<div class="sec-title">🏢 الانتقال السريع لدور أو موقع:</div>', unsafe_allow_html=True)
-    for row_idx, f_row in enumerate(FLOOR_ROWS):
-        f_cols = st.columns(3)
-        for col_idx, (f_code, f_lbl) in enumerate(f_row):
-            f_cols[col_idx].button(
-                f_lbl,
-                key=f"flr_{row_idx}_{f_code}",
-                on_click=set_active_room,
-                args=(f"{f_code}01",),
-            )
 
     st.text_input(
         "غرفة بعيدة أو موقع:",
-        placeholder="اكتب رقم غرفة أو موقع مثل: السطح",
+        placeholder="اكتب رقم غرفة بعيدة أو موقع مثل: السطح",
         key="custom_room_input",
         label_visibility="collapsed",
         on_change=apply_custom_room,
@@ -778,7 +824,7 @@ with tab_tasks:
                 f" {r['time']}{rep_b}</small></div>",
                 unsafe_allow_html=True,
             )
-            if c2.button("تم ✓", key=f"done_{r['id']}"):
+            if c2.button("تم ✓", key=f"done_{r['id']}", use_container_width=True):
                 with db["lock"]:
                     r["status"] = "تم الإصلاح"
                     r["closed_time"] = now_stamp()
@@ -806,7 +852,7 @@ with tab_tasks:
             )
             b1, b2 = st.columns(2)
             if f["category"] == "مبيد حشرات":
-                if b1.button("✅ تم التشيك", key=f"ok_{f['id']}"):
+                if b1.button("✅ تم التشيك", key=f"ok_{f['id']}", use_container_width=True):
                     prev_s, prev_c, prev_cnt = f["state"], f["checked_at"], f["count"]
                     with db["lock"]:
                         f["state"] = "تم التشيك - سليم ✓"
@@ -821,7 +867,7 @@ with tab_tasks:
                         "prev_count": prev_cnt,
                     }
                     st.rerun()
-                if b2.button("🔄 إعادة رش", key=f"re_{f['id']}"):
+                if b2.button("🔄 إعادة رش", key=f"re_{f['id']}", use_container_width=True):
                     prev_s, prev_c, prev_cnt = f["state"], f["checked_at"], f["count"]
                     with db["lock"]:
                         f["checked_at"] = now_stamp()
@@ -840,7 +886,7 @@ with tab_tasks:
                     }
                     st.rerun()
             else:
-                if b1.button("🌟 تحسنت ✓", key=f"imp_{f['id']}"):
+                if b1.button("🌟 تحسنت ✓", key=f"imp_{f['id']}", use_container_width=True):
                     prev_s, prev_c, prev_cnt = f["state"], f["checked_at"], f["count"]
                     with db["lock"]:
                         f["state"] = "تحسنت بعد الإنذار 🌟"
@@ -855,7 +901,7 @@ with tab_tasks:
                         "prev_count": prev_cnt,
                     }
                     st.rerun()
-                if b2.button("🚨 مستمرة", key=f"cont_{f['id']}"):
+                if b2.button("🚨 مستمرة", key=f"cont_{f['id']}", use_container_width=True):
                     prev_s, prev_c, prev_cnt = f["state"], f["checked_at"], f["count"]
                     with db["lock"]:
                         f["state"] = "مخالفة مستمرة"
@@ -966,7 +1012,7 @@ with tab_report:
         unsafe_allow_html=True,
     )
 
-    if st.button("🌅 بدء يوم جديد (حفظ المعلق والتكرار)"):
+    if st.button("🌅 بدء يوم جديد (حفظ المعلق والتكرار)", use_container_width=True):
         with db["lock"]:
             db["repairs"] = [r for r in db["repairs"] if r["status"] == "مفتوح"]
             db["followups"] = [
@@ -980,7 +1026,7 @@ with tab_report:
         st.rerun()
 
     if st.checkbox("تأكيد مسح كل السجلات"):
-        if st.button("🗑️ مسح شامل من الصفر"):
+        if st.button("🗑️ مسح شامل من الصفر", use_container_width=True):
             with db["lock"]:
                 db["repairs"].clear()
                 db["followups"].clear()
