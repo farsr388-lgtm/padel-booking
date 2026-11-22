@@ -12,7 +12,7 @@ import streamlit.components.v1 as components
 # ==============================================================================
 KSA_TZ = timezone(timedelta(hours=3))
 LOCATION_TAG = "سكن جامعة 3"
-SUPERVISOR_NAME = "فارس العصيمي"
+SUPERVISOR_NAME = "فارس العتيبي"
 DATA_FILE = "sakan_clean.json"
 MAX_RECORDS = 150
 
@@ -35,51 +35,74 @@ st.set_page_config(
 )
 
 # ==============================================================================
-# 2. التصميم النظيف للجوال (مقاس الورقة + أزرار كاملة العرض)
+# 2. التصميم النظيف للجوال (ضبط الأعمدة 50/50 + إخفاء تداخل النص)
 # ==============================================================================
 st.markdown(
     """
 <style>
 header[data-testid="stHeader"], #MainMenu, footer, iframe[height="0"] { display: none !important; }
 
-.block-container {
-    max-width: 460px !important;
-    width: 100% !important;
-    padding: 0.4rem 0.7rem 2rem 0.7rem !important;
-    margin: 0 auto !important;
-}
-html, body, [class*="css"] {
+/* إخفاء عبارة Press Enter to apply المتداخلة مع العربي */
+div[data-testid="InputInstructions"] { display: none !important; }
+
+html, body, .stApp {
     direction: rtl;
     text-align: right;
     background-color: #0b0f19 !important;
     color: #f8fafc !important;
     font-family: -apple-system, BlinkMacSystemFont, "Cairo", sans-serif;
+    overflow-x: hidden !important;
+}
+
+.block-container {
+    max-width: 440px !important;
+    width: 100% !important;
+    padding: 0.4rem 0.65rem 2rem 0.65rem !important;
+    margin: 0 auto !important;
 }
 
 /* خانة رقم الغرفة الكبيرة الواضحة */
 input[type="text"] {
-    font-size: 20px !important;
+    font-size: 19px !important;
     font-weight: 900 !important;
     text-align: center !important;
-    height: 54px !important;
+    height: 50px !important;
     border-radius: 14px !important;
     background-color: #111827 !important;
     color: #10b981 !important;
     border: 2px solid #10b981 !important;
 }
 
+/* ضبط الأعمدة في الجوال لتكون 50% لكل عمود بدون خروج عن الشاشة */
+div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+}
+div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"],
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+    width: calc(50% - 4px) !important;
+    flex: 1 1 calc(50% - 4px) !important;
+    min-width: 0 !important;
+    max-width: calc(50% - 4px) !important;
+}
+
 /* أزرار كبيرة متساوية العرض */
 div.stButton { width: 100% !important; }
 div.stButton > button {
-    height: 54px !important;
+    height: 50px !important;
     width: 100% !important;
-    font-size: 1.02em !important;
+    padding: 0 4px !important;
+    font-size: 0.95em !important;
     font-weight: 800 !important;
-    border-radius: 14px !important;
-    margin-bottom: 4px !important;
+    border-radius: 13px !important;
+    margin-bottom: 3px !important;
     background: #161f30 !important;
     color: #f8fafc !important;
     border: 1.5px solid rgba(255, 255, 255, 0.14) !important;
+    white-space: nowrap !important;
 }
 div.stButton > button:active {
     background: #10b981 !important;
@@ -102,24 +125,13 @@ div.st-key-b_star button {
     color: #6ee7b7 !important;
 }
 
-/* إبقاء العمودين بجانب بعضهما دائماً في الجوال */
-div[data-testid="stHorizontalBlock"] {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    gap: 8px !important;
-}
-div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-    min-width: 0 !important;
-    flex: 1 1 0% !important;
-}
 button[data-baseweb="tab"] {
     flex: 1 !important;
     justify-content: center !important;
     font-weight: 800 !important;
+    font-size: 0.9em !important;
 }
 
-/* الشريط العلوي وبطاقات التأكيد */
 .top-bar {
     display: flex;
     justify-content: space-between;
@@ -128,40 +140,41 @@ button[data-baseweb="tab"] {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     padding: 8px 12px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-weight: 800;
-    font-size: 0.92em;
+    font-size: 0.9em;
 }
 .sec-lbl {
-    font-size: 0.83em;
+    font-size: 0.82em;
     color: #94a3b8;
     font-weight: 800;
-    margin: 8px 0 4px 0;
+    margin: 6px 0 3px 0;
 }
 .ok-card {
     background: rgba(16, 185, 129, 0.14);
     border: 1.5px solid #10b981;
     border-radius: 12px;
-    padding: 10px;
-    margin-top: 8px;
+    padding: 9px;
+    margin-top: 6px;
     color: #6ee7b7;
     text-align: center;
     font-weight: 800;
+    font-size: 0.92em;
 }
 .task-card {
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 11px;
-    padding: 10px;
-    margin-bottom: 6px;
-    font-size: 0.93em;
+    padding: 9px 10px;
+    margin-bottom: 5px;
+    font-size: 0.9em;
 }
 .wa-btn {
     display: block;
     background: #10b981 !important;
     color: #022c22 !important;
     text-align: center;
-    padding: 13px;
+    padding: 12px;
     border-radius: 12px;
     font-weight: 900;
     text-decoration: none !important;
@@ -268,7 +281,6 @@ def record_item(kind: str, label: str):
 
     with db["lock"]:
         if kind == "maint":
-            # منع تكرار البلاغ المفتوح لنفس الغرفة ونفس العطل
             for r in db["repairs"]:
                 if r["loc"] == loc and r["item"] == label and r["status"] == "مفتوح":
                     st.session_state["last_saved"] = {
@@ -397,7 +409,7 @@ tab1, tab2, tab3 = st.tabs([
 with tab1:
     st.text_input(
         "رقم الغرفة",
-        placeholder="اكتب رقم الغرفة هنا (مثل 301)",
+        placeholder="رقم الغرفة (مثل 301)",
         key="room_box",
         label_visibility="collapsed",
     )
@@ -423,7 +435,6 @@ with tab1:
         st.button("🗑️ إنذار نظافة", key="b_clean", on_click=record_item, args=("warn", "إنذار نظافة"), use_container_width=True)
         st.button("🌟 غرفة نظيفة", key="b_star", on_click=record_item, args=("star", "غرفة نظيفة ومميزة"), use_container_width=True)
 
-    # إشعار الحفظ الفوري + زر واتساب + تراجع
     if "last_saved" in st.session_state:
         s = st.session_state["last_saved"]
         rep_note = f" (تكرار {s['repeat']})" if s["repeat"] > 1 else ""
@@ -451,7 +462,7 @@ with tab2:
         st.info("✨ لا توجد مهام معلقة حالياً.")
 
     for r in reversed(open_reps):
-        col_a, col_b = st.columns([2.4, 1])
+        col_a, col_b = st.columns([2.2, 1])
         rep_b = f" • تكرار {r['repeat']}" if r.get("repeat", 1) > 1 else ""
         col_a.markdown(
             f"<div class='task-card'><b>{r['loc']}</b> — {r['item']}<br><small style='color:#94a3b8;'>📅 {r['time']}{rep_b}</small></div>",
@@ -467,7 +478,7 @@ with tab2:
     if pending_checks:
         st.markdown("---")
         for f in reversed(pending_checks):
-            col_a, col_b = st.columns([2.4, 1])
+            col_a, col_b = st.columns([2.2, 1])
             col_a.markdown(
                 f"<div class='task-card'><b>{f['loc']}</b> — {f['detail']}<br><small style='color:#94a3b8;'>📅 {f['time']}</small></div>",
                 unsafe_allow_html=True,
