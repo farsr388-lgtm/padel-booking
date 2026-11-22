@@ -8,7 +8,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 # ==============================================================================
-# 1. الإعدادات الأساسية
+# 1. الإعدادات الأساسية وخريطة الأدوار
 # ==============================================================================
 KSA_TZ = timezone(timedelta(hours=3))
 LOCATION_TAG = "سكن جامعة 3"
@@ -25,6 +25,7 @@ FLOOR_MAP = {
     "6": "الدور الرابع",
 }
 
+M2_ROOMS = [str(100 + i) for i in range(1, 17)]  # 101 إلى 116 (16 غرفة)
 ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
 
 st.set_page_config(
@@ -35,7 +36,7 @@ st.set_page_config(
 )
 
 # ==============================================================================
-# 2. التصميم النظيف للجوال (متجاوب 100% مع شاشة الآيفون)
+# 2. التصميم النظيف المتجاوب للجوال (يدعم شبكات 2 و 3 و 4 أعمدة بدون قص)
 # ==============================================================================
 st.markdown(
     """
@@ -55,7 +56,7 @@ html, body, .stApp {
 .block-container {
     max-width: 440px !important;
     width: 100% !important;
-    padding: 0.4rem 0.65rem 2rem 0.65rem !important;
+    padding: 0.4rem 0.6rem 2rem 0.6rem !important;
     margin: 0 auto !important;
 }
 
@@ -64,7 +65,7 @@ div.st-key-room_box input {
     font-size: 20px !important;
     font-weight: 900 !important;
     text-align: center !important;
-    height: 52px !important;
+    height: 50px !important;
     border-radius: 14px !important;
     background-color: #111827 !important;
     color: #10b981 !important;
@@ -74,19 +75,19 @@ div.st-key-room_box input {
 /* خانة الصيانة الحرة الصغيرة */
 div.st-key-custom_maint input {
     font-size: 16px !important;
-    height: 46px !important;
+    height: 44px !important;
     border-radius: 12px !important;
     background-color: #111827 !important;
     color: #f8fafc !important;
     border: 1px solid rgba(56, 189, 248, 0.35) !important;
 }
 
-/* ضبط الأعمدة لتتوزع بالتساوي دون خروج عن الشاشة */
+/* توزيع مرن للأعمدة (يعمل مع 2 أو 3 أو 4 أعمدة في شاشة الآيفون) */
 div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 6px !important;
+    gap: 5px !important;
     width: 100% !important;
 }
 div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"],
@@ -96,15 +97,15 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
     width: auto !important;
 }
 
-/* الأزرار الأساسية الكبيرة (الاستخدام اليومي المتكرر) */
+/* الأزرار الأساسية */
 div.stButton { width: 100% !important; }
 div.stButton > button {
-    height: 56px !important;
+    height: 52px !important;
     width: 100% !important;
-    padding: 0 4px !important;
-    font-size: 1.0em !important;
+    padding: 0 3px !important;
+    font-size: 0.96em !important;
     font-weight: 800 !important;
-    border-radius: 14px !important;
+    border-radius: 13px !important;
     margin-bottom: 3px !important;
     background: #161f30 !important;
     color: #f8fafc !important;
@@ -116,26 +117,35 @@ div.stButton > button:active {
     color: #022c22 !important;
 }
 
+/* أزرار شبكة M2 (101 - 116) مدمجة وسريعة اللمس */
+div[class*="st-key-m2_"] button {
+    height: 40px !important;
+    font-size: 0.88em !important;
+    border-radius: 10px !important;
+    background: #111827 !important;
+}
+
 /* ألوان هادئة لتمييز المهام اليومية */
-div.st-key-b_heater button, div.st-key-b_warn button {
+div.st-key-b_heater button, div.st-key-b_clean button, div.st-key-b_both button {
     background: rgba(245, 158, 11, 0.13) !important;
     border-color: rgba(251, 191, 36, 0.45) !important;
 }
 div.st-key-b_pest button {
-    background: rgba(168, 85, 247, 0.13) !important;
-    border-color: rgba(192, 132, 252, 0.45) !important;
+    background: rgba(168, 85, 247, 0.14) !important;
+    border-color: rgba(192, 132, 252, 0.48) !important;
 }
 div.st-key-b_star button {
-    background: rgba(16, 185, 129, 0.15) !important;
+    height: 44px !important;
+    background: rgba(16, 185, 129, 0.14) !important;
     border-color: #10b981 !important;
     color: #6ee7b7 !important;
 }
 
-/* أزرار الصيانة النادرة (أصغر قليلاً بلون أزرق هادئ) */
+/* أزرار الصيانة الخفيفة */
 div.st-key-m_ac button, div.st-key-m_leak button,
 div.st-key-m_elec button, div.st-key-m_add button {
-    height: 46px !important;
-    font-size: 0.88em !important;
+    height: 44px !important;
+    font-size: 0.86em !important;
     background: rgba(14, 165, 233, 0.11) !important;
     border-color: rgba(56, 189, 248, 0.38) !important;
 }
@@ -163,7 +173,7 @@ button[data-baseweb="tab"] {
     font-size: 0.82em;
     color: #94a3b8;
     font-weight: 800;
-    margin: 8px 0 4px 0;
+    margin: 7px 0 3px 0;
 }
 .ok-card {
     background: rgba(16, 185, 129, 0.14);
@@ -281,13 +291,34 @@ def format_room(raw: str) -> str:
     return f"غرفة {digits}" if digits else clean
 
 
+def get_m2_badge(room_num: str) -> str:
+    """إظهار نقطة ملونة بجانب رقم الغرفة في شبكة M2 إذا كان عليها سجل اليوم"""
+    loc = format_room(room_num)
+    for f in reversed(db["followups"]):
+        if f["loc"] == loc:
+            if f["cat"] == "نظيفة":
+                return f"🟢 {room_num}"
+            if f["cat"] == "مبيد":
+                return f"🟣 {room_num}"
+            return f"🟠 {room_num}"
+    for r in reversed(db["repairs"]):
+        if r["loc"] == loc and r["status"] == "مفتوح":
+            return f"🔵 {room_num}"
+    return room_num
+
+
+def pick_m2_room(room_num: str):
+    st.session_state["room_box"] = room_num
+    st.session_state["err_msg"] = ""
+
+
 # ==============================================================================
-# 4. دوال التسجيل السريع (اليومي + الصيانة النادرة)
+# 4. دوال التسجيل السريع (اليومي + الصيانة الخفيفة)
 # ==============================================================================
 def record_daily(cat: str, label: str):
     raw_room = st.session_state.get("room_box", "").strip()
     if not raw_room:
-        st.session_state["err_msg"] = "⚠️ اكتب رقم الغرفة أولاً"
+        st.session_state["err_msg"] = "⚠️ اختر الغرفة أو اكتب رقمها أولاً"
         return
 
     st.session_state["err_msg"] = ""
@@ -328,7 +359,7 @@ def record_daily(cat: str, label: str):
 def record_maint(issue_label: str, from_custom: bool = False):
     raw_room = st.session_state.get("room_box", "").strip()
     if not raw_room:
-        st.session_state["err_msg"] = "⚠️ اكتب رقم الغرفة أولاً"
+        st.session_state["err_msg"] = "⚠️ اختر الغرفة أو اكتب رقمها أولاً"
         return
 
     if from_custom:
@@ -406,7 +437,7 @@ def undo_last():
 
 
 # ==============================================================================
-# 5. الواجهة (الأكثر تكراراً أولاً + الصيانة الخفيفة بالأسفل)
+# 5. الواجهة (خريطة M2 + أزرارك الأربعة + الصيانة الخفيفة)
 # ==============================================================================
 open_reps = [r for r in db["repairs"] if r["status"] == "مفتوح"]
 fixed_reps = [r for r in db["repairs"] if r["status"] == "تم الإصلاح"]
@@ -432,7 +463,7 @@ tab1, tab2, tab3 = st.tabs([
 with tab1:
     st.text_input(
         "رقم الغرفة",
-        placeholder="رقم الغرفة (مثل 301)",
+        placeholder="رقم الغرفة (مثل 101 أو 305)",
         key="room_box",
         label_visibility="collapsed",
     )
@@ -440,18 +471,34 @@ with tab1:
     if st.session_state.get("err_msg"):
         st.warning(st.session_state["err_msg"])
 
-    # 1. الأكثر استخداماً في جولتك اليومية (أزرار كبيرة)
-    st.markdown('<div class="sec-lbl">⚡ الإجراء اليومي السريع:</div>', unsafe_allow_html=True)
+    # خريطة دور M2 السريعة (16 غرفة: 101 إلى 116) قابلة للفتح والطي بلمسة
+    with st.expander("🗺️ خريطة دور M2 السريعة (101 — 116)", expanded=True):
+        for row_i in range(0, 16, 4):
+            cols = st.columns(4)
+            for col_i in range(4):
+                rm = M2_ROOMS[row_i + col_i]
+                cols[col_i].button(
+                    get_m2_badge(rm),
+                    key=f"m2_{rm}",
+                    on_click=pick_m2_room,
+                    args=(rm,),
+                    use_container_width=True,
+                )
+
+    # 1. أزرارك اليومية الأربعة الأساسية
+    st.markdown('<div class="sec-lbl">⚡ الإجراء اليومي:</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
         st.button("🔌 سحب سخان", key="b_heater", on_click=record_daily, args=("سحب سخان", "سحب سخان"), use_container_width=True)
-        st.button("🪲 طلب دواء", key="b_pest", on_click=record_daily, args=("مبيد", "طلب دواء (مبيد حشرات)"), use_container_width=True)
+        st.button("⚠️ سخان ونظافة", key="b_both", on_click=record_daily, args=("سخان ونظافة", "إنذار سخان ونظافة"), use_container_width=True)
     with c2:
-        st.button("⚠️ إعطاء إنذار", key="b_warn", on_click=record_daily, args=("إنذار", "إعطاء إنذار"), use_container_width=True)
-        st.button("🌟 غرفة نظيفة", key="b_star", on_click=record_daily, args=("نظيفة", "غرفة نظيفة ومميزة"), use_container_width=True)
+        st.button("🗑️ إنذار نظافة", key="b_clean", on_click=record_daily, args=("إنذار نظافة", "إنذار نظافة"), use_container_width=True)
+        st.button("🪲 طلب دواء", key="b_pest", on_click=record_daily, args=("مبيد", "طلب دواء (مبيد حشرات)"), use_container_width=True)
+
+    st.button("🌟 غرفة نظيفة ومميزة", key="b_star", on_click=record_daily, args=("نظيفة", "غرفة نظيفة ومميزة"), use_container_width=True)
 
     # 2. الصيانة النادرة / البلاغات الخفيفة من الجوال
-    st.markdown('<div class="sec-lbl">🛠️ صيانة / ملاحظة خفيفة (عند الحاجة):</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-lbl">🛠️ صيانة خفيفة (عند الحاجة):</div>', unsafe_allow_html=True)
     m1, m2, m3 = st.columns(3)
     with m1:
         st.button("❄️ تنقيط مكيف", key="m_ac", on_click=record_maint, args=("تنقيط مكيف",), use_container_width=True)
@@ -460,7 +507,6 @@ with tab1:
     with m3:
         st.button("⚡ كهرباء", key="m_elec", on_click=record_maint, args=("كهرباء / فيش",), use_container_width=True)
 
-    # خانة كتابة حرة لأي ملاحظة صيانة أخرى تصلك على الجوال
     cm1, cm2 = st.columns([2.6, 1])
     with cm1:
         st.text_input(
@@ -533,12 +579,14 @@ with tab2:
 # --- التبويب 3: التقرير اليومي ---
 with tab3:
     heater_recs = [f for f in db["followups"] if f["cat"] == "سحب سخان"]
-    warn_recs = [f for f in db["followups"] if f["cat"] == "إنذار"]
+    clean_recs = [f for f in db["followups"] if f["cat"] == "إنذار نظافة"]
+    both_recs = [f for f in db["followups"] if f["cat"] == "سخان ونظافة"]
     pest_recs = [f for f in db["followups"] if f["cat"] == "مبيد"]
     star_recs = [f for f in db["followups"] if f["cat"] == "نظيفة"]
 
     heater_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in heater_recs]) or "• لا يوجد"
-    warn_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in warn_recs]) or "• لا يوجد"
+    clean_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in clean_recs]) or "• لا يوجد"
+    both_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in both_recs]) or "• لا يوجد"
     pest_txt = "\n".join([f"• {f['loc']} (مرة {f['count']}) — {f['state']}" for f in pest_recs]) or "• لا يوجد"
     star_txt = "\n".join([f"• {f['loc']} 🌟" for f in star_recs]) or "• لا يوجد"
 
@@ -551,8 +599,11 @@ with tab3:
 *🔌 سحب السخانات ({len(heater_recs)}):*
 {heater_txt}
 
-*⚠️ الإنذارات ({len(warn_recs)}):*
-{warn_txt}
+*🗑️ إنذارات النظافة ({len(clean_recs)}):*
+{clean_txt}
+
+*⚠️ إنذارات سخان ونظافة ({len(both_recs)}):*
+{both_txt}
 
 *🪲 طلبات الدواء / المبيد ({len(pest_recs)}):*
 {pest_txt}
