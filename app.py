@@ -12,7 +12,7 @@ import streamlit.components.v1 as components
 # ==============================================================================
 KSA_TZ = timezone(timedelta(hours=3))
 LOCATION_TAG = "سكن جامعة 3"
-SUPERVISOR_NAME = "فارس العتيبي"
+SUPERVISOR_NAME = "فارس العصيمي"
 DATA_FILE = "sakan_clean.json"
 MAX_RECORDS = 150
 
@@ -35,14 +35,12 @@ st.set_page_config(
 )
 
 # ==============================================================================
-# 2. التصميم النظيف للجوال (ضبط الأعمدة 50/50 + إخفاء تداخل النص)
+# 2. التصميم النظيف للجوال (متجاوب 100% مع شاشة الآيفون)
 # ==============================================================================
 st.markdown(
     """
 <style>
 header[data-testid="stHeader"], #MainMenu, footer, iframe[height="0"] { display: none !important; }
-
-/* إخفاء عبارة Press Enter to apply المتداخلة مع العربي */
 div[data-testid="InputInstructions"] { display: none !important; }
 
 html, body, .stApp {
@@ -61,43 +59,52 @@ html, body, .stApp {
     margin: 0 auto !important;
 }
 
-/* خانة رقم الغرفة الكبيرة الواضحة */
-input[type="text"] {
-    font-size: 19px !important;
+/* خانة رقم الغرفة الكبيرة */
+div.st-key-room_box input {
+    font-size: 20px !important;
     font-weight: 900 !important;
     text-align: center !important;
-    height: 50px !important;
+    height: 52px !important;
     border-radius: 14px !important;
     background-color: #111827 !important;
     color: #10b981 !important;
     border: 2px solid #10b981 !important;
 }
 
-/* ضبط الأعمدة في الجوال لتكون 50% لكل عمود بدون خروج عن الشاشة */
+/* خانة الصيانة الحرة الصغيرة */
+div.st-key-custom_maint input {
+    font-size: 16px !important;
+    height: 46px !important;
+    border-radius: 12px !important;
+    background-color: #111827 !important;
+    color: #f8fafc !important;
+    border: 1px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+/* ضبط الأعمدة لتتوزع بالتساوي دون خروج عن الشاشة */
 div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 8px !important;
+    gap: 6px !important;
     width: 100% !important;
 }
 div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"],
 div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-    width: calc(50% - 4px) !important;
-    flex: 1 1 calc(50% - 4px) !important;
+    flex: 1 1 0% !important;
     min-width: 0 !important;
-    max-width: calc(50% - 4px) !important;
+    width: auto !important;
 }
 
-/* أزرار كبيرة متساوية العرض */
+/* الأزرار الأساسية الكبيرة (الاستخدام اليومي المتكرر) */
 div.stButton { width: 100% !important; }
 div.stButton > button {
-    height: 50px !important;
+    height: 56px !important;
     width: 100% !important;
     padding: 0 4px !important;
-    font-size: 0.95em !important;
+    font-size: 1.0em !important;
     font-weight: 800 !important;
-    border-radius: 13px !important;
+    border-radius: 14px !important;
     margin-bottom: 3px !important;
     background: #161f30 !important;
     color: #f8fafc !important;
@@ -109,20 +116,28 @@ div.stButton > button:active {
     color: #022c22 !important;
 }
 
-/* تمييز لوني هادئ: أزرق للصيانة، عنبري للإنذار، أخضر للنظيفة */
-div.st-key-b_elec button, div.st-key-b_ac button,
-div.st-key-b_plumb button, div.st-key-b_pest button {
-    background: rgba(14, 165, 233, 0.12) !important;
-    border-color: rgba(56, 189, 248, 0.4) !important;
+/* ألوان هادئة لتمييز المهام اليومية */
+div.st-key-b_heater button, div.st-key-b_warn button {
+    background: rgba(245, 158, 11, 0.13) !important;
+    border-color: rgba(251, 191, 36, 0.45) !important;
 }
-div.st-key-b_heat button, div.st-key-b_clean button, div.st-key-b_both button {
-    background: rgba(245, 158, 11, 0.11) !important;
-    border-color: rgba(251, 191, 36, 0.4) !important;
+div.st-key-b_pest button {
+    background: rgba(168, 85, 247, 0.13) !important;
+    border-color: rgba(192, 132, 252, 0.45) !important;
 }
 div.st-key-b_star button {
     background: rgba(16, 185, 129, 0.15) !important;
     border-color: #10b981 !important;
     color: #6ee7b7 !important;
+}
+
+/* أزرار الصيانة النادرة (أصغر قليلاً بلون أزرق هادئ) */
+div.st-key-m_ac button, div.st-key-m_leak button,
+div.st-key-m_elec button, div.st-key-m_add button {
+    height: 46px !important;
+    font-size: 0.88em !important;
+    background: rgba(14, 165, 233, 0.11) !important;
+    border-color: rgba(56, 189, 248, 0.38) !important;
 }
 
 button[data-baseweb="tab"] {
@@ -148,7 +163,7 @@ button[data-baseweb="tab"] {
     font-size: 0.82em;
     color: #94a3b8;
     font-weight: 800;
-    margin: 6px 0 3px 0;
+    margin: 8px 0 4px 0;
 }
 .ok-card {
     background: rgba(16, 185, 129, 0.14);
@@ -185,7 +200,7 @@ button[data-baseweb="tab"] {
     unsafe_allow_html=True,
 )
 
-# إجبار الآيفون على فتح لوحة الأرقام الكبيرة (1-9) عند لمس الخانة
+# فتح لوحة الأرقام الكبيرة في الآيفون عند لمس خانة رقم الغرفة
 components.html(
     """
     <script>
@@ -267,9 +282,9 @@ def format_room(raw: str) -> str:
 
 
 # ==============================================================================
-# 4. دوال الحفظ بضغطة واحدة
+# 4. دوال التسجيل السريع (اليومي + الصيانة النادرة)
 # ==============================================================================
-def record_item(kind: str, label: str):
+def record_daily(cat: str, label: str):
     raw_room = st.session_state.get("room_box", "").strip()
     if not raw_room:
         st.session_state["err_msg"] = "⚠️ اكتب رقم الغرفة أولاً"
@@ -280,90 +295,98 @@ def record_item(kind: str, label: str):
     ts = now_str()
 
     with db["lock"]:
-        if kind == "maint":
-            for r in db["repairs"]:
-                if r["loc"] == loc and r["item"] == label and r["status"] == "مفتوح":
-                    st.session_state["last_saved"] = {
-                        "kind": "maint",
-                        "loc": loc,
-                        "label": label,
-                        "time": r["time"],
-                        "repeat": r["repeat"],
-                        "dup": True,
-                    }
-                    st.session_state["room_box"] = ""
-                    return
+        h_key = f"{loc}_{cat}"
+        db["history"][h_key] = db["history"].get(h_key, 0) + 1
+        cnt = db["history"][h_key]
 
-            h_key = f"{loc}_{label}"
-            db["history"][h_key] = db["history"].get(h_key, 0) + 1
-            rep = db["history"][h_key]
-
-            tid = uuid.uuid4().hex[:8]
-            db["repairs"].append({
-                "id": tid,
-                "loc": loc,
-                "item": label,
-                "time": ts,
-                "closed": "",
-                "status": "مفتوح",
-                "repeat": rep,
-            })
-            db["repairs"] = db["repairs"][-MAX_RECORDS:]
-
-            fid = None
-            if "مبيد" in label:
-                fid = uuid.uuid4().hex[:8]
-                db["followups"].append({
-                    "id": fid,
-                    "loc": loc,
-                    "cat": "مبيد",
-                    "detail": f"مبيد حشرات (مرة {rep})",
-                    "time": ts,
-                    "state": "بانتظار التشيك",
-                    "count": rep,
-                })
-                db["followups"] = db["followups"][-MAX_RECORDS:]
-
-            st.session_state["undo"] = ("maint", tid, fid, h_key)
-            st.session_state["last_saved"] = {
-                "kind": "maint",
-                "loc": loc,
-                "label": label,
-                "time": ts,
-                "repeat": rep,
-                "dup": False,
-            }
-
-        else:
-            h_key = f"{loc}_{kind}"
-            db["history"][h_key] = db["history"].get(h_key, 0) + 1
-            cnt = db["history"][h_key]
-
-            is_star = kind == "star"
-            fid = uuid.uuid4().hex[:8]
-            db["followups"].append({
-                "id": fid,
-                "loc": loc,
-                "cat": "نظيفة" if is_star else "إنذار",
-                "detail": label,
-                "time": ts,
-                "state": "غرفة نظيفة 🌟" if is_star else "بانتظار التشيك",
-                "count": cnt,
-            })
-            db["followups"] = db["followups"][-MAX_RECORDS:]
-
-            st.session_state["undo"] = ("viol", fid, None, h_key)
-            st.session_state["last_saved"] = {
-                "kind": "viol",
-                "loc": loc,
-                "label": label,
-                "time": ts,
-                "repeat": cnt,
-                "dup": False,
-            }
-
+        is_star = cat == "نظيفة"
+        fid = uuid.uuid4().hex[:8]
+        db["followups"].append({
+            "id": fid,
+            "loc": loc,
+            "cat": cat,
+            "detail": label,
+            "time": ts,
+            "state": "غرفة نظيفة 🌟" if is_star else "بانتظار التشيك",
+            "count": cnt,
+        })
+        db["followups"] = db["followups"][-MAX_RECORDS:]
         save_db()
+
+        st.session_state["undo"] = ("daily", None, fid, h_key)
+        st.session_state["last_saved"] = {
+            "kind": "daily",
+            "loc": loc,
+            "label": label,
+            "time": ts,
+            "repeat": cnt,
+            "dup": False,
+        }
     st.session_state["room_box"] = ""
+
+
+def record_maint(issue_label: str, from_custom: bool = False):
+    raw_room = st.session_state.get("room_box", "").strip()
+    if not raw_room:
+        st.session_state["err_msg"] = "⚠️ اكتب رقم الغرفة أولاً"
+        return
+
+    if from_custom:
+        issue_label = st.session_state.get("custom_maint", "").strip()
+        if not issue_label:
+            st.session_state["err_msg"] = "⚠️ اكتب ملاحظة الصيانة أولاً"
+            return
+
+    st.session_state["err_msg"] = ""
+    loc = format_room(raw_room)
+    ts = now_str()
+
+    with db["lock"]:
+        for r in db["repairs"]:
+            if r["loc"] == loc and r["item"] == issue_label and r["status"] == "مفتوح":
+                st.session_state["last_saved"] = {
+                    "kind": "maint",
+                    "loc": loc,
+                    "label": issue_label,
+                    "time": r["time"],
+                    "repeat": r["repeat"],
+                    "dup": True,
+                }
+                st.session_state["room_box"] = ""
+                if from_custom:
+                    st.session_state["custom_maint"] = ""
+                return
+
+        h_key = f"{loc}_{issue_label}"
+        db["history"][h_key] = db["history"].get(h_key, 0) + 1
+        rep = db["history"][h_key]
+
+        tid = uuid.uuid4().hex[:8]
+        db["repairs"].append({
+            "id": tid,
+            "loc": loc,
+            "item": issue_label,
+            "time": ts,
+            "closed": "",
+            "status": "مفتوح",
+            "repeat": rep,
+        })
+        db["repairs"] = db["repairs"][-MAX_RECORDS:]
+        save_db()
+
+        st.session_state["undo"] = ("maint", tid, None, h_key)
+        st.session_state["last_saved"] = {
+            "kind": "maint",
+            "loc": loc,
+            "label": issue_label,
+            "time": ts,
+            "repeat": rep,
+            "dup": False,
+        }
+
+    st.session_state["room_box"] = ""
+    if from_custom:
+        st.session_state["custom_maint"] = ""
 
 
 def undo_last():
@@ -372,7 +395,7 @@ def undo_last():
         return
     kind, tid, fid, h_key = item
     with db["lock"]:
-        if kind == "maint":
+        if tid:
             db["repairs"] = [r for r in db["repairs"] if r["id"] != tid]
         if fid:
             db["followups"] = [f for f in db["followups"] if f["id"] != fid]
@@ -383,7 +406,7 @@ def undo_last():
 
 
 # ==============================================================================
-# 5. الواجهة (ورقة تسجيل + مهام + تقرير)
+# 5. الواجهة (الأكثر تكراراً أولاً + الصيانة الخفيفة بالأسفل)
 # ==============================================================================
 open_reps = [r for r in db["repairs"] if r["status"] == "مفتوح"]
 fixed_reps = [r for r in db["repairs"] if r["status"] == "تم الإصلاح"]
@@ -393,19 +416,19 @@ st.markdown(
     f"""
     <div class="top-bar">
         <span>🏢 {LOCATION_TAG}</span>
-        <span>🔴 {len(open_reps)} &nbsp;|&nbsp; 🔍 {len(pending_checks)} &nbsp;|&nbsp; ✅ {len(fixed_reps)}</span>
+        <span>🔍 {len(pending_checks)} &nbsp;|&nbsp; 🛠️ {len(open_reps)} &nbsp;|&nbsp; ✅ {len(fixed_reps)}</span>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
 tab1, tab2, tab3 = st.tabs([
-    "✏️ تسجيل سريع",
-    f"⏳ المهام ({len(open_reps) + len(pending_checks)})",
+    "✏️ الجولة",
+    f"⏳ المهام ({len(pending_checks) + len(open_reps)})",
     "📄 التقرير",
 ])
 
-# --- التبويب 1: ورقة التسجيل السريعة ---
+# --- التبويب 1: الجولة الميدانية ---
 with tab1:
     st.text_input(
         "رقم الغرفة",
@@ -417,24 +440,39 @@ with tab1:
     if st.session_state.get("err_msg"):
         st.warning(st.session_state["err_msg"])
 
-    st.markdown('<div class="sec-lbl">🛠️ الصيانة:</div>', unsafe_allow_html=True)
+    # 1. الأكثر استخداماً في جولتك اليومية (أزرار كبيرة)
+    st.markdown('<div class="sec-lbl">⚡ الإجراء اليومي السريع:</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        st.button("🔌 كهرباء", key="b_elec", on_click=record_item, args=("maint", "كهربائي / فيش"), use_container_width=True)
-        st.button("🚰 سباكة", key="b_plumb", on_click=record_item, args=("maint", "سباكة / صنبور"), use_container_width=True)
+        st.button("🔌 سحب سخان", key="b_heater", on_click=record_daily, args=("سحب سخان", "سحب سخان"), use_container_width=True)
+        st.button("🪲 طلب دواء", key="b_pest", on_click=record_daily, args=("مبيد", "طلب دواء (مبيد حشرات)"), use_container_width=True)
     with c2:
-        st.button("❄️ مكيف", key="b_ac", on_click=record_item, args=("maint", "مكيف AC"), use_container_width=True)
-        st.button("🪲 مبيد حشرات", key="b_pest", on_click=record_item, args=("maint", "مبيد حشرات"), use_container_width=True)
+        st.button("⚠️ إعطاء إنذار", key="b_warn", on_click=record_daily, args=("إنذار", "إعطاء إنذار"), use_container_width=True)
+        st.button("🌟 غرفة نظيفة", key="b_star", on_click=record_daily, args=("نظيفة", "غرفة نظيفة ومميزة"), use_container_width=True)
 
-    st.markdown('<div class="sec-lbl">📋 المتابعة والنظافة:</div>', unsafe_allow_html=True)
-    c3, c4 = st.columns(2)
-    with c3:
-        st.button("⚡ إنذار سخان", key="b_heat", on_click=record_item, args=("warn", "إنذار سخان"), use_container_width=True)
-        st.button("⚠️ سخان ونظافة", key="b_both", on_click=record_item, args=("warn", "إنذار سخان ونظافة"), use_container_width=True)
-    with c4:
-        st.button("🗑️ إنذار نظافة", key="b_clean", on_click=record_item, args=("warn", "إنذار نظافة"), use_container_width=True)
-        st.button("🌟 غرفة نظيفة", key="b_star", on_click=record_item, args=("star", "غرفة نظيفة ومميزة"), use_container_width=True)
+    # 2. الصيانة النادرة / البلاغات الخفيفة من الجوال
+    st.markdown('<div class="sec-lbl">🛠️ صيانة / ملاحظة خفيفة (عند الحاجة):</div>', unsafe_allow_html=True)
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        st.button("❄️ تنقيط مكيف", key="m_ac", on_click=record_maint, args=("تنقيط مكيف",), use_container_width=True)
+    with m2:
+        st.button("💧 تهريب خفيف", key="m_leak", on_click=record_maint, args=("تهريب خفيف",), use_container_width=True)
+    with m3:
+        st.button("⚡ كهرباء", key="m_elec", on_click=record_maint, args=("كهرباء / فيش",), use_container_width=True)
 
+    # خانة كتابة حرة لأي ملاحظة صيانة أخرى تصلك على الجوال
+    cm1, cm2 = st.columns([2.6, 1])
+    with cm1:
+        st.text_input(
+            "ملاحظة صيانة أخرى",
+            placeholder="أو اكتب ملاحظة صيانة أخرى هنا...",
+            key="custom_maint",
+            label_visibility="collapsed",
+        )
+    with cm2:
+        st.button("➕ حفظ", key="m_add", on_click=record_maint, args=("", True), use_container_width=True)
+
+    # إشعار الحفظ + واتساب + تراجع
     if "last_saved" in st.session_state:
         s = st.session_state["last_saved"]
         rep_note = f" (تكرار {s['repeat']})" if s["repeat"] > 1 else ""
@@ -446,7 +484,7 @@ with tab1:
         )
 
         if s["kind"] == "maint":
-            wa_txt = f"*{LOCATION_TAG} — صيانة*\n• الموقع: {s['loc']}\n• الطلب: {s['label']}{rep_note}\n• الوقت: {s['time']}"
+            wa_txt = f"*{LOCATION_TAG} — صيانة*\n• الموقع: {s['loc']}\n• الملاحظة: {s['label']}{rep_note}\n• الوقت: {s['time']}"
             wa_link = f"https://api.whatsapp.com/send?text={urllib.parse.quote(wa_txt)}"
             st.markdown(
                 f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 إرسال واتساب</a>',
@@ -458,29 +496,16 @@ with tab1:
 
 # --- التبويب 2: المهام والتشيك ---
 with tab2:
-    if not open_reps and not pending_checks:
-        st.info("✨ لا توجد مهام معلقة حالياً.")
-
-    for r in reversed(open_reps):
-        col_a, col_b = st.columns([2.2, 1])
-        rep_b = f" • تكرار {r['repeat']}" if r.get("repeat", 1) > 1 else ""
-        col_a.markdown(
-            f"<div class='task-card'><b>{r['loc']}</b> — {r['item']}<br><small style='color:#94a3b8;'>📅 {r['time']}{rep_b}</small></div>",
-            unsafe_allow_html=True,
-        )
-        if col_b.button("تم ✓", key=f"done_{r['id']}", use_container_width=True):
-            with db["lock"]:
-                r["status"] = "تم الإصلاح"
-                r["closed"] = now_str()
-                save_db()
-            st.rerun()
+    if not pending_checks and not open_reps:
+        st.info("✨ لا توجد غرف بانتظار التشيك أو صيانة مفتوحة حالياً.")
 
     if pending_checks:
-        st.markdown("---")
+        st.markdown("##### 🔍 غرف للمراجعة والتشيك:")
         for f in reversed(pending_checks):
             col_a, col_b = st.columns([2.2, 1])
+            rep_b = f" • مرة {f['count']}" if f.get("count", 1) > 1 else ""
             col_a.markdown(
-                f"<div class='task-card'><b>{f['loc']}</b> — {f['detail']}<br><small style='color:#94a3b8;'>📅 {f['time']}</small></div>",
+                f"<div class='task-card'><b>{f['loc']}</b> — {f['detail']}<br><small style='color:#94a3b8;'>📅 {f['time']}{rep_b}</small></div>",
                 unsafe_allow_html=True,
             )
             if col_b.button("تشيك ✓", key=f"chk_{f['id']}", use_container_width=True):
@@ -489,33 +514,59 @@ with tab2:
                     save_db()
                 st.rerun()
 
+    if open_reps:
+        st.markdown("---")
+        st.markdown("##### 🛠️ ملاحظات الصيانة المفتوحة:")
+        for r in reversed(open_reps):
+            col_a, col_b = st.columns([2.2, 1])
+            col_a.markdown(
+                f"<div class='task-card'><b>{r['loc']}</b> — {r['item']}<br><small style='color:#94a3b8;'>📅 {r['time']}</small></div>",
+                unsafe_allow_html=True,
+            )
+            if col_b.button("تم ✓", key=f"done_{r['id']}", use_container_width=True):
+                with db["lock"]:
+                    r["status"] = "تم الإصلاح"
+                    r["closed"] = now_str()
+                    save_db()
+                st.rerun()
+
 # --- التبويب 3: التقرير اليومي ---
 with tab3:
-    open_txt = "\n".join([f"• {r['loc']}: {r['item']} ({r['time']})" for r in open_reps]) or "• لا يوجد"
-    fixed_txt = "\n".join([f"• {r['loc']}: {r['item']} ✓ ({r['closed']})" for r in fixed_reps]) or "• لا يوجد"
-    pest_txt = "\n".join([f"• {f['loc']}: {f['detail']} — {f['state']}" for f in db["followups"] if f["cat"] == "مبيد"]) or "• لا يوجد"
-    warn_txt = "\n".join([f"• {f['loc']}: {f['detail']} (تكرار {f['count']}) — {f['state']}" for f in db["followups"] if f["cat"] == "إنذار"]) or "• لا يوجد"
-    star_txt = "\n".join([f"• {f['loc']}: نظيفة ومميزة 🌟" for f in db["followups"] if f["cat"] == "نظيفة"]) or "• لا يوجد"
+    heater_recs = [f for f in db["followups"] if f["cat"] == "سحب سخان"]
+    warn_recs = [f for f in db["followups"] if f["cat"] == "إنذار"]
+    pest_recs = [f for f in db["followups"] if f["cat"] == "مبيد"]
+    star_recs = [f for f in db["followups"] if f["cat"] == "نظيفة"]
+
+    heater_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in heater_recs]) or "• لا يوجد"
+    warn_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in warn_recs]) or "• لا يوجد"
+    pest_txt = "\n".join([f"• {f['loc']} (مرة {f['count']}) — {f['state']}" for f in pest_recs]) or "• لا يوجد"
+    star_txt = "\n".join([f"• {f['loc']} 🌟" for f in star_recs]) or "• لا يوجد"
+
+    maint_open_txt = "\n".join([f"• {r['loc']}: {r['item']} ({r['time']})" for r in open_reps]) or "• لا يوجد"
+    maint_done_txt = "\n".join([f"• {r['loc']}: {r['item']} ✓" for r in fixed_reps]) or "• لا يوجد"
 
     report = f"""*{LOCATION_TAG}*
 *المشرف: {SUPERVISOR_NAME}*
 
-*🛠️ الصيانة:*
-قيد التنفيذ ({len(open_reps)}):
-{open_txt}
-تم الإصلاح ({len(fixed_reps)}):
-{fixed_txt}
+*🔌 سحب السخانات ({len(heater_recs)}):*
+{heater_txt}
 
-*🪲 مبيد الحشرات:*
-{pest_txt}
-
-*⚠️ الإنذارات:*
+*⚠️ الإنذارات ({len(warn_recs)}):*
 {warn_txt}
 
-*🌟 غرف نظيفة ومميزة:*
-{star_txt}"""
+*🪲 طلبات الدواء / المبيد ({len(pest_recs)}):*
+{pest_txt}
 
-    st.text_area("التقرير:", value=report, height=240, label_visibility="collapsed")
+*🌟 غرف نظيفة ومميزة ({len(star_recs)}):*
+{star_txt}
+
+*🛠️ ملاحظات الصيانة:*
+قيد المتابعة ({len(open_reps)}):
+{maint_open_txt}
+تم الإنجاز ({len(fixed_reps)}):
+{maint_done_txt}"""
+
+    st.text_area("التقرير:", value=report, height=250, label_visibility="collapsed")
     wa_rep = f"https://api.whatsapp.com/send?text={urllib.parse.quote(report)}"
     st.markdown(
         f'<a href="{wa_rep}" target="_blank" class="wa-btn">📲 إرسال التقرير واتساب</a>',
