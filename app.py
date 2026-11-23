@@ -6,6 +6,7 @@ import time
 import urllib.parse
 import uuid
 import streamlit as st
+import streamlit.components.v1 as components
 
 # ==============================================================================
 # 1. الإعدادات وخريطة السكن (M2 = 16 غرفة | باقي الأدوار = 19 غرفة)
@@ -49,7 +50,7 @@ active_rm = st.session_state["sel_room"]
 st.markdown(
     f"""
 <style>
-header[data-testid="stHeader"], #MainMenu, footer {{ display: none !important; }}
+header[data-testid="stHeader"], #MainMenu, footer, iframe[height="0"] {{ display: none !important; }}
 div[data-testid="InputInstructions"] {{ display: none !important; }}
 
 html, body, .stApp {{
@@ -68,7 +69,6 @@ html, body, .stApp {{
     margin: 0 auto !important;
 }}
 
-/* توزيع متساوٍ للأعمدة */
 div[data-testid="stHorizontalBlock"] {{
     display: flex !important;
     flex-direction: row !important;
@@ -115,7 +115,7 @@ div.st-key-flr_{active_flr} button {{
     font-weight: 900 !important;
 }}
 
-/* شبكة الغرف (4 أعمدة من اليمين لليسار) */
+/* شبكة الغرف */
 div[class*="st-key-rm_"] button {{
     height: 38px !important;
     font-size: 0.85em !important;
@@ -140,28 +140,30 @@ div.st-key-b_star button {{
     font-size: 0.98em !important;
 }}
 
-/* تمييز لوني هادئ للأزرار اليومية */
+/* أزرار المخالفات (حفظ صامت + مراجعة 3 أيام) */
 div.st-key-b_heater button, div.st-key-b_clean button, div.st-key-b_both button {{
     background: rgba(245, 158, 11, 0.13) !important;
     border-color: rgba(251, 191, 36, 0.45) !important;
 }}
+
+/* زر طلب الدواء (واتساب مباشر + تشيك نظافة بعد 3 أيام) */
 div.st-key-b_pest button {{
-    background: rgba(168, 85, 247, 0.14) !important;
-    border-color: rgba(192, 132, 252, 0.48) !important;
+    background: rgba(168, 85, 247, 0.15) !important;
+    border-color: rgba(192, 132, 252, 0.5) !important;
 }}
 
-/* أزرار الصيانة الخفيفة */
+/* أزرار الصيانة (واتساب مباشر) */
 div.st-key-m_ac button, div.st-key-m_leak button,
 div.st-key-m_elec button, div.st-key-m_add button {{
-    height: 42px !important;
-    font-size: 0.84em !important;
-    background: rgba(14, 165, 233, 0.11) !important;
-    border-color: rgba(56, 189, 248, 0.38) !important;
+    height: 43px !important;
+    font-size: 0.85em !important;
+    background: rgba(14, 165, 233, 0.12) !important;
+    border-color: rgba(56, 189, 248, 0.4) !important;
 }}
 
 input[type="text"] {{
     font-size: 16px !important;
-    height: 42px !important;
+    height: 43px !important;
     border-radius: 11px !important;
     background-color: #111827 !important;
     color: #f8fafc !important;
@@ -232,9 +234,10 @@ button[data-baseweb="tab"] {{
     background: #10b981 !important;
     color: #022c22 !important;
     text-align: center;
-    padding: 12px;
+    padding: 13px;
     border-radius: 12px;
     font-weight: 900;
+    font-size: 1.02em;
     text-decoration: none !important;
     margin: 6px 0;
 }}
@@ -243,9 +246,10 @@ button[data-baseweb="tab"] {{
     background: #0ea5e9 !important;
     color: #082f49 !important;
     text-align: center;
-    padding: 12px;
+    padding: 13px;
     border-radius: 12px;
     font-weight: 900;
+    font-size: 1.02em;
     text-decoration: none !important;
     margin: 6px 0;
 }}
@@ -256,7 +260,7 @@ button[data-baseweb="tab"] {{
 
 
 # ==============================================================================
-# 3. قاعدة البيانات وحساب دورة الـ 3 أيام
+# 3. قاعدة البيانات والروابط المباشرة لتطبيق واتساب
 # ==============================================================================
 def load_db() -> dict:
     if os.path.exists(DATA_FILE):
@@ -298,6 +302,10 @@ def save_db():
         pass
 
 
+def wa_app_url(msg: str) -> str:
+    return f"whatsapp://send?text={urllib.parse.quote(msg)}"
+
+
 def now_str() -> str:
     return (
         datetime.now(KSA_TZ)
@@ -328,7 +336,6 @@ def short_room(raw: str) -> str:
 
 
 def get_room_label(room_num: str) -> str:
-    """تلوين رقم الغرفة في الخريطة حسب حالتها"""
     loc = format_room(room_num)
     for f in reversed(db["followups"]):
         if f["loc"] == loc:
@@ -346,7 +353,6 @@ def get_room_label(room_num: str) -> str:
 
 
 def advance_to_next_room(current_room: str):
-    """الانتقال التلقائي للغرفة التالية حسب مشيك من اليمين لليسار"""
     digits = "".join(filter(str.isdigit, str(current_room)))
     if len(digits) >= 3 and digits[0] in FLOORS:
         f_code = digits[0]
@@ -373,7 +379,7 @@ def set_custom_location():
 
 
 # ==============================================================================
-# 4. دوال التسجيل السريع (مع الانتقال التلقائي للغرفة التالية)
+# 4. دوال التسجيل (واتساب فوري للمبيد والصيانة فقط + دورة 3 أيام للمبيد والمخالفات)
 # ==============================================================================
 def record_daily(cat: str, label: str):
     raw_room = st.session_state.get("sel_room", "").strip()
@@ -390,7 +396,14 @@ def record_daily(cat: str, label: str):
         cnt = db["history"][h_key]
 
         is_star = cat == "نظيفة"
-        auto_escalate = (not is_star) and (cat != "مبيد") and (cnt >= 2)
+        is_pest = cat == "مبيد"
+        auto_escalate = (not is_star) and (not is_pest) and (cnt >= 2)
+
+        detail_txt = (
+            "طلب دواء (تشيك نظافة ومبيد بعد 3 أيام)"
+            if is_pest
+            else label
+        )
 
         fid = uuid.uuid4().hex[:8]
         db["followups"].append({
@@ -398,7 +411,7 @@ def record_daily(cat: str, label: str):
             "room_code": short_room(raw_room),
             "loc": loc,
             "cat": cat,
-            "detail": label,
+            "detail": detail_txt,
             "time": ts,
             "ts": now_ep,
             "state": "غرفة نظيفة (تخطي) 🌟" if is_star else "بانتظار التشيك",
@@ -408,15 +421,23 @@ def record_daily(cat: str, label: str):
         db["followups"] = db["followups"][-MAX_RECORDS:]
         save_db()
 
+        rep_txt = f" (مرة {cnt})" if cnt > 1 else ""
+        wa_msg = f"*{LOCATION_TAG} — طلب دواء / مبيد*\n• {loc}{rep_txt}\n• ملاحظة: تشيك النظافة والمبيد بعد 3 أيام"
+
         st.session_state["undo"] = ("daily", None, fid, h_key, raw_room)
         st.session_state["last_saved"] = {
-            "kind": "daily",
+            "kind": "pest" if is_pest else ("star" if is_star else "viol"),
             "loc": loc,
-            "label": label,
+            "label": detail_txt,
             "time": ts,
             "repeat": cnt,
             "dup": False,
+            "wa_msg": wa_msg if is_pest else "",
         }
+
+        # الانتقال المباشر للواتساب في طلب المبيد فقط (وليس في المخالفات أو الغرفة النظيفة)
+        if is_pest:
+            st.session_state["jump_wa_url"] = wa_app_url(wa_msg)
 
     advance_to_next_room(raw_room)
 
@@ -437,6 +458,7 @@ def record_maint(issue_label: str, from_custom: bool = False):
     with db["lock"]:
         for r in db["repairs"]:
             if r["loc"] == loc and r["item"] == issue_label and r["status"] == "مفتوح":
+                wa_msg = f"*{LOCATION_TAG} — تذكير صيانة*\n• {loc}: {issue_label}"
                 st.session_state["last_saved"] = {
                     "kind": "maint",
                     "loc": loc,
@@ -444,7 +466,9 @@ def record_maint(issue_label: str, from_custom: bool = False):
                     "time": r["time"],
                     "repeat": r["repeat"],
                     "dup": True,
+                    "wa_msg": wa_msg,
                 }
+                st.session_state["jump_wa_url"] = wa_app_url(wa_msg)
                 if from_custom:
                     st.session_state["custom_maint"] = ""
                 return
@@ -467,6 +491,9 @@ def record_maint(issue_label: str, from_custom: bool = False):
         db["repairs"] = db["repairs"][-MAX_RECORDS:]
         save_db()
 
+        rep_txt = f" (تكرار {rep})" if rep > 1 else ""
+        wa_msg = f"*{LOCATION_TAG} — صيانة*\n• {loc}: {issue_label}{rep_txt}\n• الوقت: {ts}"
+
         st.session_state["undo"] = ("maint", tid, None, h_key, raw_room)
         st.session_state["last_saved"] = {
             "kind": "maint",
@@ -475,7 +502,11 @@ def record_maint(issue_label: str, from_custom: bool = False):
             "time": ts,
             "repeat": rep,
             "dup": False,
+            "wa_msg": wa_msg,
         }
+
+        # الانتقال المباشر للواتساب في طلبات الصيانة
+        st.session_state["jump_wa_url"] = wa_app_url(wa_msg)
 
     if from_custom:
         st.session_state["custom_maint"] = ""
@@ -497,10 +528,27 @@ def undo_last():
         save_db()
     st.session_state["sel_room"] = prev_room
     st.session_state.pop("last_saved", None)
+    st.session_state.pop("jump_wa_url", None)
 
+
+# تنفيذ الانتقال التلقائي إلى تطبيق واتساب (للمبيدات والصيانة فقط)
+jump_url = st.session_state.pop("jump_wa_url", None)
+if jump_url:
+    components.html(
+        f"""
+        <script>
+        try {{
+            window.top.location.href = {json.dumps(jump_url)};
+        }} catch (e) {{
+            window.location.href = {json.dumps(jump_url)};
+        }}
+        </script>
+        """,
+        height=0,
+    )
 
 # ==============================================================================
-# 5. الواجهة (خريطة السكن + تبديل مكان الغرفة النظيفة والشريط الأخضر)
+# 5. الواجهة
 # ==============================================================================
 open_reps = [r for r in db["repairs"] if r["status"] == "مفتوح"]
 fixed_reps = [r for r in db["repairs"] if r["status"] == "تم الإصلاح"]
@@ -525,7 +573,6 @@ tab1, tab2, tab3 = st.tabs([
 
 # --- التبويب 1: الجولة الميدانية بالخريطة ---
 with tab1:
-    # شريط الأدوار الستة
     f_cols = st.columns(6)
     for idx, (f_code, f_info) in enumerate(FLOORS.items()):
         f_cols[idx].button(
@@ -536,7 +583,6 @@ with tab1:
             use_container_width=True,
         )
 
-    # شبكة غرف الدور المختار (من اليمين لليسار)
     flr_info = FLOORS[active_flr]
     room_count = flr_info["count"]
     floor_rooms = [str(int(active_flr) * 100 + i) for i in range(1, room_count + 1)]
@@ -555,7 +601,7 @@ with tab1:
                     use_container_width=True,
                 )
 
-    # 1. زر الغرفة النظيفة في الأعلى مكان الشريط الأخضر
+    # 1. زر الغرفة النظيفة في الأعلى مباشرة تحت الشبكة
     st.button(
         "🌟 غرفة نظيفة (تخطي)",
         key="b_star",
@@ -564,22 +610,22 @@ with tab1:
         use_container_width=True,
     )
 
-    # 2. أزرارك اليومية الأربعة الأساسية
+    # 2. أزرار المخالفات (صامتة + تشيك 3 أيام) وطلب الدواء (واتساب مباشر + تشيك نظافة 3 أيام)
     c1, c2 = st.columns(2)
     with c1:
         st.button("🔌 سحب سخان", key="b_heater", on_click=record_daily, args=("سحب سخان", "سحب سخان"), use_container_width=True)
         st.button("⚠️ سخان ونظافة", key="b_both", on_click=record_daily, args=("سخان ونظافة", "إنذار سخان ونظافة"), use_container_width=True)
     with c2:
         st.button("🗑️ إنذار نظافة", key="b_clean", on_click=record_daily, args=("إنذار نظافة", "إنذار نظافة"), use_container_width=True)
-        st.button("🪲 طلب دواء", key="b_pest", on_click=record_daily, args=("مبيد", "طلب دواء (مبيد حشرات)"), use_container_width=True)
+        st.button("🪲 طلب دواء 📲", key="b_pest", on_click=record_daily, args=("مبيد", "طلب دواء (مبيد حشرات)"), use_container_width=True)
 
-    # 3. الشريط الأخضر للغرفة المحددة حالياً في الأسفل مكان زر الغرفة النظيفة
+    # 3. الشريط الأخضر للغرفة المحددة حالياً
     st.markdown(
         f'<div class="active-banner">📍 {format_room(active_rm)}</div>',
         unsafe_allow_html=True,
     )
 
-    # إشعار الحفظ الفوري + واتساب + تراجع
+    # إشعار الحفظ الفوري + زر واتساب (للمبيد والصيانة فقط) + تراجع
     if "last_saved" in st.session_state:
         s = st.session_state["last_saved"]
         rep_note = f" (تكرار {s['repeat']})" if s["repeat"] > 1 else ""
@@ -590,22 +636,21 @@ with tab1:
             unsafe_allow_html=True,
         )
 
-        if s["kind"] == "maint":
-            wa_txt = f"*{LOCATION_TAG} — صيانة*\n• {s['loc']}: {s['label']}{rep_note}"
-            wa_link = f"https://api.whatsapp.com/send?text={urllib.parse.quote(wa_txt)}"
+        if s["kind"] in ("pest", "maint") and s.get("wa_msg"):
+            direct_link = wa_app_url(s["wa_msg"])
             st.markdown(
-                f'<a href="{wa_link}" target="_blank" class="wa-btn">📲 تحويل واتساب</a>',
+                f'<a href="{direct_link}" class="wa-btn">📲 فتح واتساب الآن</a>',
                 unsafe_allow_html=True,
             )
 
         if "undo" in st.session_state:
             st.button("↩️ تراجع عن آخر ضغطة", on_click=undo_last, use_container_width=True)
 
-    # قسم الصيانة الخفيفة
-    st.markdown('<div class="sec-lbl">🛠️ صيانة خفيفة (عند الحاجة):</div>', unsafe_allow_html=True)
+    # 4. قسم الصيانة (ينقلك للواتساب مباشرة عند اللمس)
+    st.markdown('<div class="sec-lbl">🛠️ صيانة (تحويل واتساب فوري 📲):</div>', unsafe_allow_html=True)
     m1, m2, m3 = st.columns(3)
     with m1:
-        st.button("❄️ تنقيط مكيف", key="m_ac", on_click=record_maint, args=("تنقيط مكيف",), use_container_width=True)
+        st.button("❄️ المكيف", key="m_ac", on_click=record_maint, args=("المكيف",), use_container_width=True)
     with m2:
         st.button("💧 تهريب خفيف", key="m_leak", on_click=record_maint, args=("تهريب خفيف",), use_container_width=True)
     with m3:
@@ -620,7 +665,7 @@ with tab1:
             label_visibility="collapsed",
         )
     with cm2:
-        st.button("➕ حفظ", key="m_add", on_click=record_maint, args=("", True), use_container_width=True)
+        st.button("➕ إرسال", key="m_add", on_click=record_maint, args=("", True), use_container_width=True)
 
     st.text_input(
         "موقع عام",
@@ -630,13 +675,13 @@ with tab1:
         on_change=set_custom_location,
     )
 
-# --- التبويب 2: المهام والتشيك (دورة الـ 3 أيام + تصعيد النقل) ---
+# --- التبويب 2: المهام والتشيك (دورة 3 أيام للمبيدات والمخالفات) ---
 with tab2:
     if not pending_checks and not open_reps:
         st.info("✨ لا توجد غرف بانتظار التشيك أو صيانة مفتوحة حالياً.")
 
     if pending_checks:
-        st.markdown("##### 🔍 المتابعة والتشيك (دورة 3 أيام):")
+        st.markdown("##### 🔍 متابعة النظافة والمخالفات (كل 3 أيام):")
         sorted_checks = sorted(
             pending_checks,
             key=lambda x: days_since(x.get("ts", 0)),
@@ -647,7 +692,7 @@ with tab2:
             is_due = d_passed >= CHECK_CYCLE_DAYS
             card_cls = "task-card task-due" if is_due else "task-card"
             age_badge = (
-                f"🔔 مستحق للتشيك (مرّ {d_passed} أيام)"
+                f"🔔 مستحق للتشيك الآن (مرّ {d_passed} أيام)"
                 if is_due
                 else f"⏳ مضى {d_passed} يوم (المراجعة بعد {CHECK_CYCLE_DAYS - d_passed} أيام)"
             )
@@ -659,7 +704,7 @@ with tab2:
                 unsafe_allow_html=True,
             )
             b1, b2 = st.columns(2)
-            if b1.button("✅ تم التشيك (سليم)", key=f"chk_{f['id']}", use_container_width=True):
+            if b1.button("✅ تم التشيك (نظيفة)", key=f"chk_{f['id']}", use_container_width=True):
                 with db["lock"]:
                     f["state"] = "تم التشيك ✓"
                     save_db()
@@ -711,9 +756,9 @@ with tab3:
             [f"{r.get('room_code', r['loc'])} ({r['item']})" for r in open_reps]
         )
 
-    short_wa_url = f"https://api.whatsapp.com/send?text={urllib.parse.quote(short_wa_msg)}"
+    short_wa_url = wa_app_url(short_wa_msg)
     st.markdown(
-        f'<a href="{short_wa_url}" target="_blank" class="wa-btn-fast">⚡ تحويل مختصر جداً للواتساب</a>',
+        f'<a href="{short_wa_url}" class="wa-btn-fast">⚡ تحويل مختصر جداً للواتساب</a>',
         unsafe_allow_html=True,
     )
 
@@ -755,9 +800,9 @@ with tab3:
 {maint_done_txt}"""
 
     st.text_area("سلة التقرير المفصل:", value=full_report, height=240, label_visibility="collapsed")
-    full_wa_url = f"https://api.whatsapp.com/send?text={urllib.parse.quote(full_report)}"
+    full_wa_url = wa_app_url(full_report)
     st.markdown(
-        f'<a href="{full_wa_url}" target="_blank" class="wa-btn">📲 إرسال التقرير المفصل واتساب</a>',
+        f'<a href="{full_wa_url}" class="wa-btn">📲 إرسال التقرير المفصل واتساب</a>',
         unsafe_allow_html=True,
     )
 
