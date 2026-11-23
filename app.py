@@ -140,19 +140,19 @@ div.st-key-b_star button {{
     font-size: 0.98em !important;
 }}
 
-/* أزرار المخالفات (حفظ صامت + مراجعة 3 أيام) */
+/* أزرار المخالفات */
 div.st-key-b_heater button, div.st-key-b_clean button, div.st-key-b_both button {{
     background: rgba(245, 158, 11, 0.13) !important;
     border-color: rgba(251, 191, 36, 0.45) !important;
 }}
 
-/* زر طلب الدواء (واتساب مباشر + تشيك نظافة بعد 3 أيام) */
+/* زر طلب الدواء */
 div.st-key-b_pest button {{
     background: rgba(168, 85, 247, 0.15) !important;
     border-color: rgba(192, 132, 252, 0.5) !important;
 }}
 
-/* أزرار الصيانة (واتساب مباشر) */
+/* أزرار الصيانة */
 div.st-key-m_ac button, div.st-key-m_leak button,
 div.st-key-m_elec button, div.st-key-m_add button {{
     height: 43px !important;
@@ -199,6 +199,17 @@ button[data-baseweb="tab"] {{
     font-weight: 900;
     font-size: 1.03em;
     color: #ecfdf5;
+}}
+.floor-done-banner {{
+    background: rgba(16, 185, 129, 0.18);
+    border: 1.5px solid #34d399;
+    border-radius: 11px;
+    padding: 7px;
+    margin: 4px 0;
+    text-align: center;
+    font-weight: 900;
+    font-size: 0.92em;
+    color: #a7f3d0;
 }}
 .sec-lbl {{
     font-size: 0.8em;
@@ -260,7 +271,7 @@ button[data-baseweb="tab"] {{
 
 
 # ==============================================================================
-# 3. قاعدة البيانات والروابط المباشرة لتطبيق واتساب
+# 3. قاعدة البيانات ومحرك التجميع الذكي للتقارير
 # ==============================================================================
 def load_db() -> dict:
     if os.path.exists(DATA_FILE):
@@ -335,6 +346,69 @@ def short_room(raw: str) -> str:
     return digits if digits else clean
 
 
+def compress_room_ranges(codes: list[str]) -> str:
+    """دمج الأرقام المتتالية (مثل 611..619 -> من 611 إلى 619) لمنع إطالة التقرير"""
+    nums = sorted({int(c) for c in codes if str(c).isdigit()})
+    others = list(dict.fromkeys([str(c) for c in codes if not str(c).isdigit()]))
+    parts = []
+
+    i = 0
+    while i < len(nums):
+        start = nums[i]
+        end = start
+        while i + 1 < len(nums) and nums[i + 1] == end + 1:
+            end = nums[i + 1]
+            i += 1
+        span = end - start + 1
+        if span >= 3:
+            parts.append(f"من {start} إلى {end} ({span} غرف)")
+        elif span == 2:
+            parts.append(f"{start}، {end}")
+        else:
+            parts.append(str(start))
+        i += 1
+
+    parts.extend(others)
+    return "، ".join(parts) if parts else "لا يوجد"
+
+
+def build_grouped_by_floor(items: list[dict], show_escalated_tag: bool = False) -> str:
+    """تجميع السجلات حسب الدور مع ضغط النطاقات"""
+    if not items:
+        return "• لا يوجد"
+
+    by_floor = {f_code: [] for f_code in FLOORS}
+    other_items = []
+
+    for item in items:
+        rc = str(item.get("room_code", ""))
+        tag = " *(مرفوع للنقل)*" if (show_escalated_tag and item.get("escalated")) else ""
+        if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
+            by_floor[rc[0]].append((rc, tag))
+        else:
+            other_items.append(f"{item['loc']}{tag}")
+
+    lines = []
+    for f_code, f_info in FLOORS.items():
+        entries = by_floor[f_code]
+        if not entries:
+            continue
+        normal_codes = [c for c, t in entries if not t]
+        esc_codes = [c for c, t in entries if t]
+
+        segments = []
+        if normal_codes:
+            segments.append(compress_room_ranges(normal_codes))
+        if esc_codes:
+            segments.append(f"{compress_room_ranges(esc_codes)} *(مرفوع للنقل)*")
+        lines.append(f"  - {f_info['name']}: {' | '.join(segments)}")
+
+    for o in dict.fromkeys(other_items):
+        lines.append(f"  - {o}")
+
+    return "\n".join(lines) if lines else "• لا يوجد"
+
+
 def get_room_label(room_num: str) -> str:
     loc = format_room(room_num)
     for f in reversed(db["followups"]):
@@ -360,15 +434,22 @@ def advance_to_next_room(current_room: str):
         max_r = FLOORS[f_code]["count"]
         if r_idx < max_r:
             st.session_state["sel_room"] = str(int(f_code) * 100 + r_idx + 1)
+            st.session_state["floor_done_msg"] = ""
+        else:
+            st.session_state["floor_done_msg"] = (
+                f"🎉 اكتمل تفتيش {FLOORS[f_code]['name']} بالكامل ({max_r}/{max_r})"
+            )
 
 
 def select_floor(f_code: str):
     st.session_state["sel_floor"] = f_code
     st.session_state["sel_room"] = f"{f_code}01"
+    st.session_state["floor_done_msg"] = ""
 
 
 def select_room(room_num: str):
     st.session_state["sel_room"] = room_num
+    st.session_state["floor_done_msg"] = ""
 
 
 def set_custom_location():
@@ -376,10 +457,11 @@ def set_custom_location():
     if val:
         st.session_state["sel_room"] = val
         st.session_state["custom_loc_in"] = ""
+        st.session_state["floor_done_msg"] = ""
 
 
 # ==============================================================================
-# 4. دوال التسجيل (واتساب فوري للمبيد والصيانة فقط + دورة 3 أيام للمبيد والمخالفات)
+# 4. دوال التسجيل (منع تكرار الغرفة الأخيرة + تحديث الحالة المتعارضة)
 # ==============================================================================
 def record_daily(cat: str, label: str):
     raw_room = st.session_state.get("sel_room", "").strip()
@@ -389,21 +471,53 @@ def record_daily(cat: str, label: str):
     loc = format_room(raw_room)
     ts = now_str()
     now_ep = time.time()
+    is_star = cat == "نظيفة"
+    is_pest = cat == "مبيد"
 
     with db["lock"]:
+        # البحث عن أي سجل نشط لنفس الغرفة في الجولة الحالية
+        existing_idx = None
+        for idx, f in enumerate(db["followups"]):
+            if f["loc"] == loc and f["state"] in ["بانتظار التشيك", "غرفة نظيفة (تخطي) 🌟"]:
+                existing_idx = idx
+                break
+
+        # 1. إذا كانت الغرفة مسجلة بنفس الحالة مسبقاً -> نمنع التكرار تماماً (حل مشكلة 519)
+        if existing_idx is not None and db["followups"][existing_idx]["cat"] == cat:
+            existing_rec = db["followups"][existing_idx]
+            wa_msg = (
+                f"*{LOCATION_TAG} — طلب دواء / مبيد*\n• {loc}\n• ملاحظة: تشيك النظافة والمبيد بعد 3 أيام"
+                if is_pest
+                else ""
+            )
+            st.session_state["last_saved"] = {
+                "kind": "pest" if is_pest else ("star" if is_star else "viol"),
+                "loc": loc,
+                "label": existing_rec["detail"],
+                "time": existing_rec["time"],
+                "repeat": existing_rec["count"],
+                "dup": True,
+                "wa_msg": wa_msg,
+            }
+            if is_pest:
+                st.session_state["jump_wa_url"] = wa_app_url(wa_msg)
+            advance_to_next_room(raw_room)
+            return
+
+        # 2. إذا كانت الغرفة مسجلة بحالة مختلفة -> نستبدل القديمة لمنع التضارب (حل مشكلة 219)
+        replaced_record = None
+        if existing_idx is not None:
+            replaced_record = db["followups"].pop(existing_idx)
+            old_h_key = f"{loc}_{replaced_record['cat']}"
+            if old_h_key in db["history"]:
+                db["history"][old_h_key] = max(0, db["history"][old_h_key] - 1)
+
         h_key = f"{loc}_{cat}"
         db["history"][h_key] = db["history"].get(h_key, 0) + 1
         cnt = db["history"][h_key]
 
-        is_star = cat == "نظيفة"
-        is_pest = cat == "مبيد"
         auto_escalate = (not is_star) and (not is_pest) and (cnt >= 2)
-
-        detail_txt = (
-            "طلب دواء (تشيك نظافة ومبيد بعد 3 أيام)"
-            if is_pest
-            else label
-        )
+        detail_txt = "طلب دواء (تشيك نظافة ومبيد بعد 3 أيام)" if is_pest else label
 
         fid = uuid.uuid4().hex[:8]
         db["followups"].append({
@@ -424,7 +538,7 @@ def record_daily(cat: str, label: str):
         rep_txt = f" (مرة {cnt})" if cnt > 1 else ""
         wa_msg = f"*{LOCATION_TAG} — طلب دواء / مبيد*\n• {loc}{rep_txt}\n• ملاحظة: تشيك النظافة والمبيد بعد 3 أيام"
 
-        st.session_state["undo"] = ("daily", None, fid, h_key, raw_room)
+        st.session_state["undo"] = ("daily", None, fid, h_key, raw_room, replaced_record)
         st.session_state["last_saved"] = {
             "kind": "pest" if is_pest else ("star" if is_star else "viol"),
             "loc": loc,
@@ -435,7 +549,6 @@ def record_daily(cat: str, label: str):
             "wa_msg": wa_msg if is_pest else "",
         }
 
-        # الانتقال المباشر للواتساب في طلب المبيد فقط (وليس في المخالفات أو الغرفة النظيفة)
         if is_pest:
             st.session_state["jump_wa_url"] = wa_app_url(wa_msg)
 
@@ -494,7 +607,7 @@ def record_maint(issue_label: str, from_custom: bool = False):
         rep_txt = f" (تكرار {rep})" if rep > 1 else ""
         wa_msg = f"*{LOCATION_TAG} — صيانة*\n• {loc}: {issue_label}{rep_txt}\n• الوقت: {ts}"
 
-        st.session_state["undo"] = ("maint", tid, None, h_key, raw_room)
+        st.session_state["undo"] = ("maint", tid, None, h_key, raw_room, None)
         st.session_state["last_saved"] = {
             "kind": "maint",
             "loc": loc,
@@ -505,7 +618,6 @@ def record_maint(issue_label: str, from_custom: bool = False):
             "wa_msg": wa_msg,
         }
 
-        # الانتقال المباشر للواتساب في طلبات الصيانة
         st.session_state["jump_wa_url"] = wa_app_url(wa_msg)
 
     if from_custom:
@@ -517,7 +629,7 @@ def undo_last():
     item = st.session_state.pop("undo", None)
     if not item:
         return
-    kind, tid, fid, h_key, prev_room = item
+    kind, tid, fid, h_key, prev_room, replaced_rec = item
     with db["lock"]:
         if tid:
             db["repairs"] = [r for r in db["repairs"] if r["id"] != tid]
@@ -525,8 +637,13 @@ def undo_last():
             db["followups"] = [f for f in db["followups"] if f["id"] != fid]
         if h_key in db["history"]:
             db["history"][h_key] = max(0, db["history"][h_key] - 1)
+        if replaced_rec:
+            db["followups"].append(replaced_rec)
+            old_k = f"{replaced_rec['loc']}_{replaced_rec['cat']}"
+            db["history"][old_k] = db["history"].get(old_k, 0) + 1
         save_db()
     st.session_state["sel_room"] = prev_room
+    st.session_state["floor_done_msg"] = ""
     st.session_state.pop("last_saved", None)
     st.session_state.pop("jump_wa_url", None)
 
@@ -601,6 +718,12 @@ with tab1:
                     use_container_width=True,
                 )
 
+    if st.session_state.get("floor_done_msg"):
+        st.markdown(
+            f'<div class="floor-done-banner">{st.session_state["floor_done_msg"]}</div>',
+            unsafe_allow_html=True,
+        )
+
     # 1. زر الغرفة النظيفة في الأعلى مباشرة تحت الشبكة
     st.button(
         "🌟 غرفة نظيفة (تخطي)",
@@ -610,7 +733,7 @@ with tab1:
         use_container_width=True,
     )
 
-    # 2. أزرار المخالفات (صامتة + تشيك 3 أيام) وطلب الدواء (واتساب مباشر + تشيك نظافة 3 أيام)
+    # 2. أزرار المخالفات وطلب الدواء
     c1, c2 = st.columns(2)
     with c1:
         st.button("🔌 سحب سخان", key="b_heater", on_click=record_daily, args=("سحب سخان", "سحب سخان"), use_container_width=True)
@@ -732,7 +855,7 @@ with tab2:
                     save_db()
                 st.rerun()
 
-# --- التبويب 3: سلة الواتساب (تحويل مختصر جداً + تقرير مفصل كامل) ---
+# --- التبويب 3: التقرير التنفيذي المجمّع (مختصر + مفصل) ---
 with tab3:
     heater_recs = [f for f in db["followups"] if f["cat"] == "سحب سخان"]
     clean_recs = [f for f in db["followups"] if f["cat"] == "إنذار نظافة"]
@@ -741,15 +864,16 @@ with tab3:
     star_recs = [f for f in db["followups"] if f["cat"] == "نظيفة"]
     escalated_recs = [f for f in db["followups"] if f.get("escalated")]
 
-    def rooms_csv(items):
-        return "، ".join(dict.fromkeys([i.get("room_code", i["loc"]) for i in items])) or "لا يوجد"
+    # 1. رسالة التحويل المختصرة جداً للواتساب (أرقام مضغوطة بالنطاقات)
+    def fast_list(items):
+        return compress_room_ranges([i.get("room_code", i["loc"]) for i in items])
 
     short_wa_msg = f"""*{LOCATION_TAG} — ملخص سريع*
-• سحب سخان ({len(heater_recs)}): {rooms_csv(heater_recs)}
-• إنذار نظافة ({len(clean_recs)}): {rooms_csv(clean_recs)}
-• سخان ونظافة ({len(both_recs)}): {rooms_csv(both_recs)}
-• طلب دواء ({len(pest_recs)}): {rooms_csv(pest_recs)}
-• تقييم نقل/مخالفة ({len(escalated_recs)}): {rooms_csv(escalated_recs)}"""
+• سحب سخان ({len(heater_recs)}): {fast_list(heater_recs)}
+• إنذار نظافة ({len(clean_recs)}): {fast_list(clean_recs)}
+• سخان ونظافة ({len(both_recs)}): {fast_list(both_recs)}
+• طلب دواء ({len(pest_recs)}): {fast_list(pest_recs)}
+• تقييم نقل/مخالفة ({len(escalated_recs)}): {fast_list(escalated_recs)}"""
 
     if open_reps:
         short_wa_msg += f"\n• صيانة ({len(open_reps)}): " + "، ".join(
@@ -762,47 +886,86 @@ with tab3:
         unsafe_allow_html=True,
     )
 
-    heater_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in heater_recs]) or "• لا يوجد"
-    clean_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in clean_recs]) or "• لا يوجد"
-    both_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in both_recs]) or "• لا يوجد"
-    pest_txt = "\n".join([f"• {f['loc']} (مرة {f['count']}) — {f['state']}" for f in pest_recs]) or "• لا يوجد"
-    esc_txt = "\n".join([f"• {f['loc']}: {f['detail']} (تكرار {f['count']}) — يوصى بالتقييم/النقل" for f in escalated_recs]) or "• لا يوجد"
-    star_txt = "\n".join([f"• {f['loc']} (تخطي في الجولة) 🌟" for f in star_recs]) or "• لا يوجد"
+    # 2. حساب الملخص التنفيذي ونسبة النظافة حسب الأدوار
+    total_inspected = len(set(f["loc"] for f in db["followups"]))
+    unique_clean_count = len(set(f["loc"] for f in star_recs))
+    notes_count = len(heater_recs) + len(clean_recs) + len(both_recs) + len(pest_recs)
+    compliance_pct = round((unique_clean_count / total_inspected) * 100) if total_inspected else 0
 
-    maint_open_txt = "\n".join([f"• {r['loc']}: {r['item']} ({r['time']})" for r in open_reps]) or "• لا يوجد"
-    maint_done_txt = "\n".join([f"• {r['loc']}: {r['item']} ✓" for r in fixed_reps]) or "• لا يوجد"
+    # تجميع مؤشر النظافة لكل دور
+    clean_by_flr = {f_code: [] for f_code in FLOORS}
+    for s_item in star_recs:
+        rc = str(s_item.get("room_code", ""))
+        if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
+            clean_by_flr[rc[0]].append(rc)
 
-    full_report = f"""*{LOCATION_TAG} — التقرير المفصل*
+    clean_summary_lines = []
+    for f_code, f_info in FLOORS.items():
+        c_codes = sorted(set(clean_by_flr[f_code]))
+        if not c_codes:
+            continue
+        max_r = f_info["count"]
+        if len(c_codes) >= max_r:
+            clean_summary_lines.append(f"  - {f_info['name']}: {max_r}/{max_r} نظيفة بالكامل 🌟")
+        else:
+            clean_summary_lines.append(
+                f"  - {f_info['name']}: {len(c_codes)}/{max_r} نظيفة ({compress_room_ranges(c_codes)})"
+            )
+    clean_block = "\n".join(clean_summary_lines) if clean_summary_lines else "• لا يوجد"
+
+    # تجميع حالات التصعيد والنقل حسب الدور
+    esc_by_flr = {f_code: [] for f_code in FLOORS}
+    for e_item in escalated_recs:
+        rc = str(e_item.get("room_code", ""))
+        if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
+            esc_by_flr[rc[0]].append(f"{rc} ({e_item['cat']})")
+
+    esc_lines = []
+    for f_code, f_info in FLOORS.items():
+        if esc_by_flr[f_code]:
+            esc_lines.append(f"  - {f_info['name']}: {' | '.join(esc_by_flr[f_code])}")
+    esc_block = "\n".join(esc_lines) if esc_lines else "• لا يوجد"
+
+    maint_open_txt = "\n".join([f"• {r['loc']} — {r['item']} ({r['time']})" for r in open_reps]) or "• لا يوجد"
+    maint_done_txt = "\n".join([f"• {r['loc']} — {r['item']} ✓" for r in fixed_reps]) or "• لا يوجد"
+
+    full_report = f"""*{LOCATION_TAG} — التقرير الميداني*
 *المشرف: {SUPERVISOR_NAME}*
 
-*🚨 تقييم المخالفات / النقل لمكان آخر ({len(escalated_recs)}):*
-{esc_txt}
+*📊 الملخص العام للجولة ({total_inspected} غرفة):*
+• نسبة الالتزام والنظافة: *{compliance_pct}%* ({unique_clean_count} غرفة نظيفة 🌟)
+• إجمالي الملاحظات المسجلة: *{notes_count} غرفة*
+• صيانة مفتوحة: *{len(open_reps)}*
 
-*🔌 سحب السخانات ({len(heater_recs)}):*
-{heater_txt}
-
-*🗑️ إنذارات النظافة ({len(clean_recs)}):*
-{clean_txt}
-
-*⚠️ إنذارات سخان ونظافة ({len(both_recs)}):*
-{both_txt}
-
-*🪲 طلبات الدواء / المبيد ({len(pest_recs)}):*
-{pest_txt}
-
-*🌟 غرف نظيفة ومميزة ({len(star_recs)}):*
-{star_txt}
-
-*🛠️ ملاحظات الصيانة:*
-قيد المتابعة ({len(open_reps)}):
+*🛠️ الصيانة العاجلة ({len(open_reps)}):*
 {maint_open_txt}
-تم الإنجاز ({len(fixed_reps)}):
+
+*🚨 توصية بالتقييم / النقل لمكان آخر ({len(escalated_recs)}):*
+{esc_block}
+
+*📋 متابعة السخانات والإنذارات والدواء (دورة 3 أيام):*
+• *🔌 سحب سخان ({len(heater_recs)}):*
+{build_grouped_by_floor(heater_recs, show_escalated_tag=True)}
+
+• *🗑️ إنذار نظافة ({len(clean_recs)}):*
+{build_grouped_by_floor(clean_recs, show_escalated_tag=True)}
+
+• *⚠️ سخان ونظافة معاً ({len(both_recs)}):*
+{build_grouped_by_floor(both_recs, show_escalated_tag=True)}
+
+• *🪲 طلبات الدواء / المبيد ({len(pest_recs)}):*
+{build_grouped_by_floor(pest_recs, show_escalated_tag=True)}
+
+*🌟 مؤشر النظافة والتميز حسب الأدوار:*
+{clean_block}
+
+*✅ صيانة تم إنجازها ({len(fixed_reps)}):*
 {maint_done_txt}"""
 
-    st.text_area("سلة التقرير المفصل:", value=full_report, height=240, label_visibility="collapsed")
+    st.text_area("التقرير الميداني المجمّع:", value=full_report, height=260, label_visibility="collapsed")
     full_wa_url = wa_app_url(full_report)
     st.markdown(
-        f'<a href="{full_wa_url}" class="wa-btn">📲 إرسال التقرير المفصل واتساب</a>',
+        f'<a href="{full_wa_url}" class="wa-btn">📲 إرسال التقرير الميداني واتساب</a>',
         unsafe_allow_html=True,
     )
 
@@ -812,6 +975,7 @@ with tab3:
             db["followups"] = [f for f in db["followups"] if f["state"] == "بانتظار التشيك"]
             save_db()
         st.session_state.pop("last_saved", None)
+        st.session_state["floor_done_msg"] = ""
         st.rerun()
 
     if st.checkbox("تأكيد مسح كل السجلات"):
@@ -822,4 +986,5 @@ with tab3:
                 db["history"].clear()
                 save_db()
             st.session_state.pop("last_saved", None)
+            st.session_state["floor_done_msg"] = ""
             st.rerun()
