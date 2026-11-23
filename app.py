@@ -51,7 +51,7 @@ active_flr = st.session_state["sel_floor"]
 active_rm = st.session_state["sel_room"]
 
 # ==============================================================================
-# 2. التصميم الميداني للجوال (أزرار كبيرة مريحة للإبهام)
+# 2. التصميم البصري المبسط (أزرار ضخمة + ألوان واضحة + خطوات مرقمة)
 # ==============================================================================
 st.markdown(
     f"""
@@ -79,7 +79,7 @@ div[data-testid="stHorizontalBlock"] {{
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 5px !important;
+    gap: 6px !important;
     width: 100% !important;
 }}
 div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"],
@@ -91,102 +91,111 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
 
 div.stButton {{ width: 100% !important; }}
 div.stButton > button {{
-    height: 49px !important;
+    height: 54px !important;
     width: 100% !important;
-    padding: 0 3px !important;
-    font-size: 0.94em !important;
-    font-weight: 800 !important;
-    border-radius: 13px !important;
-    margin-bottom: 3px !important;
+    padding: 0 4px !important;
+    font-size: 1.02em !important;
+    font-weight: 900 !important;
+    border-radius: 15px !important;
+    margin-bottom: 4px !important;
     background: #161f30 !important;
     color: #f8fafc !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.13) !important;
+    border: 2px solid rgba(255, 255, 255, 0.14) !important;
     white-space: nowrap !important;
+    transition: transform 0.08s ease !important;
 }}
 div.stButton > button:active {{
-    transform: scale(0.97) !important;
+    transform: scale(0.95) !important;
 }}
 
 /* شريط الأدوار */
 div[class*="st-key-flr_"] button {{
-    height: 39px !important;
-    font-size: 0.87em !important;
-    border-radius: 10px !important;
+    height: 42px !important;
+    font-size: 0.92em !important;
+    border-radius: 11px !important;
     background: #111827 !important;
 }}
 div.st-key-flr_{active_flr} button {{
     background: #10b981 !important;
     color: #022c22 !important;
     border-color: #10b981 !important;
-    font-weight: 900 !important;
 }}
 
 /* شبكة الغرف */
 div[class*="st-key-rm_"] button {{
-    height: 38px !important;
-    font-size: 0.85em !important;
-    border-radius: 10px !important;
+    height: 41px !important;
+    font-size: 0.9em !important;
+    border-radius: 11px !important;
     background: #111827 !important;
 }}
 div.st-key-rm_{active_rm} button {{
-    border: 2px solid #10b981 !important;
-    background: rgba(16, 185, 129, 0.22) !important;
+    border: 2.5px solid #10b981 !important;
+    background: rgba(16, 185, 129, 0.25) !important;
     color: #ecfdf5 !important;
-    font-weight: 900 !important;
 }}
 
-/* زر الغرفة النظيفة */
+/* زر الغرفة النظيفة (أخضر كبير) */
 div.st-key-b_star button {{
-    height: 45px !important;
-    margin-top: 3px !important;
-    margin-bottom: 4px !important;
-    background: rgba(16, 185, 129, 0.16) !important;
-    border-color: #10b981 !important;
-    color: #6ee7b7 !important;
-    font-size: 0.98em !important;
-}}
-
-/* أزرار المخالفات */
-div.st-key-b_heater button, div.st-key-b_clean button, div.st-key-b_both button {{
-    background: rgba(245, 158, 11, 0.13) !important;
-    border-color: rgba(251, 191, 36, 0.45) !important;
-}}
-
-/* زر طلب الدواء */
-div.st-key-b_pest button {{
-    background: rgba(168, 85, 247, 0.15) !important;
-    border-color: rgba(192, 132, 252, 0.5) !important;
-}}
-
-/* أزرار الصيانة */
-div.st-key-m_ac button, div.st-key-m_leak button,
-div.st-key-m_elec button, div.st-key-m_add button {{
-    height: 43px !important;
-    font-size: 0.85em !important;
-    background: rgba(14, 165, 233, 0.12) !important;
-    border-color: rgba(56, 189, 248, 0.4) !important;
-}}
-
-/* زر الصح الكبير في تبويب التشيك */
-div[class*="st-key-chk_"] button {{
-    height: 54px !important;
+    height: 56px !important;
+    font-size: 1.12em !important;
     background: rgba(16, 185, 129, 0.2) !important;
     border: 2px solid #10b981 !important;
     color: #6ee7b7 !important;
-    font-size: 1.05em !important;
-    font-weight: 900 !important;
 }}
-div[class*="st-key-esc_"] button {{
-    height: 54px !important;
-    background: rgba(244, 63, 94, 0.14) !important;
-    border-color: rgba(244, 63, 94, 0.45) !important;
+
+/* أزرار المخالفات (برتقالي) */
+div.st-key-b_heater button, div.st-key-b_clean button, div.st-key-b_both button {{
+    background: rgba(245, 158, 11, 0.16) !important;
+    border-color: rgba(251, 191, 36, 0.55) !important;
+    color: #fde68a !important;
+}}
+
+/* زر الدواء (بنفسجي) */
+div.st-key-b_pest button {{
+    background: rgba(168, 85, 247, 0.18) !important;
+    border-color: rgba(192, 132, 252, 0.6) !important;
+    color: #e9d5ff !important;
+}}
+
+/* أزرار الصيانة (أزرق) */
+div.st-key-m_ac button, div.st-key-m_leak button,
+div.st-key-m_elec button, div.st-key-m_add button {{
+    height: 48px !important;
+    font-size: 0.94em !important;
+    background: rgba(14, 165, 233, 0.15) !important;
+    border-color: rgba(56, 189, 248, 0.5) !important;
+    color: #bae6fd !important;
+}}
+
+/* زر التراجع السريع */
+div.st-key-btn_undo button {{
+    height: 46px !important;
+    background: rgba(244, 63, 94, 0.16) !important;
+    border: 1.5px solid #f43f5e !important;
     color: #fda4af !important;
-    font-size: 0.9em !important;
+}}
+
+/* أزرار الصح والخطأ الكبيرة (✅ / ❌) */
+div[class*="st-key-deliv_ok_"] button,
+div[class*="st-key-chk_ok_"] button {{
+    height: 54px !important;
+    background: rgba(16, 185, 129, 0.22) !important;
+    border: 2px solid #10b981 !important;
+    color: #6ee7b7 !important;
+    font-size: 1.05em !important;
+}}
+div[class*="st-key-deliv_no_"] button,
+div[class*="st-key-chk_no_"] button {{
+    height: 54px !important;
+    background: rgba(244, 63, 94, 0.18) !important;
+    border: 2px solid rgba(244, 63, 94, 0.6) !important;
+    color: #fda4af !important;
+    font-size: 1.05em !important;
 }}
 
 input[type="text"] {{
     font-size: 16px !important;
-    height: 43px !important;
+    height: 44px !important;
     border-radius: 11px !important;
     background-color: #111827 !important;
     color: #f8fafc !important;
@@ -196,8 +205,8 @@ input[type="text"] {{
 button[data-baseweb="tab"] {{
     flex: 1 !important;
     justify-content: center !important;
-    font-weight: 800 !important;
-    font-size: 0.9em !important;
+    font-weight: 900 !important;
+    font-size: 0.94em !important;
 }}
 
 .top-bar {{
@@ -207,112 +216,147 @@ button[data-baseweb="tab"] {{
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    padding: 7px 11px;
+    padding: 8px 12px;
     margin-bottom: 6px;
-    font-weight: 800;
-    font-size: 0.88em;
+    font-weight: 900;
+    font-size: 0.92em;
 }}
-.active-banner {{
+
+.prog-wrap {{
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 6px 10px;
+    margin: 4px 0 6px 0;
+}}
+.prog-head {{
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82em;
+    font-weight: 800;
+    color: #94a3b8;
+    margin-bottom: 4px;
+}}
+.prog-track {{
+    background: #1e293b;
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+}}
+.prog-fill {{
+    background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}}
+
+.room-hero {{
     background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
-    border: 1.5px solid #10b981;
-    border-radius: 12px;
-    padding: 8px 10px;
+    border: 2px solid #10b981;
+    border-radius: 15px;
+    padding: 10px;
     margin: 4px 0 6px 0;
     text-align: center;
+}}
+.room-hero-big {{
+    font-size: 1.35em;
     font-weight: 900;
-    font-size: 1.03em;
     color: #ecfdf5;
 }}
+.room-hero-sub {{
+    font-size: 0.82em;
+    color: #a7f3d0;
+}}
+
 .fairness-shield {{
-    background: rgba(56, 189, 248, 0.14);
+    background: rgba(56, 189, 248, 0.16);
     border: 1.5px solid #38bdf8;
     border-radius: 11px;
-    padding: 7px 10px;
+    padding: 8px;
     margin: 4px 0;
     text-align: center;
-    font-weight: 800;
-    font-size: 0.85em;
+    font-weight: 900;
+    font-size: 0.88em;
     color: #bae6fd;
 }}
 .floor-done-banner {{
-    background: rgba(16, 185, 129, 0.18);
-    border: 1.5px solid #34d399;
-    border-radius: 11px;
-    padding: 7px;
-    margin: 4px 0;
+    background: rgba(16, 185, 129, 0.22);
+    border: 2px solid #34d399;
+    border-radius: 12px;
+    padding: 9px;
+    margin: 5px 0;
     text-align: center;
     font-weight: 900;
-    font-size: 0.92em;
+    font-size: 0.98em;
     color: #a7f3d0;
 }}
-.sec-lbl {{
-    font-size: 0.8em;
-    color: #94a3b8;
-    font-weight: 800;
-    margin: 6px 0 3px 0;
-}}
 .ok-card {{
-    background: rgba(16, 185, 129, 0.14);
-    border: 1.5px solid #10b981;
-    border-radius: 12px;
-    padding: 8px;
+    background: rgba(16, 185, 129, 0.16);
+    border: 2px solid #10b981;
+    border-radius: 13px;
+    padding: 10px;
     margin-top: 6px;
     color: #6ee7b7;
     text-align: center;
-    font-weight: 800;
-    font-size: 0.9em;
+    font-weight: 900;
+    font-size: 0.98em;
 }}
 .task-card {{
     background: #111827;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 11px;
-    padding: 9px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin-top: 6px;
     margin-bottom: 4px;
-    font-size: 0.92em;
+    font-size: 0.96em;
 }}
 .task-due {{
-    background: rgba(245, 158, 11, 0.15) !important;
-    border: 1.5px solid #f59e0b !important;
+    background: rgba(245, 158, 11, 0.16) !important;
+    border: 2px solid #f59e0b !important;
+}}
+.task-repeat {{
+    background: rgba(244, 63, 94, 0.15) !important;
+    border: 2px solid rgba(244, 63, 94, 0.55) !important;
 }}
 .task-worker {{
-    background: rgba(168, 85, 247, 0.12) !important;
-    border: 1.5px solid rgba(192, 132, 252, 0.45) !important;
+    background: rgba(168, 85, 247, 0.14) !important;
+    border: 2px solid rgba(192, 132, 252, 0.5) !important;
 }}
 .wa-btn {{
     display: block;
     background: #10b981 !important;
     color: #022c22 !important;
     text-align: center;
-    padding: 13px;
-    border-radius: 12px;
+    padding: 15px;
+    border-radius: 14px;
     font-weight: 900;
-    font-size: 1.02em;
+    font-size: 1.06em;
     text-decoration: none !important;
-    margin: 6px 0;
+    margin: 7px 0;
 }}
 .wa-btn-worker {{
     display: block;
     background: linear-gradient(135deg, #8b5cf6 0%, #0ea5e9 100%) !important;
     color: #ffffff !important;
     text-align: center;
-    padding: 13px;
-    border-radius: 12px;
+    padding: 15px;
+    border-radius: 14px;
     font-weight: 900;
-    font-size: 1.02em;
+    font-size: 1.06em;
     text-decoration: none !important;
-    margin: 6px 0;
+    margin: 7px 0;
 }}
 .wa-btn-fast {{
     display: block;
     background: #0ea5e9 !important;
     color: #082f49 !important;
     text-align: center;
-    padding: 13px;
-    border-radius: 12px;
+    padding: 15px;
+    border-radius: 14px;
     font-weight: 900;
-    font-size: 1.02em;
+    font-size: 1.06em;
     text-decoration: none !important;
-    margin: 6px 0;
+    margin: 7px 0;
 }}
 </style>
 """,
@@ -321,7 +365,7 @@ button[data-baseweb="tab"] {{
 
 
 # ==============================================================================
-# 3. قاعدة البيانات ومحرك الرسائل المختصرة (بدون قص Read More)
+# 3. قاعدة البيانات ومحرك الرسائل
 # ==============================================================================
 def load_db() -> dict:
     if os.path.exists(DATA_FILE):
@@ -396,6 +440,115 @@ def short_room(raw: str) -> str:
     return digits if digits else clean
 
 
+def inject_demo_scenario():
+    clear_demo_scenario(save=False)
+    now_ep = time.time()
+    four_days_ago = now_ep - (4 * 86400)
+    ts_now = now_str()
+
+    with db["lock"]:
+        for i in range(1, 17):
+            rc = str(100 + i)
+            loc = format_room(rc)
+            db["followups"].append({
+                "id": f"demo_{uuid.uuid4().hex[:6]}",
+                "room_code": rc,
+                "loc": loc,
+                "cat": "نظيفة",
+                "detail": "غرفة نظيفة ومميزة",
+                "time": ts_now,
+                "checked_at": "",
+                "ts": now_ep,
+                "state": "غرفة نظيفة (تخطي) 🌟",
+                "count": 1,
+                "not_done": False,
+                "is_demo": True,
+            })
+
+        for rc in ["601", "602"]:
+            loc = format_room(rc)
+            db["followups"].append({
+                "id": f"demo_{uuid.uuid4().hex[:6]}",
+                "room_code": rc,
+                "loc": loc,
+                "cat": "مبيد",
+                "detail": "طلب مبيد حشرات",
+                "time": ts_now,
+                "checked_at": "",
+                "ts": now_ep,
+                "state": "📦 بانتظار تسليم المبيد",
+                "count": 1,
+                "not_done": False,
+                "is_demo": True,
+            })
+
+        db["followups"].append({
+            "id": f"demo_{uuid.uuid4().hex[:6]}",
+            "room_code": "305",
+            "loc": format_room("305"),
+            "cat": "سحب سخان",
+            "detail": "سحب سخان",
+            "time": "منذ 4 أيام",
+            "checked_at": "",
+            "ts": four_days_ago,
+            "state": "بانتظار التشيك",
+            "count": 1,
+            "not_done": False,
+            "is_demo": True,
+        })
+
+        db["followups"].append({
+            "id": f"demo_{uuid.uuid4().hex[:6]}",
+            "room_code": "311",
+            "loc": format_room("311"),
+            "cat": "إنذار نظافة",
+            "detail": "إنذار نظافة",
+            "time": ts_now,
+            "checked_at": ts_now,
+            "ts": now_ep,
+            "state": "بانتظار التشيك",
+            "count": 2,
+            "not_done": True,
+            "is_demo": True,
+        })
+
+        db["followups"].append({
+            "id": f"demo_{uuid.uuid4().hex[:6]}",
+            "room_code": "204",
+            "loc": format_room("204"),
+            "cat": "سخان ونظافة",
+            "detail": "إنذار سخان ونظافة",
+            "time": "سابق",
+            "checked_at": ts_now,
+            "ts": now_ep,
+            "state": "تم ✅",
+            "count": 1,
+            "not_done": False,
+            "is_demo": True,
+        })
+
+        db["repairs"].append({
+            "id": f"demo_{uuid.uuid4().hex[:6]}",
+            "room_code": "607",
+            "loc": format_room("607"),
+            "item": "المكيف",
+            "time": ts_now,
+            "closed": "",
+            "status": "مفتوح",
+            "repeat": 1,
+            "is_demo": True,
+        })
+        save_db()
+
+
+def clear_demo_scenario(save: bool = True):
+    with db["lock"]:
+        db["followups"] = [f for f in db["followups"] if not f.get("is_demo")]
+        db["repairs"] = [r for r in db["repairs"] if not r.get("is_demo")]
+        if save:
+            save_db()
+
+
 def compress_room_ranges(codes: list[str]) -> str:
     nums = sorted({int(c) for c in codes if str(c).isdigit()})
     others = list(dict.fromkeys([str(c) for c in codes if not str(c).isdigit()]))
@@ -421,7 +574,7 @@ def compress_room_ranges(codes: list[str]) -> str:
     return "، ".join(parts) if parts else ""
 
 
-def build_grouped_by_floor(items: list[dict], show_escalated_tag: bool = False) -> str:
+def build_grouped_by_floor(items: list[dict], show_repeat_tag: bool = False) -> str:
     if not items:
         return ""
 
@@ -430,7 +583,8 @@ def build_grouped_by_floor(items: list[dict], show_escalated_tag: bool = False) 
 
     for item in items:
         rc = str(item.get("room_code", ""))
-        tag = " *(نقل)*" if (show_escalated_tag and item.get("escalated")) else ""
+        cnt = item.get("count", 1)
+        tag = f" *(تكرار {cnt})*" if (show_repeat_tag and cnt > 1) else ""
         if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
             by_floor[rc[0]].append((rc, tag))
         else:
@@ -442,13 +596,13 @@ def build_grouped_by_floor(items: list[dict], show_escalated_tag: bool = False) 
         if not entries:
             continue
         normal_codes = [c for c, t in entries if not t]
-        esc_codes = [c for c, t in entries if t]
+        rep_entries = [f"{c}{t}" for c, t in entries if t]
 
         segments = []
         if normal_codes:
             segments.append(compress_room_ranges(normal_codes))
-        if esc_codes:
-            segments.append(f"{compress_room_ranges(esc_codes)} *(توصية بالنقل)*")
+        if rep_entries:
+            segments.append(" | ".join(rep_entries))
         lines.append(f"  - {f_info['name']}: {' | '.join(segments)}")
 
     for o in dict.fromkeys(other_items):
@@ -458,32 +612,23 @@ def build_grouped_by_floor(items: list[dict], show_escalated_tag: bool = False) 
 
 
 def build_worker_checklist(undelivered_pests: list[dict], open_repairs: list[dict]) -> str:
-    """رسالة مجمّعة ومختصرة جداً بالعربي والأوردو (تظهر كاملة في واتساب بدون Read More)"""
     sup_label = SUPERVISOR_NAME.strip() or "فارس العصيمي"
     lines = [
         f"السلام عليكم | *{LOCATION_TAG} ({LOCATION_URDU})*",
         f"المشرف: *{sup_label}* | سپروائزر: *{sup_label}*",
-        "⚠️ *اكتب رقم الغرفة + (تم) عند الانتهاء:*",
-        "⚠️ *کام مکمل ہونے پر کمرہ نمبر + (مکمل) لکھ کر ریپلائی کریں:*",
+        "🤝 *فضلاً حدد (✅ أو ❌) تحت كل غرفة وأعد الإرسال:*",
+        "🤝 *ہر کمرے کے نیچے (✅ یا ❌) منتخب کر کے واپس بھیجیں:*",
     ]
 
     if undelivered_pests:
-        lines.append("\n*🪲 مبيد حشرات (کیڑے مار دوا دینی ہے):*")
-        by_flr = {f_code: [] for f_code in FLOORS}
-        others = []
+        lines.append("\n*🪲 مبيد حشرات (کیڑے مار دوا):*")
         for p in undelivered_pests:
             rc = str(p.get("room_code", ""))
             if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
-                by_flr[rc[0]].append(rc)
+                flr = FLOORS[rc[0]]
+                lines.append(f"• غرفة *{rc}* ({flr['name']} / {flr['urdu']})\n  تم الاستلام / وصول: ✅  |  ❌")
             else:
-                others.append(p["loc"])
-
-        for f_code, f_info in FLOORS.items():
-            if by_flr[f_code]:
-                rooms_txt = "، ".join(sorted(set(by_flr[f_code])))
-                lines.append(f"• *{rooms_txt}* ({f_info['name']} / {f_info['urdu']})")
-        for o in dict.fromkeys(others):
-            lines.append(f"• {o}")
+                lines.append(f"• {p['loc']}\n  تم الاستلام / وصول: ✅  |  ❌")
 
     if open_repairs:
         lines.append("\n*🛠️ صيانة (مرمت کا کام):*")
@@ -492,9 +637,9 @@ def build_worker_checklist(undelivered_pests: list[dict], open_repairs: list[dic
             urdu_issue = MAINT_URDU.get(r["item"], r["item"])
             if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
                 flr = FLOORS[rc[0]]
-                lines.append(f"• کمرہ *{rc}* ({flr['urdu']}) : *{r['item']}* ({urdu_issue})")
+                lines.append(f"• غرفة *{rc}* ({flr['urdu']}) : *{r['item']}* ({urdu_issue})\n  الإنجاز / مکمل: ✅  |  ❌")
             else:
-                lines.append(f"• {r['loc']} : *{r['item']}* ({urdu_issue})")
+                lines.append(f"• {r['loc']} : *{r['item']}* ({urdu_issue})\n  الإنجاز / مکمل: ✅  |  ❌")
 
     return "\n".join(lines)
 
@@ -503,11 +648,11 @@ def get_room_pending_worker_items(room_num: str) -> list[str]:
     loc = format_room(room_num)
     waiting = []
     for f in db["followups"]:
-        if f["loc"] == loc and f["state"] == "📦 بانتظار تسليم المبيد":
-            waiting.append("تسليم مبيد حشرات")
+        if f["loc"] == loc and f["state"] in ["📦 بانتظار تسليم المبيد", "⚠️ لم يُسلّم المبيد بعد"]:
+            waiting.append("دواء حشرات")
     for r in db["repairs"]:
         if r["loc"] == loc and r["status"] == "مفتوح":
-            waiting.append(f"صيانة: {r['item']}")
+            waiting.append(r["item"])
     return waiting
 
 
@@ -515,10 +660,10 @@ def get_room_label(room_num: str) -> str:
     loc = format_room(room_num)
     for f in reversed(db["followups"]):
         if f["loc"] == loc:
-            if f["state"] == "تم التشيك — سليم ✅":
+            if f["state"] == "تم ✅":
                 return f"☑️ {room_num}"
-            if f.get("escalated"):
-                return f"🚨 {room_num}"
+            if f.get("not_done") or f.get("count", 1) >= 2:
+                return f"❗ {room_num}"
             if f["cat"] == "نظيفة":
                 return f"🟢 {room_num}"
             if f["cat"] == "مبيد":
@@ -541,7 +686,7 @@ def advance_to_next_room(current_room: str):
             st.session_state["floor_done_msg"] = ""
         else:
             st.session_state["floor_done_msg"] = (
-                f"🎉 اكتمل تفتيش {FLOORS[f_code]['name']} بالكامل ({max_r}/{max_r})"
+                f"🎉 بطل! خلّصت {FLOORS[f_code]['name']} بالكامل ({max_r}/{max_r})"
             )
 
 
@@ -565,7 +710,7 @@ def set_custom_location():
 
 
 # ==============================================================================
-# 4. دوال التسجيل والتشيك
+# 4. دوال التسجيل السريع
 # ==============================================================================
 def record_daily(cat: str, label: str):
     raw_room = st.session_state.get("sel_room", "").strip()
@@ -584,6 +729,7 @@ def record_daily(cat: str, label: str):
             if f["loc"] == loc and f["state"] in [
                 "بانتظار التشيك",
                 "📦 بانتظار تسليم المبيد",
+                "⚠️ لم يُسلّم المبيد بعد",
                 "غرفة نظيفة (تخطي) 🌟",
             ]:
                 existing_idx = idx
@@ -612,7 +758,6 @@ def record_daily(cat: str, label: str):
         db["history"][h_key] = db["history"].get(h_key, 0) + 1
         cnt = db["history"][h_key]
 
-        auto_escalate = (not is_star) and (not is_pest) and (cnt >= 2)
         if is_pest:
             init_state = "📦 بانتظار تسليم المبيد"
             detail_txt = "طلب مبيد حشرات"
@@ -635,7 +780,8 @@ def record_daily(cat: str, label: str):
             "ts": now_ep,
             "state": init_state,
             "count": cnt,
-            "escalated": auto_escalate,
+            "not_done": cnt >= 2 and not is_star and not is_pest,
+            "is_demo": False,
         })
         db["followups"] = db["followups"][-MAX_RECORDS:]
         save_db()
@@ -693,6 +839,7 @@ def record_maint(issue_label: str, from_custom: bool = False):
             "closed": "",
             "status": "مفتوح",
             "repeat": rep,
+            "is_demo": False,
         })
         db["repairs"] = db["repairs"][-MAX_RECORDS:]
         save_db()
@@ -734,34 +881,38 @@ def undo_last():
 
 
 # ==============================================================================
-# 5. الواجهة
+# 5. الواجهة (3 خطوات مرقمة واضحة لعمر 7 سنوات)
 # ==============================================================================
 open_reps = [r for r in db["repairs"] if r["status"] == "مفتوح"]
 fixed_reps = [r for r in db["repairs"] if r["status"] == "تم الإصلاح"]
-undelivered_pests = [f for f in db["followups"] if f["state"] == "📦 بانتظار تسليم المبيد"]
+undelivered_pests = [
+    f for f in db["followups"] if f["state"] in ["📦 بانتظار تسليم المبيد", "⚠️ لم يُسلّم المبيد بعد"]
+]
 pending_checks = [f for f in db["followups"] if f["state"] == "بانتظار التشيك"]
-cleared_checks = [f for f in db["followups"] if f["state"] == "تم التشيك — سليم ✅"]
+done_checks = [f for f in db["followups"] if f["state"] == "تم ✅"]
 due_checks = [f for f in pending_checks if days_since(f.get("ts", 0)) >= CHECK_CYCLE_DAYS]
+has_demo_data = any(f.get("is_demo") for f in db["followups"]) or any(r.get("is_demo") for r in db["repairs"])
 
 worker_basket_count = len(undelivered_pests) + len(open_reps)
 
+demo_tag_html = ' <span style="color:#fbbf24;font-size:0.8em;">(تجربة)</span>' if has_demo_data else ""
 st.markdown(
     f"""
     <div class="top-bar">
-        <span>🏢 {LOCATION_TAG}</span>
-        <span>👷 للعامل: {worker_basket_count} &nbsp;|&nbsp; 🔔 تشيك: {len(due_checks)}/{len(pending_checks)}</span>
+        <span>🏢 {LOCATION_TAG}{demo_tag_html}</span>
+        <span>👷 للعامل: {worker_basket_count} &nbsp;|&nbsp; 🔍 للتشيك: {len(pending_checks)}</span>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
 tab1, tab2, tab3 = st.tabs([
-    "✏️ الجولة",
-    f"✅ التشيك ({worker_basket_count + len(pending_checks)})",
-    "📄 التقرير",
+    "1️⃣ الغرف",
+    f"2️⃣ صح وخطأ ({worker_basket_count + len(pending_checks)})",
+    "3️⃣ إرسال 📲",
 ])
 
-# --- التبويب 1: الجولة الميدانية ---
+# --- الخطوة 1: تلوين الغرف ---
 with tab1:
     f_cols = st.columns(6)
     for idx, (f_code, f_info) in enumerate(FLOORS.items()):
@@ -777,6 +928,14 @@ with tab1:
     room_count = flr_info["count"]
     floor_rooms = [str(int(active_flr) * 100 + i) for i in range(1, room_count + 1)]
 
+    inspected_in_floor = {
+        f.get("room_code")
+        for f in db["followups"]
+        if f.get("room_code") in floor_rooms
+    }
+    done_in_flr = len(inspected_in_floor)
+    flr_pct = min(100, round((done_in_flr / room_count) * 100))
+
     for r_start in range(0, room_count, 4):
         g_cols = st.columns(4)
         for c_i in range(4):
@@ -791,6 +950,21 @@ with tab1:
                     use_container_width=True,
                 )
 
+    st.markdown(
+        f"""
+        <div class="prog-wrap">
+            <div class="prog-head">
+                <span>⭐ {flr_info['name']}</span>
+                <span>{done_in_flr} من {room_count}</span>
+            </div>
+            <div class="prog-track">
+                <div class="prog-fill" style="width:{flr_pct}%;"></div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     if st.session_state.get("floor_done_msg"):
         st.markdown(
             f'<div class="floor-done-banner">{st.session_state["floor_done_msg"]}</div>',
@@ -800,96 +974,100 @@ with tab1:
     waiting_worker = get_room_pending_worker_items(active_rm)
     if waiting_worker:
         st.markdown(
-            f'<div class="fairness-shield">🛡️ تنبيه عدالة: الغرفة تنتظر من العامل ({ " + ".join(waiting_worker) }) — يُفضّل التمهّل</div>',
+            f'<div class="fairness-shield">🛡️ انتظر! العامل باقي ما خلّص: ({ " + ".join(waiting_worker) })</div>',
             unsafe_allow_html=True,
         )
 
+    # زر النظيفة الكبير في الأعلى
     st.button(
-        "🌟 غرفة نظيفة (تخطي)",
+        "🌟 نظيفة (التالي)",
         key="b_star",
         on_click=record_daily,
         args=("نظيفة", "غرفة نظيفة ومميزة"),
         use_container_width=True,
     )
 
+    # الأزرار الأربعة بكلمات بسيطة جداً
     c1, c2 = st.columns(2)
     with c1:
-        st.button("🔌 سحب سخان", key="b_heater", on_click=record_daily, args=("سحب سخان", "سحب سخان"), use_container_width=True)
-        st.button("⚠️ سخان ونظافة", key="b_both", on_click=record_daily, args=("سخان ونظافة", "إنذار سخان ونظافة"), use_container_width=True)
+        st.button("🔌 سخان", key="b_heater", on_click=record_daily, args=("سحب سخان", "سحب سخان"), use_container_width=True)
+        st.button("⚠️ سخان + نظافة", key="b_both", on_click=record_daily, args=("سخان ونظافة", "إنذار سخان ونظافة"), use_container_width=True)
     with c2:
-        st.button("🗑️ إنذار نظافة", key="b_clean", on_click=record_daily, args=("إنذار نظافة", "إنذار نظافة"), use_container_width=True)
-        st.button("🪲 طلب دواء (للعامل)", key="b_pest", on_click=record_daily, args=("مبيد", "طلب مبيد حشرات"), use_container_width=True)
+        st.button("🗑️ نظافة", key="b_clean", on_click=record_daily, args=("إنذار نظافة", "إنذار نظافة"), use_container_width=True)
+        st.button("🪲 دواء", key="b_pest", on_click=record_daily, args=("مبيد", "طلب مبيد حشرات"), use_container_width=True)
 
+    # بطاقة الغرفة الحالية
     st.markdown(
-        f'<div class="active-banner">📍 {format_room(active_rm)}</div>',
+        f"""
+        <div class="room-hero">
+            <div class="room-hero-big">🚪 {format_room(active_rm)}</div>
+            <div class="room-hero-sub">المس الحالة فوق أو العطل تحت</div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
+    # إشعار الحفظ وزر الرجوع الفوري
     if "last_saved" in st.session_state:
         s = st.session_state["last_saved"]
-        rep_note = f" (تكرار {s['repeat']})" if s["repeat"] > 1 else ""
-        status_txt = "⏳ مسجل مسبقاً:" if s["dup"] else "✅ أُضيف:"
-        basket_note = " ← في مهام العامل" if s["kind"] in ("pest", "maint") else ""
-
+        status_txt = "⏳ مسجل من قبل:" if s["dup"] else "✅ تم الحفظ:"
         st.markdown(
-            f'<div class="ok-card">{status_txt} {s["loc"]} — {s["label"]}{rep_note}{basket_note}</div>',
+            f'<div class="ok-card">{status_txt} {s["loc"]} — {s["label"]}</div>',
             unsafe_allow_html=True,
         )
-
         if "undo" in st.session_state:
-            st.button("↩️ تراجع عن آخر ضغطة", on_click=undo_last, use_container_width=True)
+            st.button("↩️ رجوع (غلطت)", key="btn_undo", on_click=undo_last, use_container_width=True)
 
-    st.markdown('<div class="sec-lbl">🛠️ صيانة (تُجمع للعامل):</div>', unsafe_allow_html=True)
+    # أزرار الأعطال الثلاثة
     m1, m2, m3 = st.columns(3)
     with m1:
-        st.button("❄️ المكيف", key="m_ac", on_click=record_maint, args=("المكيف",), use_container_width=True)
+        st.button("❄️ مكيف", key="m_ac", on_click=record_maint, args=("المكيف",), use_container_width=True)
     with m2:
-        st.button("💧 تهريب خفيف", key="m_leak", on_click=record_maint, args=("تهريب خفيف",), use_container_width=True)
+        st.button("💧 موية", key="m_leak", on_click=record_maint, args=("تهريب خفيف",), use_container_width=True)
     with m3:
         st.button("⚡ كهرباء", key="m_elec", on_click=record_maint, args=("كهرباء / فيش",), use_container_width=True)
-
-    cm1, cm2 = st.columns([2.6, 1])
-    with cm1:
-        st.text_input(
-            "ملاحظة صيانة أخرى",
-            placeholder="ملاحظة صيانة أخرى...",
-            key="custom_maint",
-            label_visibility="collapsed",
-        )
-    with cm2:
-        st.button("➕ إضافة", key="m_add", on_click=record_maint, args=("", True), use_container_width=True)
-
-    st.text_input(
-        "موقع عام",
-        placeholder="موقع عام خارج الغرف (مثل: السطح أو الممر)",
-        key="custom_loc_in",
-        label_visibility="collapsed",
-        on_change=set_custom_location,
-    )
 
     if worker_basket_count > 0:
         worker_msg = build_worker_checklist(undelivered_pests, open_reps)
         st.markdown(
-            f'<a href="{wa_app_url(worker_msg)}" class="wa-btn-worker">📋 إرسال مهام العامل ({worker_basket_count}) عربي + أوردو 📲</a>',
+            f'<a href="{wa_app_url(worker_msg)}" class="wa-btn-worker">👷 أرسل للعامل ({worker_basket_count}) 📲</a>',
             unsafe_allow_html=True,
         )
 
-# --- التبويب 2: التشيك بالصح الكبير (✅) ---
+    # خيارات الكتابة مطوية للحفاظ على بساطة الشاشة
+    with st.expander("⌨️ كتابة مكان أو عطل آخر"):
+        cm1, cm2 = st.columns([2.6, 1])
+        with cm1:
+            st.text_input(
+                "عطل آخر",
+                placeholder="اكتب العطل هنا...",
+                key="custom_maint",
+                label_visibility="collapsed",
+            )
+        with cm2:
+            st.button("➕ حفظ", key="m_add", on_click=record_maint, args=("", True), use_container_width=True)
+
+        st.text_input(
+            "مكان عام",
+            placeholder="مكان خارج الغرف (مثل: السطح)",
+            key="custom_loc_in",
+            label_visibility="collapsed",
+            on_change=set_custom_location,
+        )
+
+# --- الخطوة 2: صح وخطأ (✅ / ❌) ---
 with tab2:
     if not undelivered_pests and not open_reps and not pending_checks:
-        st.info("✨ لا توجد مهام معلقة للعامل أو غرف بانتظار التشيك حالياً.")
-
-    if undelivered_pests or open_reps:
-        st.markdown(f"##### 👷 مهام العامل المعلقة ({worker_basket_count}):")
-        worker_msg_tab2 = build_worker_checklist(undelivered_pests, open_reps)
         st.markdown(
-            f'<a href="{wa_app_url(worker_msg_tab2)}" class="wa-btn-worker">📋 إرسال قائمة العامل (عربي + أوردو) 📲</a>',
+            '<div class="floor-done-banner">🏆 ممتاز! كل المهام خالصة</div>',
             unsafe_allow_html=True,
         )
 
+    if undelivered_pests or open_reps:
+        st.markdown("##### 📦 هل وصل الدواء / تصلّح العطل؟")
         if len(undelivered_pests) >= 2:
             if st.button(
-                f"📦 تأكيد تسليم جميع المبيدات ({len(undelivered_pests)}) دفعة واحدة",
+                f"✅ الكل وصل ({len(undelivered_pests)})",
                 key="deliv_all_pests",
                 use_container_width=True,
             ):
@@ -904,35 +1082,49 @@ with tab2:
                 st.rerun()
 
         for p in reversed(undelivered_pests):
-            col_a, col_b = st.columns([1.9, 1.3])
-            col_a.markdown(
-                f"<div class='task-card task-worker'><b>🪲 {p['loc']}</b><br><small style='color:#d8b4fe;'>بانتظار تسليم المبيد</small></div>",
+            st.markdown(
+                f"<div class='task-card task-worker'><b>🪲 {p['loc']}</b> — دواء حشرات</div>",
                 unsafe_allow_html=True,
             )
-            if col_b.button("📦 تم التسليم", key=f"deliv_{p['id']}", use_container_width=True):
-                with db["lock"]:
-                    p["state"] = "بانتظار التشيك"
-                    p["ts"] = time.time()
-                    p["time"] = now_str()
-                    save_db()
-                st.rerun()
+            d_c1, d_c2 = st.columns(2)
+            with d_c1:
+                if st.button("✅ تم الاستلام", key=f"deliv_ok_{p['id']}", use_container_width=True):
+                    with db["lock"]:
+                        p["state"] = "بانتظار التشيك"
+                        p["ts"] = time.time()
+                        p["time"] = now_str()
+                        save_db()
+                    st.rerun()
+            with d_c2:
+                if st.button("❌ ما تم", key=f"deliv_no_{p['id']}", use_container_width=True):
+                    with db["lock"]:
+                        p["state"] = "⚠️ لم يُسلّم المبيد بعد"
+                        save_db()
+                    st.rerun()
 
         for r in reversed(open_reps):
-            col_a, col_b = st.columns([2.2, 1])
-            col_a.markdown(
+            st.markdown(
                 f"<div class='task-card task-worker'><b>🛠️ {r['loc']}</b> — {r['item']}</div>",
                 unsafe_allow_html=True,
             )
-            if col_b.button("تم ✓", key=f"done_{r['id']}", use_container_width=True):
-                with db["lock"]:
-                    r["status"] = "تم الإصلاح"
-                    r["closed"] = now_str()
-                    save_db()
-                st.rerun()
+            r_c1, r_c2 = st.columns(2)
+            with r_c1:
+                if st.button("✅ تصلّح", key=f"chk_ok_rep_{r['id']}", use_container_width=True):
+                    with db["lock"]:
+                        r["status"] = "تم الإصلاح"
+                        r["closed"] = now_str()
+                        save_db()
+                    st.rerun()
+            with r_c2:
+                if st.button("❌ ما تم", key=f"chk_no_rep_{r['id']}", use_container_width=True):
+                    with db["lock"]:
+                        r["repeat"] = r.get("repeat", 1) + 1
+                        save_db()
+                    st.rerun()
 
     if pending_checks:
         st.markdown("---")
-        st.markdown(f"##### ✅ التشيك الميداني (المس الصح الكبير للغرفة السليمة):")
+        st.markdown("##### 🔍 هل صارت الغرفة نظيفة؟ (كل 3 أيام)")
         sorted_checks = sorted(
             pending_checks,
             key=lambda x: days_since(x.get("ts", 0)),
@@ -941,58 +1133,59 @@ with tab2:
         for f in sorted_checks:
             d_passed = days_since(f.get("ts", 0))
             is_due = d_passed >= CHECK_CYCLE_DAYS
-            card_cls = "task-card task-due" if is_due else "task-card"
-            age_badge = (
-                f"🔔 مستحق للتشيك (مرّ {d_passed} أيام)"
-                if is_due
-                else f"⏳ مضى {d_passed} يوم (المراجعة بعد {CHECK_CYCLE_DAYS - d_passed} أيام)"
-            )
+            is_rep = f.get("not_done") or f.get("count", 1) >= 2
+            card_cls = "task-card task-repeat" if is_rep else ("task-card task-due" if is_due else "task-card")
+            age_badge = f"🔔 مرّ {d_passed} أيام" if is_due else f"⏳ مرّ {d_passed} يوم"
+            rep_badge = f" • مرة {f['count']}" if f.get("count", 1) > 1 else ""
 
-            col_info, col_ok, col_esc = st.columns([2.1, 1.2, 0.9])
-            col_info.markdown(
-                f"<div class='{card_cls}'><b>{f['loc']}</b><br>"
-                f"<small style='color:#cbd5e1;'>{f['detail']}</small><br>"
+            st.markdown(
+                f"<div class='{card_cls}'><b>{f['loc']}</b> — {f['detail']}{rep_badge}<br>"
                 f"<small style='color:#fbbf24;'>{age_badge}</small></div>",
                 unsafe_allow_html=True,
             )
-            if col_ok.button("✅ سليم", key=f"chk_{f['id']}", use_container_width=True):
-                with db["lock"]:
-                    f["state"] = "تم التشيك — سليم ✅"
-                    f["checked_at"] = now_str()
-                    f["escalated"] = False
-                    save_db()
-                st.rerun()
-            if col_esc.button("🚨 نقل", key=f"esc_{f['id']}", use_container_width=True):
-                with db["lock"]:
-                    f["state"] = "مرفوع للمتابعة الإدارية أو النقل 🚨"
-                    f["escalated"] = True
-                    save_db()
-                st.rerun()
+            c_ok, c_no = st.columns(2)
+            with c_ok:
+                if st.button("✅ تم (صارت نظيفة)", key=f"chk_ok_{f['id']}", use_container_width=True):
+                    with db["lock"]:
+                        f["state"] = "تم ✅"
+                        f["checked_at"] = now_str()
+                        f["not_done"] = False
+                        save_db()
+                    st.rerun()
+            with c_no:
+                if st.button("❌ ما تم", key=f"chk_no_{f['id']}", use_container_width=True):
+                    with db["lock"]:
+                        h_key = f"{f['loc']}_{f['cat']}"
+                        db["history"][h_key] = db["history"].get(h_key, 1) + 1
+                        f["count"] = db["history"][h_key]
+                        f["not_done"] = True
+                        f["ts"] = time.time()
+                        f["checked_at"] = now_str()
+                        save_db()
+                    st.rerun()
 
-# --- التبويب 3: التقارير الواضحة والمختصرة ---
+# --- الخطوة 3: الإرسال بلمسة واحدة ---
 with tab3:
     sup_label = SUPERVISOR_NAME.strip() or "فارس العصيمي"
 
     if worker_basket_count > 0:
         w_msg = build_worker_checklist(undelivered_pests, open_reps)
         st.markdown(
-            f'<a href="{wa_app_url(w_msg)}" class="wa-btn-worker">📋 إرسال مهام العامل ({worker_basket_count}) عربي + أوردو 📲</a>',
+            f'<a href="{wa_app_url(w_msg)}" class="wa-btn-worker">👷 1. أرسل للعامل ({worker_basket_count}) 📲</a>',
             unsafe_allow_html=True,
         )
-        with st.expander("👁️ معاينة رسالة العامل"):
-            st.text_area("رسالة العامل:", value=w_msg, height=170, label_visibility="collapsed")
 
     active_followups = [
         f
         for f in db["followups"]
-        if f["state"] not in ["تم التشيك — سليم ✅", "غرفة نظيفة (تخطي) 🌟"]
+        if f["state"] not in ["تم ✅", "غرفة نظيفة (تخطي) 🌟"]
     ]
     heater_recs = [f for f in active_followups if f["cat"] == "سحب سخان"]
     clean_recs = [f for f in active_followups if f["cat"] == "إنذار نظافة"]
     both_recs = [f for f in active_followups if f["cat"] == "سخان ونظافة"]
     pest_recs = [f for f in active_followups if f["cat"] == "مبيد"]
     star_recs = [f for f in db["followups"] if f["cat"] == "نظيفة"]
-    escalated_recs = [f for f in active_followups if f.get("escalated")]
+    not_done_recs = [f for f in active_followups if f.get("not_done") or f.get("count", 1) >= 2]
 
     def fast_list(items):
         return compress_room_ranges([i.get("room_code", i["loc"]) for i in items])
@@ -1001,17 +1194,18 @@ with tab3:
     unique_clean_count = len(set(f["loc"] for f in star_recs))
     compliance_pct = round((unique_clean_count / total_inspected) * 100) if total_inspected else 0
 
-    # 1. التقرير المختصر الواضح للإدارة (يظهر كاملاً في واتساب بدون Read More)
     short_lines = [
         "السلام عليكم ورحمة الله وبركاته،",
-        f"*تقرير جولة {LOCATION_TAG} — المشرف: {sup_label}*",
+        f"*ملخص متابعة {LOCATION_TAG} — المشرف: {sup_label}*",
         f"📊 *الجولة:* {total_inspected} غرفة | نظيفة: {unique_clean_count} ({compliance_pct}%)",
     ]
     if open_reps:
         short_lines.append(
-            f"🛠️ *صيانة ({len(open_reps)}):* "
+            f"🛠️ *صيانة مفتوحة ({len(open_reps)}):* "
             + "، ".join([f"{r.get('room_code', r['loc'])} ({r['item']})" for r in open_reps])
         )
+    if not_done_recs:
+        short_lines.append(f"❌ *ما تم — قيد تراكمي ({len(not_done_recs)}):* {fast_list(not_done_recs)}")
     if pest_recs:
         short_lines.append(f"🪲 *مبيدات ({len(pest_recs)}):* {fast_list(pest_recs)}")
     if heater_recs:
@@ -1020,38 +1214,36 @@ with tab3:
         short_lines.append(f"🗑️ *إنذار نظافة ({len(clean_recs)}):* {fast_list(clean_recs)}")
     if both_recs:
         short_lines.append(f"⚠️ *سخان ونظافة ({len(both_recs)}):* {fast_list(both_recs)}")
-    if escalated_recs:
-        short_lines.append(f"🚨 *توصية بالنقل ({len(escalated_recs)}):* {fast_list(escalated_recs)}")
-    if cleared_checks:
-        short_lines.append(f"✅ *تم التشيك والوضع سليم ({len(cleared_checks)}):* {fast_list(cleared_checks)}")
+    if done_checks:
+        short_lines.append(f"✅ *تم الالتزام بعد المتابعة ({len(done_checks)}):* {fast_list(done_checks)}")
     short_lines.append("وتفضلوا بقبول فائق الاحترام والتقدير.")
 
     short_wa_msg = "\n".join(short_lines)
     st.markdown(
-        f'<a href="{wa_app_url(short_wa_msg)}" class="wa-btn-fast">⚡ إرسال التقرير المختصر للإدارة 📲</a>',
+        f'<a href="{wa_app_url(short_wa_msg)}" class="wa-btn-fast">⚡ 2. أرسل ملخص سريع للمدير 📲</a>',
         unsafe_allow_html=True,
     )
 
-    # 2. التقرير التفصيلي المجمّع حسب الأدوار
     rep_lines = [
         "السلام عليكم ورحمة الله وبركاته،",
         f"*التقرير الميداني التفصيلي — {LOCATION_TAG}*",
         f"*المشرف: {sup_label}* | {now_str()}",
-        f"📊 *الملخص:* {total_inspected} غرفة | نظيفة: {unique_clean_count} ({compliance_pct}%) | ملاحظات مفتوحة: {len(active_followups)}",
+        f"📊 *الملخص:* {total_inspected} غرفة | نظيفة: {unique_clean_count} ({compliance_pct}%) | ملاحظات قيد المتابعة: {len(active_followups)}",
     ]
 
     if open_reps:
-        rep_lines.append(f"\n*🛠️ الصيانة المفتوحة ({len(open_reps)}):*")
+        rep_lines.append(f"\n*🛠️ أعمال الصيانة المفتوحة ({len(open_reps)}):*")
         for r in open_reps:
-            rep_lines.append(f"• {r['loc']} — {r['item']} ({r['time']})")
+            rep_note = f" (قيد {r['repeat']})" if r.get("repeat", 1) > 1 else ""
+            rep_lines.append(f"• {r['loc']} — {r['item']}{rep_note} ({r['time']})")
 
-    if escalated_recs:
-        rep_lines.append(f"\n*🚨 توصية بالمتابعة الإدارية أو النقل ({len(escalated_recs)}):*")
-        for e in escalated_recs:
-            rep_lines.append(f"• {e['loc']} — {e['detail']} (تكرار {e['count']})")
+    if not_done_recs:
+        rep_lines.append(f"\n*❌ حالات لم تلتزم بعد المتابعة — ما تم ({len(not_done_recs)}):*")
+        for nd in not_done_recs:
+            rep_lines.append(f"• {nd['loc']} — {nd['detail']} (قيد تراكمي: {nd['count']})")
 
     if heater_recs or clean_recs or both_recs or pest_recs:
-        rep_lines.append("\n*📋 الملاحظات والمبيدات قيد المتابعة:*")
+        rep_lines.append("\n*📋 الملاحظات والمبيدات قيد المتابعة (دورة 3 أيام):*")
         if heater_recs:
             rep_lines.append(f"• *🔌 سحب سخان ({len(heater_recs)}):*\n{build_grouped_by_floor(heater_recs, True)}")
         if clean_recs:
@@ -1059,17 +1251,17 @@ with tab3:
         if both_recs:
             rep_lines.append(f"• *⚠️ سخان ونظافة ({len(both_recs)}):*\n{build_grouped_by_floor(both_recs, True)}")
         if pest_recs:
-            pest_waiting = [p for p in pest_recs if p["state"] == "📦 بانتظار تسليم المبيد"]
-            pest_active = [p for p in pest_recs if p["state"] != "📦 بانتظار تسليم المبيد"]
+            pest_waiting = [p for p in pest_recs if p["state"] in ["📦 بانتظار تسليم المبيد", "⚠️ لم يُسلّم المبيد بعد"]]
+            pest_active = [p for p in pest_recs if p["state"] == "بانتظار التشيك"]
             rep_lines.append(f"• *🪲 طلبات المبيدات ({len(pest_recs)}):*")
             if pest_waiting:
-                rep_lines.append(f"  - بانتظار تسليم العامل ({len(pest_waiting)}): {fast_list(pest_waiting)}")
+                rep_lines.append(f"  - بانتظار استلام/تسليم العامل ({len(pest_waiting)}): {fast_list(pest_waiting)}")
             if pest_active:
-                rep_lines.append(f"  - تم التسليم / متابعة 3 أيام ({len(pest_active)}): {fast_list(pest_active)}")
+                rep_lines.append(f"  - تم الاستلام / قيد متابعة 3 أيام ({len(pest_active)}): {fast_list(pest_active)}")
 
-    if cleared_checks:
-        rep_lines.append(f"\n*✅ غرف تم التشيك عليها والوضع سليم ({len(cleared_checks)}):*")
-        rep_lines.append(build_grouped_by_floor(cleared_checks, False))
+    if done_checks:
+        rep_lines.append(f"\n*✅ حالات تم الالتزام بها بعد المتابعة — تم ({len(done_checks)}):*")
+        rep_lines.append(build_grouped_by_floor(done_checks, False))
 
     if star_recs:
         clean_by_flr = {f_code: [] for f_code in FLOORS}
@@ -1102,19 +1294,30 @@ with tab3:
     rep_lines.append(f"\nوتفضلوا بقبول فائق الاحترام والتقدير،\n*المشرف: {sup_label}*")
 
     full_report = "\n".join(rep_lines)
-    st.text_area("التقرير التفصيلي:", value=full_report, height=230, label_visibility="collapsed")
     st.markdown(
-        f'<a href="{wa_app_url(full_report)}" class="wa-btn">📲 إرسال التقرير التفصيلي للإدارة 📲</a>',
+        f'<a href="{wa_app_url(full_report)}" class="wa-btn">📄 3. أرسل التقرير الكامل للمدير 📲</a>',
         unsafe_allow_html=True,
     )
 
-    if st.button("🌅 بدء يوم جديد (تصفير المنجز وحفظ المعلق)", use_container_width=True):
+    with st.expander("👁️ قراءة التقرير أو تجربة سريعة"):
+        st.text_area("التقرير:", value=full_report, height=200, label_visibility="collapsed")
+        sim_c1, sim_c2 = st.columns(2)
+        with sim_c1:
+            if st.button("🚀 تشغيل تجربة", key="btn_run_demo", use_container_width=True):
+                inject_demo_scenario()
+                st.rerun()
+        with sim_c2:
+            if st.button("🧹 مسح التجربة", key="btn_clear_demo", use_container_width=True):
+                clear_demo_scenario()
+                st.rerun()
+
+    if st.button("🌅 يوم جديد (حفظ المعلق)", use_container_width=True):
         with db["lock"]:
             db["repairs"] = [r for r in db["repairs"] if r["status"] == "مفتوح"]
             db["followups"] = [
                 f
                 for f in db["followups"]
-                if f["state"] in ["بانتظار التشيك", "📦 بانتظار تسليم المبيد"]
+                if f["state"] in ["بانتظار التشيك", "📦 بانتظار تسليم المبيد", "⚠️ لم يُسلّم المبيد بعد"]
             ]
             save_db()
         st.session_state.pop("last_saved", None)
@@ -1122,7 +1325,7 @@ with tab3:
         st.rerun()
 
     if st.checkbox("تأكيد مسح كل السجلات"):
-        if st.button("🗑️ مسح شامل", use_container_width=True):
+        if st.button("🗑️ مسح الكل", use_container_width=True):
             with db["lock"]:
                 db["repairs"].clear()
                 db["followups"].clear()
