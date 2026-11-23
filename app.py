@@ -8,7 +8,7 @@ import uuid
 import streamlit as st
 
 # ==============================================================================
-# 1. الإعدادات وخريطة السكن (عربي + أوردو بالكامل)
+# 1. الإعدادات وخريطة السكن (عربي + أوردو)
 # ==============================================================================
 KSA_TZ = timezone(timedelta(hours=3))
 LOCATION_TAG = "سكن جامعة 3"
@@ -19,18 +19,18 @@ MAX_RECORDS = 150
 CHECK_CYCLE_DAYS = 3
 
 FLOORS = {
-    "1": {"short": "M2", "name": "الدور M2", "urdu": "ایم ٹو فلور (M2)", "count": 16},
-    "2": {"short": "M", "name": "الدور M", "urdu": "ایم فلور (M)", "count": 19},
-    "3": {"short": "د1", "name": "الدور الأول", "urdu": "پہلی منزل (1)", "count": 19},
-    "4": {"short": "د2", "name": "الدور الثاني", "urdu": "دوسری منزل (2)", "count": 19},
-    "5": {"short": "د3", "name": "الدور الثالث", "urdu": "تیسری منزل (3)", "count": 19},
-    "6": {"short": "د4", "name": "الدور الرابع", "urdu": "چوتھی منزل (4)", "count": 19},
+    "1": {"short": "M2", "name": "الدور M2", "urdu": "ایم ٹو فلور M2", "count": 16},
+    "2": {"short": "M", "name": "الدور M", "urdu": "ایم فلور M", "count": 19},
+    "3": {"short": "د1", "name": "الدور الأول", "urdu": "پہلی منزل 1", "count": 19},
+    "4": {"short": "د2", "name": "الدور الثاني", "urdu": "دوسری منزل 2", "count": 19},
+    "5": {"short": "د3", "name": "الدور الثالث", "urdu": "تیسری منزل 3", "count": 19},
+    "6": {"short": "د4", "name": "الدور الرابع", "urdu": "چوتھی منزل 4", "count": 19},
 }
 
 MAINT_URDU = {
-    "المكيف": "اے سی خراب ہے",
-    "تهريب خفيف": "پانی لیک ہو رہا ہے",
-    "كهرباء / فيش": "بجلی / ساکٹ کا مسئلہ",
+    "المكيف": "اے سی خراب",
+    "تهريب خفيف": "پانی لیکج",
+    "كهرباء / فيش": "بجلی کا مسئلہ",
 }
 
 ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
@@ -51,7 +51,7 @@ active_flr = st.session_state["sel_floor"]
 active_rm = st.session_state["sel_room"]
 
 # ==============================================================================
-# 2. التصميم النظيف للجوال (من اليمين لليسار + أزرار كاملة العرض)
+# 2. التصميم الميداني للجوال (أزرار كبيرة مريحة للإبهام)
 # ==============================================================================
 st.markdown(
     f"""
@@ -93,7 +93,7 @@ div.stButton {{ width: 100% !important; }}
 div.stButton > button {{
     height: 49px !important;
     width: 100% !important;
-    padding: 0 2px !important;
+    padding: 0 3px !important;
     font-size: 0.94em !important;
     font-weight: 800 !important;
     border-radius: 13px !important;
@@ -107,7 +107,7 @@ div.stButton > button:active {{
     transform: scale(0.97) !important;
 }}
 
-/* شريط الأدوار الستة */
+/* شريط الأدوار */
 div[class*="st-key-flr_"] button {{
     height: 39px !important;
     font-size: 0.87em !important;
@@ -165,6 +165,23 @@ div.st-key-m_elec button, div.st-key-m_add button {{
     font-size: 0.85em !important;
     background: rgba(14, 165, 233, 0.12) !important;
     border-color: rgba(56, 189, 248, 0.4) !important;
+}}
+
+/* زر الصح الكبير في تبويب التشيك */
+div[class*="st-key-chk_"] button {{
+    height: 54px !important;
+    background: rgba(16, 185, 129, 0.2) !important;
+    border: 2px solid #10b981 !important;
+    color: #6ee7b7 !important;
+    font-size: 1.05em !important;
+    font-weight: 900 !important;
+}}
+div[class*="st-key-esc_"] button {{
+    height: 54px !important;
+    background: rgba(244, 63, 94, 0.14) !important;
+    border-color: rgba(244, 63, 94, 0.45) !important;
+    color: #fda4af !important;
+    font-size: 0.9em !important;
 }}
 
 input[type="text"] {{
@@ -250,11 +267,11 @@ button[data-baseweb="tab"] {{
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 11px;
     padding: 9px 10px;
-    margin-bottom: 5px;
-    font-size: 0.9em;
+    margin-bottom: 4px;
+    font-size: 0.92em;
 }}
 .task-due {{
-    background: rgba(245, 158, 11, 0.14) !important;
+    background: rgba(245, 158, 11, 0.15) !important;
     border: 1.5px solid #f59e0b !important;
 }}
 .task-worker {{
@@ -304,7 +321,7 @@ button[data-baseweb="tab"] {{
 
 
 # ==============================================================================
-# 3. قاعدة البيانات ومحرك الرسائل المختصرة الواضحة (عربي + أوردو في كل بند)
+# 3. قاعدة البيانات ومحرك الرسائل المختصرة (بدون قص Read More)
 # ==============================================================================
 def load_db() -> dict:
     if os.path.exists(DATA_FILE):
@@ -373,15 +390,6 @@ def format_room(raw: str) -> str:
     return f"غرفة {digits}" if digits else clean
 
 
-def format_room_bilingual(raw_code: str, fallback_loc: str) -> str:
-    """صيغة مزدوجة (أوردو + عربي) واضحة للعامل في كل سطر"""
-    digits = "".join(filter(str.isdigit, str(raw_code)))
-    if len(digits) >= 3 and digits[0] in FLOORS:
-        flr = FLOORS[digits[0]]
-        return f"کمرہ *{digits}* ({flr['urdu']}) — غرفة {digits}"
-    return fallback_loc
-
-
 def short_room(raw: str) -> str:
     clean = str(raw).strip().translate(ARABIC_DIGITS)
     digits = "".join(filter(str.isdigit, clean))
@@ -402,7 +410,7 @@ def compress_room_ranges(codes: list[str]) -> str:
             i += 1
         span = end - start + 1
         if span >= 3:
-            parts.append(f"من {start} إلى {end} ({span} غرف)")
+            parts.append(f"من {start} إلى {end}")
         elif span == 2:
             parts.append(f"{start}، {end}")
         else:
@@ -422,7 +430,7 @@ def build_grouped_by_floor(items: list[dict], show_escalated_tag: bool = False) 
 
     for item in items:
         rc = str(item.get("room_code", ""))
-        tag = " *(توصية بالنقل)*" if (show_escalated_tag and item.get("escalated")) else ""
+        tag = " *(نقل)*" if (show_escalated_tag and item.get("escalated")) else ""
         if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
             by_floor[rc[0]].append((rc, tag))
         else:
@@ -450,27 +458,43 @@ def build_grouped_by_floor(items: list[dict], show_escalated_tag: bool = False) 
 
 
 def build_worker_checklist(undelivered_pests: list[dict], open_repairs: list[dict]) -> str:
-    """رسالة مختصرة وواضحة بالعربي والأوردو في كل سطر وتظهر كاملة بدون قص Read More"""
+    """رسالة مجمّعة ومختصرة جداً بالعربي والأوردو (تظهر كاملة في واتساب بدون Read More)"""
     sup_label = SUPERVISOR_NAME.strip() or "فارس العصيمي"
     lines = [
         f"السلام عليكم | *{LOCATION_TAG} ({LOCATION_URDU})*",
         f"المشرف: *{sup_label}* | سپروائزر: *{sup_label}*",
-        "🤝 *براہ کرم کام مکمل کر کے کمرہ نمبر + (تم) لکھ کر ریپلائی کریں:*",
-        "*(فضلاً اكتب رقم الغرفة + تم عند الانتهاء)*",
+        "⚠️ *اكتب رقم الغرفة + (تم) عند الانتهاء:*",
+        "⚠️ *کام مکمل ہونے پر کمرہ نمبر + (مکمل) لکھ کر ریپلائی کریں:*",
     ]
 
     if undelivered_pests:
-        lines.append("\n*🪲 مبيدات حشرية (کیڑے مار دوا دینی ہے):*")
+        lines.append("\n*🪲 مبيد حشرات (کیڑے مار دوا دینی ہے):*")
+        by_flr = {f_code: [] for f_code in FLOORS}
+        others = []
         for p in undelivered_pests:
-            bi_room = format_room_bilingual(p.get("room_code", ""), p["loc"])
-            lines.append(f"⬜ {bi_room}")
+            rc = str(p.get("room_code", ""))
+            if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
+                by_flr[rc[0]].append(rc)
+            else:
+                others.append(p["loc"])
+
+        for f_code, f_info in FLOORS.items():
+            if by_flr[f_code]:
+                rooms_txt = "، ".join(sorted(set(by_flr[f_code])))
+                lines.append(f"• *{rooms_txt}* ({f_info['name']} / {f_info['urdu']})")
+        for o in dict.fromkeys(others):
+            lines.append(f"• {o}")
 
     if open_repairs:
-        lines.append("\n*🛠️ صيانة مطلوبة (مرمت کا کام):*")
+        lines.append("\n*🛠️ صيانة (مرمت کا کام):*")
         for r in open_repairs:
-            bi_room = format_room_bilingual(r.get("room_code", ""), r["loc"])
+            rc = str(r.get("room_code", ""))
             urdu_issue = MAINT_URDU.get(r["item"], r["item"])
-            lines.append(f"⬜ {bi_room} : *{r['item']}* ({urdu_issue})")
+            if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
+                flr = FLOORS[rc[0]]
+                lines.append(f"• کمرہ *{rc}* ({flr['urdu']}) : *{r['item']}* ({urdu_issue})")
+            else:
+                lines.append(f"• {r['loc']} : *{r['item']}* ({urdu_issue})")
 
     return "\n".join(lines)
 
@@ -541,7 +565,7 @@ def set_custom_location():
 
 
 # ==============================================================================
-# 4. دوال التسجيل
+# 4. دوال التسجيل والتشيك
 # ==============================================================================
 def record_daily(cat: str, label: str):
     raw_room = st.session_state.get("sel_room", "").strip()
@@ -733,11 +757,11 @@ st.markdown(
 
 tab1, tab2, tab3 = st.tabs([
     "✏️ الجولة",
-    f"⏳ المهام ({worker_basket_count + len(pending_checks)})",
+    f"✅ التشيك ({worker_basket_count + len(pending_checks)})",
     "📄 التقرير",
 ])
 
-# --- التبويب 1: الجولة الميدانية بالخريطة ---
+# --- التبويب 1: الجولة الميدانية ---
 with tab1:
     f_cols = st.columns(6)
     for idx, (f_code, f_info) in enumerate(FLOORS.items()):
@@ -776,7 +800,7 @@ with tab1:
     waiting_worker = get_room_pending_worker_items(active_rm)
     if waiting_worker:
         st.markdown(
-            f'<div class="fairness-shield">🛡️ تنبيه عدالة: الغرفة تنتظر من العامل ({ " + ".join(waiting_worker) }) — يُفضّل التمهّل قبل تسجيل مخالفة</div>',
+            f'<div class="fairness-shield">🛡️ تنبيه عدالة: الغرفة تنتظر من العامل ({ " + ".join(waiting_worker) }) — يُفضّل التمهّل</div>',
             unsafe_allow_html=True,
         )
 
@@ -794,7 +818,7 @@ with tab1:
         st.button("⚠️ سخان ونظافة", key="b_both", on_click=record_daily, args=("سخان ونظافة", "إنذار سخان ونظافة"), use_container_width=True)
     with c2:
         st.button("🗑️ إنذار نظافة", key="b_clean", on_click=record_daily, args=("إنذار نظافة", "إنذار نظافة"), use_container_width=True)
-        st.button("🪲 طلب دواء (سلة العامل)", key="b_pest", on_click=record_daily, args=("مبيد", "طلب مبيد حشرات"), use_container_width=True)
+        st.button("🪲 طلب دواء (للعامل)", key="b_pest", on_click=record_daily, args=("مبيد", "طلب مبيد حشرات"), use_container_width=True)
 
     st.markdown(
         f'<div class="active-banner">📍 {format_room(active_rm)}</div>',
@@ -805,7 +829,7 @@ with tab1:
         s = st.session_state["last_saved"]
         rep_note = f" (تكرار {s['repeat']})" if s["repeat"] > 1 else ""
         status_txt = "⏳ مسجل مسبقاً:" if s["dup"] else "✅ أُضيف:"
-        basket_note = " ← في قائمة مهام العامل" if s["kind"] in ("pest", "maint") else ""
+        basket_note = " ← في مهام العامل" if s["kind"] in ("pest", "maint") else ""
 
         st.markdown(
             f'<div class="ok-card">{status_txt} {s["loc"]} — {s["label"]}{rep_note}{basket_note}</div>',
@@ -815,7 +839,7 @@ with tab1:
         if "undo" in st.session_state:
             st.button("↩️ تراجع عن آخر ضغطة", on_click=undo_last, use_container_width=True)
 
-    st.markdown('<div class="sec-lbl">🛠️ صيانة (تُجمع في قائمة مهام العامل):</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sec-lbl">🛠️ صيانة (تُجمع للعامل):</div>', unsafe_allow_html=True)
     m1, m2, m3 = st.columns(3)
     with m1:
         st.button("❄️ المكيف", key="m_ac", on_click=record_maint, args=("المكيف",), use_container_width=True)
@@ -845,13 +869,12 @@ with tab1:
 
     if worker_basket_count > 0:
         worker_msg = build_worker_checklist(undelivered_pests, open_reps)
-        worker_url = wa_app_url(worker_msg)
         st.markdown(
-            f'<a href="{worker_url}" class="wa-btn-worker">📋 إرسال مهام العامل ({worker_basket_count}) عربي + أوردو 📲</a>',
+            f'<a href="{wa_app_url(worker_msg)}" class="wa-btn-worker">📋 إرسال مهام العامل ({worker_basket_count}) عربي + أوردو 📲</a>',
             unsafe_allow_html=True,
         )
 
-# --- التبويب 2: المهام ---
+# --- التبويب 2: التشيك بالصح الكبير (✅) ---
 with tab2:
     if not undelivered_pests and not open_reps and not pending_checks:
         st.info("✨ لا توجد مهام معلقة للعامل أو غرف بانتظار التشيك حالياً.")
@@ -864,10 +887,9 @@ with tab2:
             unsafe_allow_html=True,
         )
 
-        # زر ذكي لتأكيد تسليم جميع المبيدات بضغطة واحدة
         if len(undelivered_pests) >= 2:
             if st.button(
-                f"📦 تأكيد تسليم جميع المبيدات ({len(undelivered_pests)}) — ابدأ 3 أيام",
+                f"📦 تأكيد تسليم جميع المبيدات ({len(undelivered_pests)}) دفعة واحدة",
                 key="deliv_all_pests",
                 use_container_width=True,
             ):
@@ -884,7 +906,7 @@ with tab2:
         for p in reversed(undelivered_pests):
             col_a, col_b = st.columns([1.9, 1.3])
             col_a.markdown(
-                f"<div class='task-card task-worker'><b>🪲 {p['loc']}</b><br><small style='color:#d8b4fe;'>بانتظار تسليم المبيد ({p['time']})</small></div>",
+                f"<div class='task-card task-worker'><b>🪲 {p['loc']}</b><br><small style='color:#d8b4fe;'>بانتظار تسليم المبيد</small></div>",
                 unsafe_allow_html=True,
             )
             if col_b.button("📦 تم التسليم", key=f"deliv_{p['id']}", use_container_width=True):
@@ -898,10 +920,10 @@ with tab2:
         for r in reversed(open_reps):
             col_a, col_b = st.columns([2.2, 1])
             col_a.markdown(
-                f"<div class='task-card task-worker'><b>🛠️ {r['loc']}</b> — {r['item']}<br><small style='color:#7dd3fc;'>قُيّد: {r['time']}</small></div>",
+                f"<div class='task-card task-worker'><b>🛠️ {r['loc']}</b> — {r['item']}</div>",
                 unsafe_allow_html=True,
             )
-            if col_b.button("تم الإصلاح ✓", key=f"done_{r['id']}", use_container_width=True):
+            if col_b.button("تم ✓", key=f"done_{r['id']}", use_container_width=True):
                 with db["lock"]:
                     r["status"] = "تم الإصلاح"
                     r["closed"] = now_str()
@@ -910,7 +932,7 @@ with tab2:
 
     if pending_checks:
         st.markdown("---")
-        st.markdown(f"##### 🔍 متابعة النظافة والمخالفات (دورة 3 أيام — {len(pending_checks)}):")
+        st.markdown(f"##### ✅ التشيك الميداني (المس الصح الكبير للغرفة السليمة):")
         sorted_checks = sorted(
             pending_checks,
             key=lambda x: days_since(x.get("ts", 0)),
@@ -921,37 +943,36 @@ with tab2:
             is_due = d_passed >= CHECK_CYCLE_DAYS
             card_cls = "task-card task-due" if is_due else "task-card"
             age_badge = (
-                f"🔔 مستحق للتشيك الآن (مرّ {d_passed} أيام)"
+                f"🔔 مستحق للتشيك (مرّ {d_passed} أيام)"
                 if is_due
                 else f"⏳ مضى {d_passed} يوم (المراجعة بعد {CHECK_CYCLE_DAYS - d_passed} أيام)"
             )
-            rep_b = f" • تكرار {f['count']}" if f.get("count", 1) > 1 else ""
 
-            st.markdown(
-                f"<div class='{card_cls}'><b>{f['loc']}</b> — {f['detail']}{rep_b}<br>"
+            col_info, col_ok, col_esc = st.columns([2.1, 1.2, 0.9])
+            col_info.markdown(
+                f"<div class='{card_cls}'><b>{f['loc']}</b><br>"
+                f"<small style='color:#cbd5e1;'>{f['detail']}</small><br>"
                 f"<small style='color:#fbbf24;'>{age_badge}</small></div>",
                 unsafe_allow_html=True,
             )
-            b1, b2 = st.columns(2)
-            if b1.button("✅ تم التشيك (سليم)", key=f"chk_{f['id']}", use_container_width=True):
+            if col_ok.button("✅ سليم", key=f"chk_{f['id']}", use_container_width=True):
                 with db["lock"]:
                     f["state"] = "تم التشيك — سليم ✅"
                     f["checked_at"] = now_str()
                     f["escalated"] = False
                     save_db()
                 st.rerun()
-            if b2.button("🚨 توصية بالمتابعة أو النقل", key=f"esc_{f['id']}", use_container_width=True):
+            if col_esc.button("🚨 نقل", key=f"esc_{f['id']}", use_container_width=True):
                 with db["lock"]:
                     f["state"] = "مرفوع للمتابعة الإدارية أو النقل 🚨"
                     f["escalated"] = True
                     save_db()
                 st.rerun()
 
-# --- التبويب 3: التقارير الواضحة (بدون حشو أو بنود فارغة) ---
+# --- التبويب 3: التقارير الواضحة والمختصرة ---
 with tab3:
     sup_label = SUPERVISOR_NAME.strip() or "فارس العصيمي"
 
-    # 1. رسالة العامل (عربي + أوردو في كل بند)
     if worker_basket_count > 0:
         w_msg = build_worker_checklist(undelivered_pests, open_reps)
         st.markdown(
@@ -959,9 +980,8 @@ with tab3:
             unsafe_allow_html=True,
         )
         with st.expander("👁️ معاينة رسالة العامل"):
-            st.text_area("رسالة العامل:", value=w_msg, height=190, label_visibility="collapsed")
+            st.text_area("رسالة العامل:", value=w_msg, height=170, label_visibility="collapsed")
 
-    # فصل الحالات المفتوحة عن الحالات التي تم التشيك عليها وطلعت سليمة
     active_followups = [
         f
         for f in db["followups"]
@@ -977,53 +997,51 @@ with tab3:
     def fast_list(items):
         return compress_room_ranges([i.get("room_code", i["loc"]) for i in items])
 
-    # 2. ملخص سريع ومباشر للإدارة (يحذف أي بند قيمته صفر فلا ينقطع بـ Read More)
+    total_inspected = len(set(f["loc"] for f in db["followups"]))
+    unique_clean_count = len(set(f["loc"] for f in star_recs))
+    compliance_pct = round((unique_clean_count / total_inspected) * 100) if total_inspected else 0
+
+    # 1. التقرير المختصر الواضح للإدارة (يظهر كاملاً في واتساب بدون Read More)
     short_lines = [
-        f"السلام عليكم ورحمة الله وبركاته،",
-        f"*ملخص جولة {LOCATION_TAG} — المشرف: {sup_label}*",
+        "السلام عليكم ورحمة الله وبركاته،",
+        f"*تقرير جولة {LOCATION_TAG} — المشرف: {sup_label}*",
+        f"📊 *الجولة:* {total_inspected} غرفة | نظيفة: {unique_clean_count} ({compliance_pct}%)",
     ]
     if open_reps:
         short_lines.append(
-            f"• 🛠️ صيانة ({len(open_reps)}): "
+            f"🛠️ *صيانة ({len(open_reps)}):* "
             + "، ".join([f"{r.get('room_code', r['loc'])} ({r['item']})" for r in open_reps])
         )
     if pest_recs:
-        short_lines.append(f"• 🪲 طلب مبيد ({len(pest_recs)}): {fast_list(pest_recs)}")
+        short_lines.append(f"🪲 *مبيدات ({len(pest_recs)}):* {fast_list(pest_recs)}")
     if heater_recs:
-        short_lines.append(f"• 🔌 سحب سخان ({len(heater_recs)}): {fast_list(heater_recs)}")
+        short_lines.append(f"🔌 *سحب سخان ({len(heater_recs)}):* {fast_list(heater_recs)}")
     if clean_recs:
-        short_lines.append(f"• 🗑️ إنذار نظافة ({len(clean_recs)}): {fast_list(clean_recs)}")
+        short_lines.append(f"🗑️ *إنذار نظافة ({len(clean_recs)}):* {fast_list(clean_recs)}")
     if both_recs:
-        short_lines.append(f"• ⚠️ سخان ونظافة ({len(both_recs)}): {fast_list(both_recs)}")
+        short_lines.append(f"⚠️ *سخان ونظافة ({len(both_recs)}):* {fast_list(both_recs)}")
     if escalated_recs:
-        short_lines.append(f"• 🚨 متابعة إدارية / نقل ({len(escalated_recs)}): {fast_list(escalated_recs)}")
+        short_lines.append(f"🚨 *توصية بالنقل ({len(escalated_recs)}):* {fast_list(escalated_recs)}")
     if cleared_checks:
-        short_lines.append(f"• ✅ تم التشيك والوضع سليم ({len(cleared_checks)}): {fast_list(cleared_checks)}")
-    if star_recs:
-        short_lines.append(f"• 🌟 غرف نظيفة في الجولة: {len(star_recs)} غرفة")
+        short_lines.append(f"✅ *تم التشيك والوضع سليم ({len(cleared_checks)}):* {fast_list(cleared_checks)}")
     short_lines.append("وتفضلوا بقبول فائق الاحترام والتقدير.")
 
     short_wa_msg = "\n".join(short_lines)
     st.markdown(
-        f'<a href="{wa_app_url(short_wa_msg)}" class="wa-btn-fast">⚡ إرسال الملخص السريع للإدارة 📲</a>',
+        f'<a href="{wa_app_url(short_wa_msg)}" class="wa-btn-fast">⚡ إرسال التقرير المختصر للإدارة 📲</a>',
         unsafe_allow_html=True,
     )
 
-    # 3. التقرير المفصل للإدارة (ديناميكي: يعرض الموجود فقط ويبرز الغرف السليمة بعد التشيك)
-    total_inspected = len(set(f["loc"] for f in db["followups"]))
-    unique_clean_count = len(set(f["loc"] for f in star_recs))
-    notes_count = len(active_followups)
-    compliance_pct = round((unique_clean_count / total_inspected) * 100) if total_inspected else 0
-
+    # 2. التقرير التفصيلي المجمّع حسب الأدوار
     rep_lines = [
         "السلام عليكم ورحمة الله وبركاته،",
-        f"*تقرير المتابعة الميدانية — {LOCATION_TAG}*",
+        f"*التقرير الميداني التفصيلي — {LOCATION_TAG}*",
         f"*المشرف: {sup_label}* | {now_str()}",
-        f"📊 *الجولة:* {total_inspected} غرفة | نظيفة: {unique_clean_count} ({compliance_pct}%) | ملاحظات مفتوحة: {notes_count}",
+        f"📊 *الملخص:* {total_inspected} غرفة | نظيفة: {unique_clean_count} ({compliance_pct}%) | ملاحظات مفتوحة: {len(active_followups)}",
     ]
 
     if open_reps:
-        rep_lines.append(f"\n*🛠️ أعمال الصيانة المفتوحة ({len(open_reps)}):*")
+        rep_lines.append(f"\n*🛠️ الصيانة المفتوحة ({len(open_reps)}):*")
         for r in open_reps:
             rep_lines.append(f"• {r['loc']} — {r['item']} ({r['time']})")
 
@@ -1051,9 +1069,7 @@ with tab3:
 
     if cleared_checks:
         rep_lines.append(f"\n*✅ غرف تم التشيك عليها والوضع سليم ({len(cleared_checks)}):*")
-        for c in cleared_checks:
-            chk_t = f" ({c['checked_at']})" if c.get("checked_at") else ""
-            rep_lines.append(f"• {c['loc']} — كانت ({c['detail']}) وتم التحقق من سلامتها ✓{chk_t}")
+        rep_lines.append(build_grouped_by_floor(cleared_checks, False))
 
     if star_recs:
         clean_by_flr = {f_code: [] for f_code in FLOORS}
@@ -1086,9 +1102,9 @@ with tab3:
     rep_lines.append(f"\nوتفضلوا بقبول فائق الاحترام والتقدير،\n*المشرف: {sup_label}*")
 
     full_report = "\n".join(rep_lines)
-    st.text_area("التقرير الواضح للإدارة:", value=full_report, height=250, label_visibility="collapsed")
+    st.text_area("التقرير التفصيلي:", value=full_report, height=230, label_visibility="collapsed")
     st.markdown(
-        f'<a href="{wa_app_url(full_report)}" class="wa-btn">📲 إرسال التقرير للإدارة 📲</a>',
+        f'<a href="{wa_app_url(full_report)}" class="wa-btn">📲 إرسال التقرير التفصيلي للإدارة 📲</a>',
         unsafe_allow_html=True,
     )
 
