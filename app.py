@@ -8,7 +8,7 @@ import uuid
 import streamlit as st
 
 # ==============================================================================
-# 1. الإعدادات وخريطة السكن (عربي + أوردو)
+# 1. الإعدادات وخريطة السكن (عربي + أوردو مبسط وواضح)
 # ==============================================================================
 KSA_TZ = timezone(timedelta(hours=3))
 LOCATION_TAG = "سكن جامعة 3"
@@ -28,9 +28,9 @@ FLOORS = {
 }
 
 MAINT_URDU = {
-    "المكيف": "اے سی خراب",
-    "تهريب خفيف": "پانی لیکج",
-    "كهرباء / فيش": "بجلی کا مسئلہ",
+    "المكيف": "اے سی ٹھیک کرنا ہے",
+    "تهريب خفيف": "پانی لیکج ٹھیک کرنا ہے",
+    "كهرباء / فيش": "بجلی / ساکٹ ٹھیک کرنا ہے",
 }
 
 ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
@@ -51,7 +51,7 @@ active_flr = st.session_state["sel_floor"]
 active_rm = st.session_state["sel_room"]
 
 # ==============================================================================
-# 2. التصميم البصري المبسط (أزرار ضخمة + ألوان واضحة + خطوات مرقمة)
+# 2. التصميم البصري المبسط (مناسب لعمر 7 سنوات)
 # ==============================================================================
 st.markdown(
     f"""
@@ -365,7 +365,7 @@ button[data-baseweb="tab"] {{
 
 
 # ==============================================================================
-# 3. قاعدة البيانات ومحرك الرسائل
+# 3. قاعدة البيانات ومحرك الرسائل البسيطة (عربي + أوردو)
 # ==============================================================================
 def load_db() -> dict:
     if os.path.exists(DATA_FILE):
@@ -455,7 +455,7 @@ def inject_demo_scenario():
                 "room_code": rc,
                 "loc": loc,
                 "cat": "نظيفة",
-                "detail": "غرفة نظيفة ومميزة",
+                "detail": "غرفة نظيفة",
                 "time": ts_now,
                 "checked_at": "",
                 "ts": now_ep,
@@ -472,7 +472,7 @@ def inject_demo_scenario():
                 "room_code": rc,
                 "loc": loc,
                 "cat": "مبيد",
-                "detail": "طلب مبيد حشرات",
+                "detail": "دواء حشرات",
                 "time": ts_now,
                 "checked_at": "",
                 "ts": now_ep,
@@ -584,7 +584,7 @@ def build_grouped_by_floor(items: list[dict], show_repeat_tag: bool = False) -> 
     for item in items:
         rc = str(item.get("room_code", ""))
         cnt = item.get("count", 1)
-        tag = f" *(تكرار {cnt})*" if (show_repeat_tag and cnt > 1) else ""
+        tag = f" *(تكررت {cnt} مرات)*" if (show_repeat_tag and cnt > 1) else ""
         if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
             by_floor[rc[0]].append((rc, tag))
         else:
@@ -612,35 +612,53 @@ def build_grouped_by_floor(items: list[dict], show_repeat_tag: bool = False) -> 
 
 
 def build_worker_checklist(undelivered_pests: list[dict], open_repairs: list[dict]) -> str:
+    """رسالة مهام للعامل مبنية على الترميز المزدوج: يفهمها أي شخص (عربي أو أوردو) بعمر 10 سنوات"""
     sup_label = SUPERVISOR_NAME.strip() or "فارس العصيمي"
     lines = [
-        f"السلام عليكم | *{LOCATION_TAG} ({LOCATION_URDU})*",
+        f"السلام عليكم ورحمة الله وبركاته 🌹",
+        f"🏢 *{LOCATION_TAG}* | *{LOCATION_URDU}*",
         f"المشرف: *{sup_label}* | سپروائزر: *{sup_label}*",
-        "🤝 *فضلاً حدد (✅ أو ❌) تحت كل غرفة وأعد الإرسال:*",
-        "🤝 *ہر کمرے کے نیچے (✅ یا ❌) منتخب کر کے واپس بھیجیں:*",
+        "👇 *المطلوب منك (یہ کام کرنا ہے):*",
     ]
 
     if undelivered_pests:
-        lines.append("\n*🪲 مبيد حشرات (کیڑے مار دوا):*")
+        lines.append("\n*🪲 أعطِ دواء حشرات (کیڑے مار دوا دینی ہے):*")
         for p in undelivered_pests:
             rc = str(p.get("room_code", ""))
             if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
                 flr = FLOORS[rc[0]]
-                lines.append(f"• غرفة *{rc}* ({flr['name']} / {flr['urdu']})\n  تم الاستلام / وصول: ✅  |  ❌")
+                lines.append(
+                    f"• غرفة *{rc}* ({flr['name']} / {flr['urdu']})\n"
+                    f"  هل وصل الدواء؟ (دوا دے دی؟):  ✅ نعم   |   ❌ لا"
+                )
             else:
-                lines.append(f"• {p['loc']}\n  تم الاستلام / وصول: ✅  |  ❌")
+                lines.append(
+                    f"• {p['loc']}\n"
+                    f"  هل وصل الدواء؟ (دوا دے دی؟):  ✅ نعم   |   ❌ لا"
+                )
 
     if open_repairs:
-        lines.append("\n*🛠️ صيانة (مرمت کا کام):*")
+        lines.append("\n*🛠️ صلح هذا العطل (یہ چیز ٹھیک کرنی ہے):*")
         for r in open_repairs:
             rc = str(r.get("room_code", ""))
-            urdu_issue = MAINT_URDU.get(r["item"], r["item"])
+            urdu_action = MAINT_URDU.get(r["item"], r["item"])
             if len(rc) >= 3 and rc[0] in FLOORS and rc.isdigit():
                 flr = FLOORS[rc[0]]
-                lines.append(f"• غرفة *{rc}* ({flr['urdu']}) : *{r['item']}* ({urdu_issue})\n  الإنجاز / مکمل: ✅  |  ❌")
+                lines.append(
+                    f"• غرفة *{rc}* ({flr['name']} / {flr['urdu']})\n"
+                    f"  المطلوب: *{r['item']}* ({urdu_action})\n"
+                    f"  هل تصلّح؟ (ٹھیک ہو گیا؟):  ✅ نعم   |   ❌ لا"
+                )
             else:
-                lines.append(f"• {r['loc']} : *{r['item']}* ({urdu_issue})\n  الإنجاز / مکمل: ✅  |  ❌")
+                lines.append(
+                    f"• {r['loc']} : *{r['item']}* ({urdu_action})\n"
+                    f"  هل تصلّح؟ (ٹھیک ہو گیا؟):  ✅ نعم   |   ❌ لا"
+                )
 
+    lines.append(
+        "\n📲 *رد على هذه الرسالة واكتب رقم الغرفة + ✅*\n"
+        "📲 *اس میسج پر ریپلائی کر کے کمرہ نمبر + ✅ لکھ دیں، شکریہ*"
+    )
     return "\n".join(lines)
 
 
@@ -760,7 +778,7 @@ def record_daily(cat: str, label: str):
 
         if is_pest:
             init_state = "📦 بانتظار تسليم المبيد"
-            detail_txt = "طلب مبيد حشرات"
+            detail_txt = "دواء حشرات"
         elif is_star:
             init_state = "غرفة نظيفة (تخطي) 🌟"
             detail_txt = label
@@ -978,25 +996,22 @@ with tab1:
             unsafe_allow_html=True,
         )
 
-    # زر النظيفة الكبير في الأعلى
     st.button(
         "🌟 نظيفة (التالي)",
         key="b_star",
         on_click=record_daily,
-        args=("نظيفة", "غرفة نظيفة ومميزة"),
+        args=("نظيفة", "غرفة نظيفة"),
         use_container_width=True,
     )
 
-    # الأزرار الأربعة بكلمات بسيطة جداً
     c1, c2 = st.columns(2)
     with c1:
         st.button("🔌 سخان", key="b_heater", on_click=record_daily, args=("سحب سخان", "سحب سخان"), use_container_width=True)
         st.button("⚠️ سخان + نظافة", key="b_both", on_click=record_daily, args=("سخان ونظافة", "إنذار سخان ونظافة"), use_container_width=True)
     with c2:
         st.button("🗑️ نظافة", key="b_clean", on_click=record_daily, args=("إنذار نظافة", "إنذار نظافة"), use_container_width=True)
-        st.button("🪲 دواء", key="b_pest", on_click=record_daily, args=("مبيد", "طلب مبيد حشرات"), use_container_width=True)
+        st.button("🪲 دواء", key="b_pest", on_click=record_daily, args=("مبيد", "دواء حشرات"), use_container_width=True)
 
-    # بطاقة الغرفة الحالية
     st.markdown(
         f"""
         <div class="room-hero">
@@ -1007,7 +1022,6 @@ with tab1:
         unsafe_allow_html=True,
     )
 
-    # إشعار الحفظ وزر الرجوع الفوري
     if "last_saved" in st.session_state:
         s = st.session_state["last_saved"]
         status_txt = "⏳ مسجل من قبل:" if s["dup"] else "✅ تم الحفظ:"
@@ -1018,7 +1032,6 @@ with tab1:
         if "undo" in st.session_state:
             st.button("↩️ رجوع (غلطت)", key="btn_undo", on_click=undo_last, use_container_width=True)
 
-    # أزرار الأعطال الثلاثة
     m1, m2, m3 = st.columns(3)
     with m1:
         st.button("❄️ مكيف", key="m_ac", on_click=record_maint, args=("المكيف",), use_container_width=True)
@@ -1034,7 +1047,6 @@ with tab1:
             unsafe_allow_html=True,
         )
 
-    # خيارات الكتابة مطوية للحفاظ على بساطة الشاشة
     with st.expander("⌨️ كتابة مكان أو عطل آخر"):
         cm1, cm2 = st.columns([2.6, 1])
         with cm1:
@@ -1164,7 +1176,7 @@ with tab2:
                         save_db()
                     st.rerun()
 
-# --- الخطوة 3: الإرسال بلمسة واحدة ---
+# --- الخطوة 3: الإرسال بلمسة واحدة (رسائل بسيطة جداً ومفصلة) ---
 with tab3:
     sup_label = SUPERVISOR_NAME.strip() or "فارس العصيمي"
 
@@ -1194,20 +1206,21 @@ with tab3:
     unique_clean_count = len(set(f["loc"] for f in star_recs))
     compliance_pct = round((unique_clean_count / total_inspected) * 100) if total_inspected else 0
 
+    # 1. الملخص السريع للمدير (بسيط ومباشر)
     short_lines = [
-        "السلام عليكم ورحمة الله وبركاته،",
-        f"*ملخص متابعة {LOCATION_TAG} — المشرف: {sup_label}*",
-        f"📊 *الجولة:* {total_inspected} غرفة | نظيفة: {unique_clean_count} ({compliance_pct}%)",
+        "السلام عليكم ورحمة الله وبركاته 🌹",
+        f"*ملخص جولة {LOCATION_TAG}* (المشرف: {sup_label})",
+        f"🌟 *الغرف النظيفة:* {unique_clean_count} من {total_inspected} غرفة ({compliance_pct}%)",
     ]
     if open_reps:
         short_lines.append(
-            f"🛠️ *صيانة مفتوحة ({len(open_reps)}):* "
+            f"🛠️ *أعطال صيانة ({len(open_reps)}):* "
             + "، ".join([f"{r.get('room_code', r['loc'])} ({r['item']})" for r in open_reps])
         )
     if not_done_recs:
-        short_lines.append(f"❌ *ما تم — قيد تراكمي ({len(not_done_recs)}):* {fast_list(not_done_recs)}")
+        short_lines.append(f"❌ *غرف ما نظّفت — تكررت ({len(not_done_recs)}):* {fast_list(not_done_recs)}")
     if pest_recs:
-        short_lines.append(f"🪲 *مبيدات ({len(pest_recs)}):* {fast_list(pest_recs)}")
+        short_lines.append(f"🪲 *تحتاج دواء حشرات ({len(pest_recs)}):* {fast_list(pest_recs)}")
     if heater_recs:
         short_lines.append(f"🔌 *سحب سخان ({len(heater_recs)}):* {fast_list(heater_recs)}")
     if clean_recs:
@@ -1215,8 +1228,8 @@ with tab3:
     if both_recs:
         short_lines.append(f"⚠️ *سخان ونظافة ({len(both_recs)}):* {fast_list(both_recs)}")
     if done_checks:
-        short_lines.append(f"✅ *تم الالتزام بعد المتابعة ({len(done_checks)}):* {fast_list(done_checks)}")
-    short_lines.append("وتفضلوا بقبول فائق الاحترام والتقدير.")
+        short_lines.append(f"✅ *شيكنا عليها وصارت نظيفة ({len(done_checks)}):* {fast_list(done_checks)}")
+    short_lines.append("ولكم جزيل الشكر والتقدير.")
 
     short_wa_msg = "\n".join(short_lines)
     st.markdown(
@@ -1224,26 +1237,27 @@ with tab3:
         unsafe_allow_html=True,
     )
 
+    # 2. التقرير المفصل (يفهمه عمر 7 سنوات ويحوي كل التفاصيل بدقة)
     rep_lines = [
-        "السلام عليكم ورحمة الله وبركاته،",
-        f"*التقرير الميداني التفصيلي — {LOCATION_TAG}*",
-        f"*المشرف: {sup_label}* | {now_str()}",
-        f"📊 *الملخص:* {total_inspected} غرفة | نظيفة: {unique_clean_count} ({compliance_pct}%) | ملاحظات قيد المتابعة: {len(active_followups)}",
+        "السلام عليكم ورحمة الله وبركاته 🌹",
+        f"*تقرير المتابعة اليومي — {LOCATION_TAG}*",
+        f"المشرف: *{sup_label}* | {now_str()}",
+        f"📊 *النتيجة:* فحصنا *{total_inspected}* غرفة | النظيفة: *{unique_clean_count}* ({compliance_pct}%) | الملاحظات: *{len(active_followups)}*",
     ]
 
     if open_reps:
-        rep_lines.append(f"\n*🛠️ أعمال الصيانة المفتوحة ({len(open_reps)}):*")
+        rep_lines.append(f"\n*🛠️ أعطال تحتاج تصليح ({len(open_reps)}):*")
         for r in open_reps:
-            rep_note = f" (قيد {r['repeat']})" if r.get("repeat", 1) > 1 else ""
-            rep_lines.append(f"• {r['loc']} — {r['item']}{rep_note} ({r['time']})")
+            rep_note = f" (تكررت {r['repeat']} مرات)" if r.get("repeat", 1) > 1 else ""
+            rep_lines.append(f"• {r['loc']} : *{r['item']}*{rep_note} ({r['time']})")
 
     if not_done_recs:
-        rep_lines.append(f"\n*❌ حالات لم تلتزم بعد المتابعة — ما تم ({len(not_done_recs)}):*")
+        rep_lines.append(f"\n*❌ غرف ما نظّفت بعد التنبيه ({len(not_done_recs)}):*")
         for nd in not_done_recs:
-            rep_lines.append(f"• {nd['loc']} — {nd['detail']} (قيد تراكمي: {nd['count']})")
+            rep_lines.append(f"• {nd['loc']} : {nd['detail']} (تكررت {nd['count']} مرات)")
 
     if heater_recs or clean_recs or both_recs or pest_recs:
-        rep_lines.append("\n*📋 الملاحظات والمبيدات قيد المتابعة (دورة 3 أيام):*")
+        rep_lines.append("\n*📋 تفاصيل الغرف تحت المتابعة (كل 3 أيام):*")
         if heater_recs:
             rep_lines.append(f"• *🔌 سحب سخان ({len(heater_recs)}):*\n{build_grouped_by_floor(heater_recs, True)}")
         if clean_recs:
@@ -1253,14 +1267,14 @@ with tab3:
         if pest_recs:
             pest_waiting = [p for p in pest_recs if p["state"] in ["📦 بانتظار تسليم المبيد", "⚠️ لم يُسلّم المبيد بعد"]]
             pest_active = [p for p in pest_recs if p["state"] == "بانتظار التشيك"]
-            rep_lines.append(f"• *🪲 طلبات المبيدات ({len(pest_recs)}):*")
+            rep_lines.append(f"• *🪲 طلبات دواء الحشرات ({len(pest_recs)}):*")
             if pest_waiting:
-                rep_lines.append(f"  - بانتظار استلام/تسليم العامل ({len(pest_waiting)}): {fast_list(pest_waiting)}")
+                rep_lines.append(f"  - باقي عند العامل ما وصل ({len(pest_waiting)}): {fast_list(pest_waiting)}")
             if pest_active:
-                rep_lines.append(f"  - تم الاستلام / قيد متابعة 3 أيام ({len(pest_active)}): {fast_list(pest_active)}")
+                rep_lines.append(f"  - وصل الغرفة ونشيك بعد 3 أيام ({len(pest_active)}): {fast_list(pest_active)}")
 
     if done_checks:
-        rep_lines.append(f"\n*✅ حالات تم الالتزام بها بعد المتابعة — تم ({len(done_checks)}):*")
+        rep_lines.append(f"\n*✅ غرف شيكنا عليها وصارت نظيفة ({len(done_checks)}):*")
         rep_lines.append(build_grouped_by_floor(done_checks, False))
 
     if star_recs:
@@ -1277,21 +1291,21 @@ with tab3:
                 continue
             max_r = f_info["count"]
             if len(c_codes) >= max_r:
-                clean_summary_lines.append(f"  - {f_info['name']}: {max_r}/{max_r} نظيفة بالكامل 🌟")
+                clean_summary_lines.append(f"  - {f_info['name']}: كل الغرف نظيفة ({max_r}/{max_r}) 🌟")
             else:
                 clean_summary_lines.append(
-                    f"  - {f_info['name']}: {len(c_codes)}/{max_r} نظيفة ({compress_room_ranges(c_codes)})"
+                    f"  - {f_info['name']}: {len(c_codes)} من {max_r} نظيفة ({compress_room_ranges(c_codes)})"
                 )
         if clean_summary_lines:
-            rep_lines.append("\n*🌟 الغرف النظيفة حسب الأدوار:*")
+            rep_lines.append("\n*🌟 الغرف النظيفة في كل دور:*")
             rep_lines.extend(clean_summary_lines)
 
     if fixed_reps:
-        rep_lines.append(f"\n*✔️ صيانة تم إنجازها ({len(fixed_reps)}):*")
+        rep_lines.append(f"\n*✔️ أعطال تصلّحت اليوم ({len(fixed_reps)}):*")
         for fx in fixed_reps:
-            rep_lines.append(f"• {fx['loc']} — {fx['item']} ✓")
+            rep_lines.append(f"• {fx['loc']} : {fx['item']} ✓")
 
-    rep_lines.append(f"\nوتفضلوا بقبول فائق الاحترام والتقدير،\n*المشرف: {sup_label}*")
+    rep_lines.append(f"\nولكم جزيل الشكر والتقدير،\n*المشرف: {sup_label}*")
 
     full_report = "\n".join(rep_lines)
     st.markdown(
