@@ -129,6 +129,17 @@ div.st-key-rm_{active_rm} button {{
     font-weight: 900 !important;
 }}
 
+/* زر الغرفة النظيفة في الأعلى مباشرة تحت الشبكة */
+div.st-key-b_star button {{
+    height: 45px !important;
+    margin-top: 3px !important;
+    margin-bottom: 4px !important;
+    background: rgba(16, 185, 129, 0.16) !important;
+    border-color: #10b981 !important;
+    color: #6ee7b7 !important;
+    font-size: 0.98em !important;
+}}
+
 /* تمييز لوني هادئ للأزرار اليومية */
 div.st-key-b_heater button, div.st-key-b_clean button, div.st-key-b_both button {{
     background: rgba(245, 158, 11, 0.13) !important;
@@ -137,12 +148,6 @@ div.st-key-b_heater button, div.st-key-b_clean button, div.st-key-b_both button 
 div.st-key-b_pest button {{
     background: rgba(168, 85, 247, 0.14) !important;
     border-color: rgba(192, 132, 252, 0.48) !important;
-}}
-div.st-key-b_star button {{
-    height: 43px !important;
-    background: rgba(16, 185, 129, 0.14) !important;
-    border-color: #10b981 !important;
-    color: #6ee7b7 !important;
 }}
 
 /* أزرار الصيانة الخفيفة */
@@ -186,8 +191,8 @@ button[data-baseweb="tab"] {{
     background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
     border: 1.5px solid #10b981;
     border-radius: 12px;
-    padding: 7px 10px;
-    margin-bottom: 6px;
+    padding: 8px 10px;
+    margin: 4px 0 6px 0;
     text-align: center;
     font-weight: 900;
     font-size: 1.03em;
@@ -385,7 +390,6 @@ def record_daily(cat: str, label: str):
         cnt = db["history"][h_key]
 
         is_star = cat == "نظيفة"
-        # تصعيد تلقائي للتقييم/النقل إذا تكررت المخالفة أو السحب مرتين فأكثر
         auto_escalate = (not is_star) and (cat != "مبيد") and (cnt >= 2)
 
         fid = uuid.uuid4().hex[:8]
@@ -496,7 +500,7 @@ def undo_last():
 
 
 # ==============================================================================
-# 5. الواجهة (خريطة السكن + المهام بدورة 3 أيام + تقرير مختصر ومفصل)
+# 5. الواجهة (خريطة السكن + تبديل مكان الغرفة النظيفة والشريط الأخضر)
 # ==============================================================================
 open_reps = [r for r in db["repairs"] if r["status"] == "مفتوح"]
 fixed_reps = [r for r in db["repairs"] if r["status"] == "تم الإصلاح"]
@@ -551,13 +555,16 @@ with tab1:
                     use_container_width=True,
                 )
 
-    # شريط الغرفة النشطة
-    st.markdown(
-        f'<div class="active-banner">📍 {format_room(active_rm)}</div>',
-        unsafe_allow_html=True,
+    # 1. زر الغرفة النظيفة في الأعلى مكان الشريط الأخضر
+    st.button(
+        "🌟 غرفة نظيفة (تخطي)",
+        key="b_star",
+        on_click=record_daily,
+        args=("نظيفة", "غرفة نظيفة ومميزة"),
+        use_container_width=True,
     )
 
-    # أزرارك اليومية الأربعة + زر الغرفة النظيفة
+    # 2. أزرارك اليومية الأربعة الأساسية
     c1, c2 = st.columns(2)
     with c1:
         st.button("🔌 سحب سخان", key="b_heater", on_click=record_daily, args=("سحب سخان", "سحب سخان"), use_container_width=True)
@@ -566,7 +573,11 @@ with tab1:
         st.button("🗑️ إنذار نظافة", key="b_clean", on_click=record_daily, args=("إنذار نظافة", "إنذار نظافة"), use_container_width=True)
         st.button("🪲 طلب دواء", key="b_pest", on_click=record_daily, args=("مبيد", "طلب دواء (مبيد حشرات)"), use_container_width=True)
 
-    st.button("🌟 غرفة نظيفة (تخطي)", key="b_star", on_click=record_daily, args=("نظيفة", "غرفة نظيفة ومميزة"), use_container_width=True)
+    # 3. الشريط الأخضر للغرفة المحددة حالياً في الأسفل مكان زر الغرفة النظيفة
+    st.markdown(
+        f'<div class="active-banner">📍 {format_room(active_rm)}</div>',
+        unsafe_allow_html=True,
+    )
 
     # إشعار الحفظ الفوري + واتساب + تراجع
     if "last_saved" in st.session_state:
@@ -626,7 +637,6 @@ with tab2:
 
     if pending_checks:
         st.markdown("##### 🔍 المتابعة والتشيك (دورة 3 أيام):")
-        # ترتيب المستحق (3 أيام فأكثر) في الأعلى أولاً
         sorted_checks = sorted(
             pending_checks,
             key=lambda x: days_since(x.get("ts", 0)),
@@ -686,7 +696,6 @@ with tab3:
     star_recs = [f for f in db["followups"] if f["cat"] == "نظيفة"]
     escalated_recs = [f for f in db["followups"] if f.get("escalated")]
 
-    # 1. رسالة التحويل المختصرة جداً للواتساب (أرقام فقط بدون حشو)
     def rooms_csv(items):
         return "، ".join(dict.fromkeys([i.get("room_code", i["loc"]) for i in items])) or "لا يوجد"
 
@@ -708,7 +717,6 @@ with tab3:
         unsafe_allow_html=True,
     )
 
-    # 2. سلة التقرير المفصل بكل التفاصيل وتقييم المخالفات والنقل
     heater_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in heater_recs]) or "• لا يوجد"
     clean_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in clean_recs]) or "• لا يوجد"
     both_txt = "\n".join([f"• {f['loc']} (تكرار {f['count']}) — {f['state']}" for f in both_recs]) or "• لا يوجد"
