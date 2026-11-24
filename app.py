@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
-import hmac
 import json
+import math
 import os
 import threading
 import time
@@ -9,67 +9,46 @@ import uuid
 import streamlit as st
 
 # ==============================================================================
-# 1. الإعدادات وثوابت الصفقات (مَقسوم — صفقات العطور التشاركية)
+# 1. الإعدادات المحاسبية والتشغيلية لمشروع «مَقسوم»
 # ==============================================================================
 KSA_TZ = timezone(timedelta(hours=3))
-BRAND_NAME = "مَقسوم | Maqsoom"
-ADMIN_PHONE = "966566261868"
-ADMIN_PIN = str(st.secrets.get("ADMIN_PIN", "9900")).strip()
+APP_TITLE = "مَقسوم — التجميع الذكي"
 DATA_FILE = "maqsoom_pro.json"
+ADMIN_PIN = "9900"
 HOLD_MINUTES = 15
 
-DEALS = {
-    "DERAAH-GOLD-01": {
-        "short": "درعه 50%",
-        "title": "باقة درعه الذهبية (خصم 50%)",
-        "orig_price": 210,
-        "deal_price": 105,
-        "capacity": 4,
-    },
-    "DERAAH-VIP-02": {
-        "short": "درعه VIP",
-        "title": "مجموعة درعه النخبة (خصم 50%)",
-        "orig_price": 300,
-        "deal_price": 150,
-        "capacity": 4,
-    },
-}
+# إعدادات التسعير والمحاسبة (عرض 2+2 = 4 مقاعد)
+BUNDLE_TOTAL_PRICE = 132.0   # إجمالي تكلفة الباقة (4 عطور)
+SEATS_PER_BASKET = 4         # عدد المقاعد في السلة الواحدة
+SINGLE_RETAIL_PRICE = 66.0   # السعر الفردي خارج العرض (لإبراز التوفير)
+SEAT_PRICE = math.ceil(BUNDLE_TOTAL_PRICE / SEATS_PER_BASKET)  # 33 ريال للمقعد
+SAVED_PER_SEAT = max(0, int(SINGLE_RETAIL_PRICE - SEAT_PRICE))
+SAVED_PCT = round((SAVED_PER_SEAT / SINGLE_RETAIL_PRICE) * 100) if SINGLE_RETAIL_PRICE else 0
 
-PICKUP_OPTIONS = {
-    "redsea": {
-        "short": "🏬 الرد سي مول",
-        "full": "استلام يد بيد — الرد سي مول (جدة)",
-    },
-    "redbox": {
-        "short": "📦 خزائن RedBox",
-        "full": "توصيل ذكي — خزائن RedBox",
-    },
+PICKUP_POINTS = {
+    "redsea": "🛍️ الرد سي مول (استلام مباشر)",
+    "redbox": "📦 خزائن RedBox (توصيل ذكي)",
 }
-
-ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
 
 st.set_page_config(
-    page_title="مَقسوم | صفقات العطور",
-    page_icon="🛍️",
+    page_title="مَقسوم | وفّر 50%",
+    page_icon="💎",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
 
-if "sel_deal" not in st.session_state:
-  st.session_state["sel_deal"] = "DERAAH-GOLD-01"
 if "sel_seat" not in st.session_state:
-  st.session_state["sel_seat"] = 1
+    st.session_state["sel_seat"] = 1
 if "sel_pickup" not in st.session_state:
-  st.session_state["sel_pickup"] = "redsea"
+    st.session_state["sel_pickup"] = "redsea"
 if "undo_stack" not in st.session_state:
-  st.session_state["undo_stack"] = []
+    st.session_state["undo_stack"] = []
 
-active_deal_id = st.session_state["sel_deal"]
-active_seat_num = st.session_state["sel_seat"]
-active_pickup_key = st.session_state["sel_pickup"]
+active_seat = st.session_state["sel_seat"]
+active_pickup = st.session_state["sel_pickup"]
 
 # ==============================================================================
-# 2. التصميم البصري المبسط (نفس فلسفة الإبهام الواحد والألوان الواضحة)
+# 2. التصميم البصري المبسط (نفس فلسفة لمسة الإبهام الواحدة + وضوح مالي)
 # ==============================================================================
 st.markdown(
     f"""
@@ -89,7 +68,7 @@ html, body, .stApp {{
 .block-container {{
     max-width: 440px !important;
     width: 100% !important;
-    padding: 0.35rem 0.6rem 2rem 0.6rem !important;
+    padding: 0.4rem 0.65rem 2.2rem 0.65rem !important;
     margin: 0 auto !important;
 }}
 
@@ -109,7 +88,7 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {{
 
 div.stButton {{ width: 100% !important; }}
 div.stButton > button {{
-    height: 53px !important;
+    height: 54px !important;
     width: 100% !important;
     padding: 0 6px !important;
     font-size: 0.98em !important;
@@ -126,68 +105,58 @@ div.stButton > button:active {{
     transform: scale(0.95) !important;
 }}
 
-/* أزرار اختيار الباقة */
-div[class*="st-key-deal_"] button {{
-    height: 42px !important;
-    font-size: 0.92em !important;
-    background: #111827 !important;
-}}
-div.st-key-deal_{active_deal_id} button {{
-    background: #10b981 !important;
-    color: #022c22 !important;
-    border-color: #10b981 !important;
-}}
-
-/* أزرار المقاعد الأربعة (1 إلى 4) */
+/* أزرار المقاعد الأربعة */
 div[class*="st-key-seat_"] button {{
-    height: 48px !important;
+    height: 62px !important;
     font-size: 0.94em !important;
+    border-radius: 14px !important;
     background: #111827 !important;
 }}
-div.st-key-seat_{active_seat_num} button {{
+div.st-key-seat_{active_seat} button {{
     border: 2.5px solid #10b981 !important;
-    background: rgba(16, 185, 129, 0.25) !important;
+    background: rgba(16, 185, 129, 0.22) !important;
     color: #ecfdf5 !important;
 }}
 
-/* أزرار طريقة الاستلام */
-div[class*="st-key-pick_"] button {{
-    height: 44px !important;
-    font-size: 0.9em !important;
+/* أزرار نقطة الاستلام */
+div[class*="st-key-pk_"] button {{
+    height: 46px !important;
+    font-size: 0.88em !important;
+    border-radius: 12px !important;
     background: #111827 !important;
 }}
-div.st-key-pick_{active_pickup_key} button {{
-    background: rgba(56, 189, 248, 0.22) !important;
+div.st-key-pk_{active_pickup} button {{
+    background: #0ea5e9 !important;
+    color: #082f49 !important;
     border-color: #38bdf8 !important;
-    color: #bae6fd !important;
 }}
 
 /* زر الحجز الرئيسي */
-div.st-key-btn_join_seat button {{
+div.st-key-btn_book_main button {{
     height: 58px !important;
     font-size: 1.08em !important;
-    background: rgba(16, 185, 129, 0.22) !important;
-    border: 2px solid #10b981 !important;
-    color: #6ee7b7 !important;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border: none !important;
+    color: #022c22 !important;
 }}
 
-/* أزرار التراجع وتصفير المقعد */
+/* أزرار التراجع والتصفير */
 div.st-key-btn_undo button {{
     height: 46px !important;
     background: rgba(244, 63, 94, 0.18) !important;
     border: 1.5px solid #f43f5e !important;
     color: #fda4af !important;
-    font-size: 0.93em !important;
+    font-size: 0.92em !important;
 }}
 div.st-key-btn_clear_seat button {{
     height: 46px !important;
     background: rgba(148, 163, 184, 0.16) !important;
     border: 1.5px solid #94a3b8 !important;
     color: #e2e8f0 !important;
-    font-size: 0.91em !important;
+    font-size: 0.92em !important;
 }}
 
-/* أزرار الصح والخطأ في التبويب الثاني */
+/* أزرار تأكيد الدفع والإلغاء في التبويب 2 */
 div[class*="st-key-pay_ok_"] button {{
     height: 50px !important;
     background: rgba(16, 185, 129, 0.22) !important;
@@ -201,7 +170,7 @@ div[class*="st-key-pay_no_"] button {{
     color: #fda4af !important;
 }}
 
-input[type="text"] {{
+input[type="text"], input[type="password"] {{
     font-size: 16px !important;
     height: 44px !important;
     border-radius: 11px !important;
@@ -230,24 +199,44 @@ button[data-baseweb="tab"] {{
     font-size: 0.92em;
 }}
 
+.saving-banner {{
+    background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
+    border: 2px solid #10b981;
+    border-radius: 15px;
+    padding: 10px 12px;
+    margin: 4px 0 8px 0;
+    text-align: center;
+}}
+.saving-big {{
+    font-size: 1.25em;
+    font-weight: 900;
+    color: #ecfdf5;
+}}
+.saving-sub {{
+    font-size: 0.85em;
+    color: #6ee7b7;
+    margin-top: 2px;
+    font-weight: 800;
+}}
+
 .prog-wrap {{
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 6px 10px;
-    margin: 4px 0 6px 0;
+    border-radius: 11px;
+    padding: 7px 10px;
+    margin: 5px 0 8px 0;
 }}
 .prog-head {{
     display: flex;
     justify-content: space-between;
-    font-size: 0.82em;
+    font-size: 0.84em;
     font-weight: 800;
-    color: #94a3b8;
-    margin-bottom: 4px;
+    color: #cbd5e1;
+    margin-bottom: 5px;
 }}
 .prog-track {{
     background: #1e293b;
-    height: 8px;
+    height: 9px;
     border-radius: 999px;
     overflow: hidden;
 }}
@@ -258,83 +247,54 @@ button[data-baseweb="tab"] {{
     transition: width 0.3s ease;
 }}
 
-.seat-hero {{
-    background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
-    border: 2px solid #10b981;
-    border-radius: 15px;
-    padding: 9px 10px;
-    margin: 4px 0 6px 0;
-    text-align: center;
-}}
-.seat-hero-big {{
-    font-size: 1.25em;
-    font-weight: 900;
-    color: #ecfdf5;
-}}
-.seat-hero-sub {{
-    font-size: 0.84em;
-    color: #a7f3d0;
-    margin-top: 2px;
-    font-weight: 700;
-}}
-
-.shield-box {{
-    background: rgba(56, 189, 248, 0.16);
-    border: 1.5px solid #38bdf8;
-    border-radius: 11px;
-    padding: 8px;
-    margin: 4px 0;
-    text-align: center;
-    font-weight: 900;
-    font-size: 0.88em;
-    color: #bae6fd;
-}}
-.done-banner {{
+.basket-done-banner {{
     background: rgba(16, 185, 129, 0.22);
     border: 2px solid #34d399;
     border-radius: 12px;
-    padding: 9px;
-    margin: 5px 0;
+    padding: 10px;
+    margin: 6px 0;
     text-align: center;
     font-weight: 900;
-    font-size: 0.96em;
+    font-size: 0.98em;
     color: #a7f3d0;
 }}
-.ok-card {{
-    background: rgba(16, 185, 129, 0.16);
-    border: 2px solid #10b981;
-    border-radius: 13px;
-    padding: 9px;
-    margin-top: 5px;
-    color: #6ee7b7;
-    text-align: center;
-    font-weight: 900;
-    font-size: 0.94em;
-}}
-.task-card {{
+
+.seat-card {{
     background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 12px;
     padding: 10px 12px;
-    margin-top: 6px;
-    margin-bottom: 4px;
-    font-size: 0.95em;
+    margin: 6px 0 4px 0;
+    font-size: 0.94em;
 }}
-.task-expired {{
-    background: rgba(244, 63, 94, 0.15) !important;
-    border: 2px solid rgba(244, 63, 94, 0.55) !important;
+.seat-expired {{
+    background: rgba(244, 63, 94, 0.18) !important;
+    border: 2px solid #f43f5e !important;
 }}
+.seat-paid {{
+    background: rgba(16, 185, 129, 0.15) !important;
+    border: 2px solid #10b981 !important;
+}}
+
 .wa-btn {{
     display: block;
     background: #10b981 !important;
     color: #022c22 !important;
     text-align: center;
-    padding: 15px;
+    padding: 14px;
     border-radius: 14px;
     font-weight: 900;
-    font-size: 1.05em;
+    font-size: 1.04em;
     text-decoration: none !important;
     margin: 7px 0;
+}}
+.ledger-box {{
+    background: #111827;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin: 6px 0;
+    font-size: 0.92em;
 }}
 </style>
 """,
@@ -343,519 +303,453 @@ button[data-baseweb="tab"] {{
 
 
 # ==============================================================================
-# 3. قاعدة البيانات (JSON Persistence + Thread Lock)
+# 3. قاعدة البيانات الدائمة ومحرك القيد المحاسبي المزدوج
 # ==============================================================================
+def default_seats() -> dict:
+    return {
+        str(i): {
+            "seat_no": i,
+            "status": "free",       # free | pending | paid
+            "name": "",
+            "phone": "",
+            "pickup": "redsea",
+            "booked_ts": 0.0,
+            "booked_str": "",
+            "paid_str": "",
+            "amount": SEAT_PRICE,
+        }
+        for i in range(1, SEATS_PER_BASKET + 1)
+    }
+
+
 def load_db() -> dict:
-  if os.path.exists(DATA_FILE):
-    try:
-      with open(DATA_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
-    except Exception:
-      pass
-  return {"bookings": [], "completed_groups": 0}
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if "seats" in data and len(data["seats"]) == SEATS_PER_BASKET:
+                    return data
+        except Exception:
+            pass
+    return {
+        "basket_no": 1,
+        "completed_baskets": 0,
+        "seats": default_seats(),
+        "ledger": [],
+    }
 
 
 @st.cache_resource
 def get_db():
-  data = load_db()
-  return {
-      "lock": threading.Lock(),
-      "bookings": data.get("bookings", []),
-      "completed_groups": data.get("completed_groups", 0),
-  }
+    data = load_db()
+    return {
+        "lock": threading.Lock(),
+        "basket_no": data.get("basket_no", 1),
+        "completed_baskets": data.get("completed_baskets", 0),
+        "seats": data.get("seats", default_seats()),
+        "ledger": data.get("ledger", []),
+    }
 
 
 db = get_db()
 
 
 def save_db():
-  try:
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-      json.dump(
-          {
-              "bookings": db["bookings"],
-              "completed_groups": db["completed_groups"],
-          },
-          f,
-          ensure_ascii=False,
-      )
-  except Exception:
-    pass
+    try:
+        with open(DATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "basket_no": db["basket_no"],
+                    "completed_baskets": db["completed_baskets"],
+                    "seats": db["seats"],
+                    "ledger": db["ledger"],
+                },
+                f,
+                ensure_ascii=False,
+            )
+    except Exception:
+        pass
 
 
 def now_str() -> str:
-  return (
-      datetime.now(KSA_TZ)
-      .strftime("%m/%d - %I:%M %p")
-      .replace("AM", "ص")
-      .replace("PM", "م")
-  )
+    return (
+        datetime.now(KSA_TZ)
+        .strftime("%m/%d - %I:%M %p")
+        .replace("AM", "ص")
+        .replace("PM", "م")
+    )
 
 
-def mins_remaining(created_ts: float) -> int:
-  elapsed = (time.time() - created_ts) / 60.0
-  return max(0, int(round(HOLD_MINUTES - elapsed)))
+def wa_app_url(msg: str) -> str:
+    return f"whatsapp://send?text={urllib.parse.quote(msg)}"
 
 
-def wa_link(msg: str, phone: str = "") -> str:
-  encoded = urllib.parse.quote(msg)
-  if phone:
-    return f"https://wa.me/{phone}?text={encoded}"
-  return f"whatsapp://send?text={encoded}"
+def remaining_seconds(booked_ts: float) -> int:
+    if not booked_ts:
+        return 0
+    elapsed = time.time() - booked_ts
+    return int((HOLD_MINUTES * 60) - elapsed)
 
 
-def get_deal_bookings(deal_id: str) -> list[dict]:
-  return [b for b in db["bookings"] if b["deal_id"] == deal_id]
-
-
-def get_seat_record(deal_id: str, seat_num: int) -> dict | None:
-  for b in db["bookings"]:
-    if b["deal_id"] == deal_id and b["seat"] == seat_num:
-      return b
-  return None
-
-
-def get_seat_button_label(deal_id: str, seat_num: int) -> str:
-  rec = get_seat_record(deal_id, seat_num)
-  if not rec:
-    return f"⚪ مقعد {seat_num}"
-  if rec["status"] == "مدفوع ✅":
-    return f"🟢 {rec['name']}"
-  rem = mins_remaining(rec["ts"])
-  if rem == 0:
-    return f"🔴 {rec['name']}"
-  return f"🟡 {rec['name']}"
-
-
-def advance_to_next_empty_seat(deal_id: str, current_seat: int):
-  cap = DEALS[deal_id]["capacity"]
-  taken = {b["seat"] for b in get_deal_bookings(deal_id)}
-  for offset in range(1, cap + 1):
-    cand = ((current_seat - 1 + offset) % cap) + 1
-    if cand not in taken:
-      st.session_state["sel_seat"] = cand
-      return
-
-
-def select_deal(deal_id: str):
-  st.session_state["sel_deal"] = deal_id
-  st.session_state["sel_seat"] = 1
-  st.session_state.pop("last_action_msg", None)
-
-
-def select_seat(seat_num: int):
-  st.session_state["sel_seat"] = seat_num
-  st.session_state.pop("last_action_msg", None)
-
-
-def select_pickup(pick_key: str):
-  st.session_state["sel_pickup"] = pick_key
+def format_countdown(booked_ts: float) -> tuple[str, bool]:
+    rem = remaining_seconds(booked_ts)
+    if rem <= 0:
+        return "🔴 انتهت الـ 15 دقيقة (متأخر)", True
+    mins = rem // 60
+    secs = rem % 60
+    return f"⏳ متبقي {mins:02d}:{secs:02d} دقيقة", False
 
 
 def push_undo(action_obj: dict):
-  stack = st.session_state.setdefault("undo_stack", [])
-  stack.append(action_obj)
-  if len(stack) > 20:
-    stack.pop(0)
+    stack = st.session_state.setdefault("undo_stack", [])
+    stack.append(action_obj)
+    if len(stack) > 30:
+        stack.pop(0)
+
+
+def get_seat_button_label(seat_no: int) -> str:
+    s = db["seats"][str(seat_no)]
+    st_code = s["status"]
+    if st_code == "paid":
+        who = s["name"] or f"مقعد {seat_no}"
+        return f"✅ {who}"
+    if st_code == "pending":
+        _, expired = format_countdown(s["booked_ts"])
+        icon = "🔴" if expired else "🟡"
+        who = s["name"] or f"مقعد {seat_no}"
+        return f"{icon} {who}"
+    return f"⚪ مقعد {seat_no}"
 
 
 # ==============================================================================
-# 4. دوال الحجز، التصفير، والتراجع المتعدد (Zero-Friction)
+# 4. دوال الحجز، الدفع، التراجع، وإغلاق السلة
 # ==============================================================================
-def join_selected_seat():
-  deal_id = st.session_state["sel_deal"]
-  seat_num = st.session_state["sel_seat"]
-  pick_key = st.session_state["sel_pickup"]
-  raw_name = st.session_state.get("buyer_name_in", "").strip()
-  raw_phone = (
-      st.session_state.get("buyer_phone_in", "")
-      .strip()
-      .translate(ARABIC_DIGITS)
-  )
-
-  buyer_name = raw_name if raw_name else f"مشارك {seat_num}"
-  deal_info = DEALS[deal_id]
-
-  with db["lock"]:
-    existing = get_seat_record(deal_id, seat_num)
-    if existing:
-      st.session_state["last_action_msg"] = {
-          "text": f"🛡️ المقعد {seat_num} محجوز مسبقاً باسم ({existing['name']})",
-          "warn": True,
-      }
-      return
-
-    bid = uuid.uuid4().hex[:8]
-    db["bookings"].append({
-        "id": bid,
-        "deal_id": deal_id,
-        "seat": seat_num,
-        "name": buyer_name,
-        "phone": raw_phone,
-        "pickup_key": pick_key,
-        "pickup_label": PICKUP_OPTIONS[pick_key]["full"],
-        "price": deal_info["deal_price"],
-        "status": "بانتظار الدفع ⏳",
-        "time": now_str(),
-        "ts": time.time(),
-    })
-    save_db()
-
-    push_undo({
-        "type": "join",
-        "bid": bid,
-        "deal_id": deal_id,
-        "prev_seat": seat_num,
-    })
-    st.session_state["last_action_msg"] = {
-        "text": (
-            f"✅ تم حجز مقعد {seat_num} باسم ({buyer_name}) — السعر"
-            f" {deal_info['deal_price']} ريال"
-        ),
-        "warn": False,
-    }
-
-  st.session_state["buyer_name_in"] = ""
-  st.session_state["buyer_phone_in"] = ""
-  advance_to_next_empty_seat(deal_id, seat_num)
+def select_seat(seat_no: int):
+    st.session_state["sel_seat"] = seat_no
 
 
-def clear_selected_seat():
-  deal_id = st.session_state["sel_deal"]
-  seat_num = st.session_state["sel_seat"]
-  with db["lock"]:
-    rec = get_seat_record(deal_id, seat_num)
-    if not rec:
-      return
-    db["bookings"] = [b for b in db["bookings"] if b["id"] != rec["id"]]
-    save_db()
-    push_undo({
-        "type": "clear_seat",
-        "record": rec,
-        "deal_id": deal_id,
-        "prev_seat": seat_num,
-    })
-    st.session_state["last_action_msg"] = {
-        "text": f"🧹 تم إخلاء مقعد {seat_num} وإتاحته للجميع",
-        "warn": False,
-    }
+def select_pickup(pk_key: str):
+    st.session_state["sel_pickup"] = pk_key
+
+
+def book_active_seat():
+    seat_no = st.session_state["sel_seat"]
+    pk_key = st.session_state["sel_pickup"]
+    cust_name = st.session_state.get("in_name", "").strip()
+    cust_phone = st.session_state.get("in_phone", "").strip()
+
+    with db["lock"]:
+        s = db["seats"][str(seat_no)]
+        if s["status"] != "free":
+            st.session_state["flash_msg"] = ("warn", f"المقعد {seat_no} محجوز مسبقاً!")
+            return
+
+        prev_snapshot = dict(s)
+        s["status"] = "pending"
+        s["name"] = cust_name if cust_name else f"مشترك {seat_no}"
+        s["phone"] = cust_phone
+        s["pickup"] = pk_key
+        s["booked_ts"] = time.time()
+        s["booked_str"] = now_str()
+        s["amount"] = SEAT_PRICE
+        save_db()
+
+        push_undo({
+            "type": "book",
+            "seat_no": seat_no,
+            "prev": prev_snapshot,
+        })
+        st.session_state["flash_msg"] = (
+            "ok",
+            f"تم حجز المقعد {seat_no} ({s['name']}) — لديك 15 دقيقة للتحويل!",
+        )
+
+    st.session_state["in_name"] = ""
+    st.session_state["in_phone"] = ""
+
+    # الانتقال التلقائي لأول مقعد شاغر لتسهيل تجربة المستخدم
+    for nxt in range(1, SEATS_PER_BASKET + 1):
+        if db["seats"][str(nxt)]["status"] == "free":
+            st.session_state["sel_seat"] = nxt
+            break
+
+
+def clear_specific_seat(seat_no: int):
+    with db["lock"]:
+        s = db["seats"][str(seat_no)]
+        if s["status"] == "free":
+            return
+        prev_snapshot = dict(s)
+        db["seats"][str(seat_no)] = {
+            "seat_no": seat_no,
+            "status": "free",
+            "name": "",
+            "phone": "",
+            "pickup": "redsea",
+            "booked_ts": 0.0,
+            "booked_str": "",
+            "paid_str": "",
+            "amount": SEAT_PRICE,
+        }
+        save_db()
+        push_undo({
+            "type": "clear",
+            "seat_no": seat_no,
+            "prev": prev_snapshot,
+        })
+        st.session_state["flash_msg"] = ("ok", f"🧹 تم تصفير المقعد {seat_no} وإتاحته من جديد")
 
 
 def undo_last_action():
-  stack = st.session_state.get("undo_stack", [])
-  if not stack:
-    return
-  act = stack.pop()
-  with db["lock"]:
-    if act["type"] == "join":
-      db["bookings"] = [b for b in db["bookings"] if b["id"] != act["bid"]]
-    elif act["type"] == "clear_seat":
-      db["bookings"].append(act["record"])
-    save_db()
-
-  st.session_state["sel_deal"] = act["deal_id"]
-  st.session_state["sel_seat"] = act["prev_seat"]
-  st.session_state.pop("last_action_msg", None)
+    stack = st.session_state.get("undo_stack", [])
+    if not stack:
+        return
+    act = stack.pop()
+    seat_no = act["seat_no"]
+    with db["lock"]:
+        db["seats"][str(seat_no)] = act["prev"]
+        save_db()
+    st.session_state["sel_seat"] = seat_no
+    st.session_state["flash_msg"] = ("ok", f"↩️ تم التراجع عن آخر حركة في المقعد {seat_no}")
 
 
-# ==============================================================================
-# 5. مولدات رسائل الواتساب الجاهزة (للمجموعة + للمشرف)
-# ==============================================================================
-def build_customer_join_wa(deal_id: str, bookings: list[dict]) -> str:
-  d = DEALS[deal_id]
-  rem_seats = max(0, d["capacity"] - len(bookings))
-  lines = [
-      f"🛍️ *حجز جديد في {BRAND_NAME}*",
-      f"• الباقة: *{d['title']}*",
-      (
-          f"• السعر بعد الخصم: *{d['deal_price']} ريال* (بدلاً من"
-          f" {d['orig_price']} ريال)"
-      ),
-      (
-          f"• المقاعد المحجوزة: *{len(bookings)} من {d['capacity']}* (المتبقي:"
-          f" {rem_seats})"
-      ),
-      "────────────────────",
-  ]
-  for b in sorted(bookings, key=lambda x: x["seat"]):
-    lines.append(
-        f"• مقعد {b['seat']}: *{b['name']}* — {b['pickup_label']}"
-        f" ({b['status']})"
-    )
-  lines.append("\n⏳ فضلاً إرسال إيصال التحويل خلال 15 دقيقة لتأكيد المقعد.")
-  return "\n".join(lines)
-
-
-def build_group_summary_report() -> str:
-  lines = [
-      f"📊 *تقرير صفقات {BRAND_NAME}*",
-      f"• التوقيت: {now_str()} | المجموعات المكتملة: *{db['completed_groups']}*",
-      "────────────────────",
-  ]
-  for d_id, d_info in DEALS.items():
-    d_books = sorted(get_deal_bookings(d_id), key=lambda x: x["seat"])
-    paid_cnt = sum(1 for x in d_books if x["status"] == "مدفوع ✅")
-    total_sar = paid_cnt * d_info["deal_price"]
-    lines.append(
-        f"\n*▪️ {d_info['title']} ({len(d_books)}/{d_info['capacity']}):*"
-    )
-    if not d_books:
-      lines.append("  - لا توجد حجوزات حالياً.")
-    else:
-      for b in d_books:
-        ph = f" | جوال: {b['phone']}" if b.get("phone") else ""
-        lines.append(
-            f"  - مقعد {b['seat']}: *{b['name']}*{ph} | {b['pickup_label']} |"
-            f" {b['status']}"
+def close_completed_basket():
+    with db["lock"]:
+        paid_total = sum(
+            s["amount"] for s in db["seats"].values() if s["status"] == "paid"
         )
-      lines.append(f"  💰 المحصّل المؤكد: *{total_sar} ريال*")
-  return "\n".join(lines)
+        net_profit = paid_total - BUNDLE_TOTAL_PRICE
+        db["ledger"].append({
+            "id": uuid.uuid4().hex[:6],
+            "basket_no": db["basket_no"],
+            "closed_at": now_str(),
+            "revenue": paid_total,
+            "cost": BUNDLE_TOTAL_PRICE,
+            "net": net_profit,
+            "members": [s["name"] for s in db["seats"].values()],
+        })
+        db["completed_baskets"] += 1
+        db["basket_no"] += 1
+        db["seats"] = default_seats()
+        save_db()
+
+    st.session_state["undo_stack"].clear()
+    st.session_state["sel_seat"] = 1
+    st.session_state["flash_msg"] = ("ok", "🎉 تم إغلاق السلة وترحيل القيد المحاسبي وبدء سلة جديدة!")
 
 
 # ==============================================================================
-# 6. الواجهة الموحدة (1️⃣ المقاعد، 2️⃣ تأكيد الدفع، 3️⃣ إرسال 📲)
+# 5. الحسابات اللحظية والواجهة الرئيسية
 # ==============================================================================
-deal_info = DEALS[active_deal_id]
-deal_bookings = get_deal_bookings(active_deal_id)
-paid_count = sum(1 for b in deal_bookings if b["status"] == "مدفوع ✅")
-pending_count = len(deal_bookings) - paid_count
+seats_list = [db["seats"][str(i)] for i in range(1, SEATS_PER_BASKET + 1)]
+paid_seats = [s for s in seats_list if s["status"] == "paid"]
+pending_seats = [s for s in seats_list if s["status"] == "pending"]
+free_seats = [s for s in seats_list if s["status"] == "free"]
+
+occupied_count = len(paid_seats) + len(pending_seats)
+progress_pct = round((occupied_count / SEATS_PER_BASKET) * 100)
+
+realized_cash = sum(s["amount"] for s in paid_seats)
+pending_cash = sum(s["amount"] for s in pending_seats)
 undo_len = len(st.session_state.get("undo_stack", []))
 
 st.markdown(
     f"""
     <div class="top-bar">
-        <span>🛍️ {BRAND_NAME}</span>
-        <span>✅ مؤكد: {paid_count} &nbsp;|&nbsp; ⏳ معلق: {pending_count}</span>
+        <span>💎 {APP_TITLE} (سلة #{db['basket_no']})</span>
+        <span>🏆 مكتملة: {db['completed_baskets']} &nbsp;|&nbsp; 💺 متاح: {len(free_seats)}</span>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
 tab1, tab2, tab3 = st.tabs([
-    "1️⃣ المقاعد",
-    f"2️⃣ الدفع ({pending_count})",
-    "3️⃣ إرسال 📲",
+    "1️⃣ احجز مقعدك",
+    f"2️⃣ الدفع ({len(pending_seats)})",
+    "3️⃣ المحاسبة والإدارة",
 ])
 
-# --- الخطوة 1: اختيار الباقة، المقعد، والاستلام بلمسة واحدة ---
+# --- الخطوة 1: واجهة العميل بلمسة واحدة وتحفيز الادخار ---
 with tab1:
-  d_cols = st.columns(len(DEALS))
-  for idx, (d_id, d_obj) in enumerate(DEALS.items()):
-    d_cols[idx].button(
-        d_obj["short"],
-        key=f"deal_{d_id}",
-        on_click=select_deal,
-        args=(d_id,),
-        use_container_width=True,
+    st.markdown(
+        f"""
+        <div class="saving-banner">
+            <div class="saving-big">سعر المقعد: {SEAT_PRICE} ريال فقط (بدلاً من {int(SINGLE_RETAIL_PRICE)} ريال)</div>
+            <div class="saving-sub">💰 وفّر في محفظتك {SAVED_PER_SEAT} ريال مباشرة ({SAVED_PCT}% خصم التجميع)</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-  cap = deal_info["capacity"]
-  s_cols = st.columns(cap)
-  for s_num in range(1, cap + 1):
-    s_cols[s_num - 1].button(
-        get_seat_button_label(active_deal_id, s_num),
-        key=f"seat_{s_num}",
-        on_click=select_seat,
-        args=(s_num,),
-        use_container_width=True,
-    )
+    # شبكة المقاعد الأربعة
+    s_cols = st.columns(4)
+    for idx, s_no in enumerate(range(1, SEATS_PER_BASKET + 1)):
+        s_cols[idx].button(
+            get_seat_button_label(s_no),
+            key=f"seat_{s_no}",
+            on_click=select_seat,
+            args=(s_no,),
+            use_container_width=True,
+        )
 
-  pct = min(100, round((len(deal_bookings) / cap) * 100))
-  st.markdown(
-      f"""
+    # شريط اكتمال السلة (تحفيز نفسي لإغلاق المجموعة)
+    rem_txt = (
+        "🔥 اكتملت السلة! بانتظار تأكيد الدفع"
+        if len(free_seats) == 0
+        else f"⚡ باقي {len(free_seats)} مقعد وتُغلق السلة!"
+    )
+    st.markdown(
+        f"""
         <div class="prog-wrap">
             <div class="prog-head">
-                <span>🎯 {deal_info['title']}</span>
-                <span>{len(deal_bookings)} من {cap} مقاعد</span>
+                <span>{rem_txt}</span>
+                <span>{occupied_count} من {SEATS_PER_BASKET}</span>
             </div>
             <div class="prog-track">
-                <div class="prog-fill" style="width:{pct}%;"></div>
+                <div class="prog-fill" style="width:{progress_pct}%;"></div>
             </div>
         </div>
         """,
-      unsafe_allow_html=True,
-  )
-
-  if len(deal_bookings) >= cap:
-    st.markdown(
-        '<div class="done-banner">🎉 اكتملت المجموعة (4/4)! جاهزة للشراء من'
-        " درعه</div>",
         unsafe_allow_html=True,
     )
 
-  current_seat_rec = get_seat_record(active_deal_id, active_seat_num)
-  if current_seat_rec:
-    rem_m = mins_remaining(current_seat_rec["ts"])
-    timer_txt = (
-        "مؤكد بالكامل ✅"
-        if current_seat_rec["status"] == "مدفوع ✅"
-        else (
-            f"متبقي {rem_m} دقيقة للدفع ⏳"
-            if rem_m > 0
-            else "انتهت مهلة الـ 15 دقيقة 🔴"
+    if occupied_count == SEATS_PER_BASKET:
+        st.markdown(
+            f'<div class="basket-done-banner">🎉 السلة #{db["basket_no"]} ممتلئة (4/4) — إجمالي توفير المجموعة: {SAVED_PER_SEAT * 4} ريال!</div>',
+            unsafe_allow_html=True,
         )
+
+    # اختيار نقطة الاستلام بلمسة واحدة
+    pk_cols = st.columns(2)
+    pk_cols[0].button("🛍️ الرد سي مول", key="pk_redsea", on_click=select_pickup, args=("redsea",), use_container_width=True)
+    pk_cols[1].button("📦 خزائن RedBox", key="pk_redbox", on_click=select_pickup, args=("redbox",), use_container_width=True)
+
+    # حقول اختيارية خفيفة لتقليل الاحتكاك
+    in_c1, in_c2 = st.columns(2)
+    with in_c1:
+        st.text_input("الاسم (اختياري)", placeholder="اسمك أو لقبك...", key="in_name", label_visibility="collapsed")
+    with in_c2:
+        st.text_input("الجوال (اختياري)", placeholder="05xxxxxxxx", key="in_phone", label_visibility="collapsed")
+
+    cur_seat_obj = db["seats"][str(active_seat)]
+    if cur_seat_obj["status"] == "free":
+        st.button(
+            f"✅ احجز المقعد {active_seat} الآن ({SEAT_PRICE} ريال)",
+            key="btn_book_main",
+            on_click=book_active_seat,
+            use_container_width=True,
+        )
+    else:
+        st_label = "مدفوع ومؤكد ✅" if cur_seat_obj["status"] == "paid" else "محجوز بانتظار التحويل ⏳"
+        st.markdown(
+            f'<div class="seat-card"><b>مقعد {active_seat}:</b> {cur_seat_obj["name"]} — {st_label} ({PICKUP_POINTS[cur_seat_obj["pickup"]]})</div>',
+            unsafe_allow_html=True,
+        )
+
+    # أزرار السلامة: التراجع المتعدد + تصفير المقعد المحدد
+    if undo_len > 0 or cur_seat_obj["status"] != "free":
+        c_cols = st.columns(2 if (undo_len > 0 and cur_seat_obj["status"] != "free") else 1)
+        ptr = 0
+        if undo_len > 0:
+            with c_cols[ptr]:
+                st.button(f"↩️ رجوع ({undo_len})", key="btn_undo", on_click=undo_last_action, use_container_width=True)
+            ptr += 1
+        if cur_seat_obj["status"] != "free":
+            with c_cols[ptr]:
+                st.button(f"🧹 تصفير مقعد {active_seat}", key="btn_clear_seat", on_click=clear_specific_seat, args=(active_seat,), use_container_width=True)
+
+    if "flash_msg" in st.session_state:
+        f_type, f_txt = st.session_state.pop("flash_msg")
+        card_style = "seat-paid" if f_type == "ok" else "seat-expired"
+        st.markdown(f'<div class="seat-card {card_style}">{f_txt}</div>', unsafe_allow_html=True)
+
+    # زر إرسال رابط السلة أو إيصال التحويل عبر واتساب
+    share_msg = (
+        f"💎 عرض مَقسوم (سلة #{db['basket_no']})\n"
+        f"سعر المقعد: {SEAT_PRICE} ريال بدل {int(SINGLE_RETAIL_PRICE)} ريال (توفير {SAVED_PCT}%)\n"
+        f"المقاعد المتاحة حالياً: {len(free_seats)} من {SEATS_PER_BASKET}\n"
+        f"احجز مقعدك الآن قبل إغلاق السلة!"
     )
     st.markdown(
-        f'<div class="shield-box">🛡️ مقعد {active_seat_num} محجوز:'
-        f' {current_seat_rec["name"]} ({timer_txt})</div>',
+        f'<a href="{wa_app_url(share_msg)}" class="wa-btn">📲 مشاركة السلة / إرسال الإيصال واتساب</a>',
         unsafe_allow_html=True,
     )
 
-  p_cols = st.columns(2)
-  for idx, (p_key, p_val) in enumerate(PICKUP_OPTIONS.items()):
-    p_cols[idx].button(
-        p_val["short"],
-        key=f"pick_{p_key}",
-        on_click=select_pickup,
-        args=(p_key,),
-        use_container_width=True,
-    )
+# --- الخطوة 2: إدارة المتأخرين والعداد التنازلي (15 دقيقة) ---
+with tab2:
+    if not pending_seats and not paid_seats:
+        st.markdown('<div class="seat-card">لا توجد حجوزات نشطة في السلة الحالية بعد.</div>', unsafe_allow_html=True)
 
-  in_c1, in_c2 = st.columns(2)
-  with in_c1:
-    st.text_input(
-        "اسم المشارك",
-        placeholder="الاسم (اختياري)...",
-        key="buyer_name_in",
-        label_visibility="collapsed",
-    )
-  with in_c2:
-    st.text_input(
-        "رقم الجوال",
-        placeholder="الجوال 05...",
-        key="buyer_phone_in",
-        label_visibility="collapsed",
-    )
+    if pending_seats:
+        st.markdown("##### ⏳ حجوزات بانتظار تأكيد التحويل (مهلة 15 دقيقة)")
+        for s in pending_seats:
+            cd_txt, is_exp = format_countdown(s["booked_ts"])
+            cls_name = "seat-card seat-expired" if is_exp else "seat-card"
+            st.markdown(
+                f"<div class='{cls_name}'>"
+                f"<b>💺 مقعد {s['seat_no']} — {s['name']}</b> ({s['amount']} ريال)<br>"
+                f"<small>{PICKUP_POINTS[s['pickup']]} | {cd_txt}</small>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+            b1, b2 = st.columns(2)
+            with b1:
+                if st.button("✅ تم الدفع", key=f"pay_ok_{s['seat_no']}", use_container_width=True):
+                    with db["lock"]:
+                        s["status"] = "paid"
+                        s["paid_str"] = now_str()
+                        save_db()
+                    st.rerun()
+            with b2:
+                if st.button("❌ إلغاء المقعد", key=f"pay_no_{s['seat_no']}", use_container_width=True):
+                    clear_specific_seat(s["seat_no"])
+                    st.rerun()
 
-  st.button(
-      f"⚡ احجز مقعد {active_seat_num} ({deal_info['deal_price']} ريال)",
-      key="btn_join_seat",
-      on_click=join_selected_seat,
-      use_container_width=True,
-  )
+    if paid_seats:
+        st.markdown("---")
+        st.markdown("##### ✅ مقاعد مؤكدة الدفع")
+        for s in paid_seats:
+            st.markdown(
+                f"<div class='seat-card seat-paid'>"
+                f"<b>✅ مقعد {s['seat_no']} — {s['name']}</b> ({s['amount']} ريال)<br>"
+                f"<small>{PICKUP_POINTS[s['pickup']]} | تأكد الدفع: {s['paid_str']}</small>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
 
-  st.markdown(
-      f"""
-        <div class="seat-hero">
-            <div class="seat-hero-big">💺 مقعد {active_seat_num} — {deal_info['deal_price']} ريال</div>
-            <div class="seat-hero-sub">{PICKUP_OPTIONS[active_pickup_key]['full']}</div>
+# --- الخطوة 3: القيد المحاسبي ولوحة الإدارة (PIN: 9900) ---
+with tab3:
+    st.markdown(
+        f"""
+        <div class="ledger-box">
+            <b>📊 الموقف المحاسبي للسلة الحالية (#{db['basket_no']}):</b><br>
+            • الكاش المحقق الفعلي: <b>{realized_cash} ريال</b> ({len(paid_seats)}/{SEATS_PER_BASKET})<br>
+            • إيراد معلّق (قيد الانتظار): <b>{pending_cash} ريال</b> ({len(pending_seats)} مقاعد)<br>
+            • تكلفة شراء الباقة كاملة: <b>{int(BUNDLE_TOTAL_PRICE)} ريال</b>
         </div>
         """,
-      unsafe_allow_html=True,
-  )
-
-  if undo_len > 0 or current_seat_rec is not None:
-    u_cols = st.columns(2 if (undo_len > 0 and current_seat_rec is not None) else 1)
-    u_ptr = 0
-    if undo_len > 0:
-      with u_cols[u_ptr]:
-        st.button(
-            f"↩️ رجوع ({undo_len})",
-            key="btn_undo",
-            on_click=undo_last_action,
-            use_container_width=True,
-        )
-      u_ptr += 1
-    if current_seat_rec is not None:
-      with u_cols[u_ptr]:
-        st.button(
-            "🧹 تصفير المقعد",
-            key="btn_clear_seat",
-            on_click=clear_selected_seat,
-            use_container_width=True,
-        )
-
-  if "last_action_msg" in st.session_state:
-    msg_obj = st.session_state["last_action_msg"]
-    card_style = "shield-box" if msg_obj["warn"] else "ok-card"
-    st.markdown(
-        f'<div class="{card_style}">{msg_obj["text"]}</div>',
         unsafe_allow_html=True,
     )
 
-  if deal_bookings:
-    wa_cust = build_customer_join_wa(active_deal_id, deal_bookings)
-    st.markdown(
-        f'<a href="{wa_link(wa_cust, ADMIN_PHONE)}" class="wa-btn">📲 إرسال'
-        " الحجز وتأكيده عبر واتساب</a>",
-        unsafe_allow_html=True,
-    )
+    pin_in = st.text_input("رمز الإدارة (9900)", type="password", placeholder="أدخل رمز الإدارة لإغلاق السلة...")
+    if pin_in == ADMIN_PIN:
+        if len(paid_seats) == SEATS_PER_BASKET:
+            st.button(
+                f"🔒 إغلاق السلة #{db['basket_no']} (4/4) وبدء جولة جديدة",
+                key="btn_close_basket",
+                on_click=close_completed_basket,
+                use_container_width=True,
+            )
+        else:
+            st.warning(f"لا يمكن إغلاق السلة محاسبياً قبل تحصيل كامل المقاعد ({len(paid_seats)}/{SEATS_PER_BASKET} مدفوع).")
 
-# --- الخطوة 2: تأكيد الدفع أو إلغاء المقعد المنتهي (✅ / ❌) ---
-with tab2:
-  all_pending = [b for b in db["bookings"] if b["status"] != "مدفوع ✅"]
-  if not all_pending:
-    st.markdown(
-        '<div class="done-banner">🏆 جميع المقاعد المحجوزة مدفوعة ومؤكدة!</div>',
-        unsafe_allow_html=True,
-    )
-  else:
-    st.markdown("##### 💳 مراجعة التحويلات (مهلة 15 دقيقة):")
-    for b in all_pending:
-      rem_min = mins_remaining(b["ts"])
-      is_exp = rem_min == 0
-      c_cls = "task-card task-expired" if is_exp else "task-card"
-      t_badge = (
-          "🔴 انتهت الـ 15 دقيقة!" if is_exp else f"⏳ متبقي {rem_min} دقيقة"
-      )
-      d_title = DEALS.get(b["deal_id"], {}).get("short", b["deal_id"])
-
-      st.markdown(
-          f"<div class='{c_cls}'><b>💺 مقعد {b['seat']} ({d_title}) —"
-          f" {b['name']}</b><br><small>{b['pickup_label']} • <span"
-          f" style='color:#fbbf24;'>{t_badge}</span></small></div>",
-          unsafe_allow_html=True,
-      )
-      p_c1, p_c2 = st.columns(2)
-      with p_c1:
-        if st.button(
-            "✅ تم الدفع", key=f"pay_ok_{b['id']}", use_container_width=True
-        ):
-          with db["lock"]:
-            b["status"] = "مدفوع ✅"
-            save_db()
-          st.rerun()
-      with p_c2:
-        if st.button(
-            "❌ إلغاء المقعد",
-            key=f"pay_no_{b['id']}",
-            use_container_width=True,
-        ):
-          with db["lock"]:
-            db["bookings"] = [x for x in db["bookings"] if x["id"] != b["id"]]
-            save_db()
-          st.rerun()
-
-# --- الخطوة 3: إرسال التقرير وإغلاق المجموعة المكتملة ---
-with tab3:
-  full_rep = build_group_summary_report()
-  st.markdown(
-      f'<a href="{wa_link(full_rep)}" class="wa-btn">📲 إرسال ملخص الصفقات'
-      " عبر واتساب</a>",
-      unsafe_allow_html=True,
-  )
-  with st.expander("👁️ معاينة الملخص", expanded=True):
-    st.text_area(
-        "الملخص:", value=full_rep, height=220, label_visibility="collapsed"
-    )
-
-  st.markdown("---")
-  pin_in = st.text_input(
-      "رمز الإدارة لتصفير المجموعة (9900):", type="password", key="admin_pin_in"
-  )
-  if hmac.compare_digest(
-      pin_in.strip().encode("utf-8"), ADMIN_PIN.encode("utf-8")
-  ):
-    if st.button(
-        "🎉 إغلاق المجموعة المكتملة وبدء مجموعة جديدة", use_container_width=True
-    ):
-      with db["lock"]:
-        db["completed_groups"] += 1
-        db["bookings"] = [
-            b for b in db["bookings"] if b["deal_id"] != active_deal_id
-        ]
-        save_db()
-      st.session_state["sel_seat"] = 1
-      st.session_state["undo_stack"].clear()
-      st.session_state.pop("last_action_msg", None)
-      st.rerun()
+        if db["ledger"]:
+            st.markdown("##### 📒 سجل السلات المغلقة (دفتر الأستاذ)")
+            for entry in reversed(db["ledger"][-10:]):
+                st.markdown(
+                    f"<div class='seat-card'>"
+                    f"<b>سلة #{entry['basket_no']}</b> — {entry['closed_at']}<br>"
+                    f"<small>التحصيل: {entry['revenue']} ريال | التكلفة: {int(entry['cost'])} ريال | الصافي: {entry['net']} ريال</small>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
